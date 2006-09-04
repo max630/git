@@ -1,0 +1,1169 @@
+#!/bin/sh
+# Tcl ignores the next line -*- tcl -*- \
+exec wish "$0" -- "$@"
+
+# Copyright (C) 2006 Paul Mackerras.  All rights reserved.
+# This program is free software; it may be used, copied, modified
+# and distributed under the terms of the GNU General Public Licence,
+# either version 2, or (at your option) any later version.
+
+proc mapicon {st} {
+    global states icons
+
+    set icon file_plain
+    set i [lsearch -exact $states $st]
+    if {$i >= 0} {
+	set icon file_[lindex $icons $i]
+    }
+    return $icon
+}
+
+proc rescan {} {
+    global HEAD initial nfopen showingfile wfiles
+    global flw othw diffw commitbut gitdir selfiles
+    global ficonitem lastclickline seladding
+    global fne fst statusfile
+
+    if {[catch {set HEAD [exec git rev-parse --verify HEAD]}]} {
+	# initial revision
+	set initial 1
+	set gdf1 [open "| git diff-files" r]
+	set gdf2 [open "| git ls-files" r]
+	set HEAD {}
+    } else {
+	set initial 0
+	set gdf1 [open "| git diff-index HEAD" r]
+	set gdf2 [open "| git diff-index --cached HEAD" r]
+    }
+    fconfigure $gdf1 -blocking 0
+    fileevent $gdf1 readable [list readfmod $gdf1 0]
+    fconfigure $gdf2 -blocking 0
+    fileevent $gdf2 readable [list readfmod $gdf2 1]
+
+    set cmd [list | git ls-files --others --exclude-per-directory=.gitignore]
+    set excl [file join $gitdir info exclude]
+    if {[file readable $excl]} {
+	lappend cmd --exclude-from=$excl
+    }
+    set glof [open $cmd r]
+    fconfigure $glof -blocking 0
+    fileevent $glof readable [list readfoth $glof]
+    set nfopen 3
+    set showingfile {}
+    set wfiles($flw) {}
+    set wfiles($othw) {}
+    set selfiles {}
+    catch {unset ficonitem}
+
+    foreach w [list $flw $othw $diffw] {
+	$w conf -state normal
+	$w delete 1.0 end
+	$w conf -state disabled
+    }
+    $commitbut configure -state disabled
+
+    set lastclickline 0
+    set seladding add
+
+    $fne conf -state normal
+    $fne delete 0 end
+    $fne conf -state readonly
+    set statusfile {}
+    $fst conf -text "State:"
+}
+
+proc addfileentry {w f state} {
+    global fstate ficonitem wfiles filew
+
+    set fstate($f) $state
+    set filew($f) $w
+    if {[info exists ficonitem($f)]} {
+	$w image conf $ficonitem($f) -image [mapicon $state]
+	return
+    }
+    $w conf -state normal
+    if {[string compare $f [lindex $wfiles($w) end]] > 0} {
+	if {$wfiles($w) eq {}} {
+	    set lno 1
+	} else {
+	    set lno [lindex [split [$w index end] .] 0]
+	    $w insert end "\n"
+	}
+	lappend wfiles($w) $f
+    } else {
+	set lno 1
+	foreach x $wfiles($w) {
+	    if {[string compare $f $x] < 0} break
+	}
+	set wfiles($w) [linsert $wfiles($w) [expr {$lno-1}] $f]
+	$w insert $lno.0 "\n"
+    }
+    set i [$w image create $lno.0 -align center -image [mapicon $state] \
+	       -padx 5 -pady 1]
+    $w insert $lno.1 $f
+    $w conf -state disabled
+    set ficonitem($f) $i
+}
+
+proc updateicon {f} {
+    global filew ficonitem fstate
+
+    $filew($f) image conf $ficonitem($f) -image [mapicon $fstate($f)]
+}
+
+proc removefileentry {f} {
+    global wfiles filew
+
+    set w $filew($f)
+    set l [lsearch -exact $wfiles($w) $f]
+    if {$l < 0} {
+	puts "oops can't find $f in files for $w"
+	return
+    }
+    $w conf -state normal
+    $w delete [expr {$l+1}].0 [expr {$l+2}].0
+    $w conf -state disabled
+    set wfiles($w) [lreplace $wfiles($w) $l $l]
+}
+
+proc readfmod {fd isindex} {
+    global flw othw indexstate fstate nfopen indexpending
+    global ficonitem filesha1 indexsha1 treesha1 initial
+
+    while {[gets $fd line] >= 0} {
+	if {$initial && $isindex} {
+	    # this comes from git ls-files, not a diff...
+	    set f $line
+	    if {[string index $f 0] eq "\""} {
+		# remove shell-style quoting
+		set f [lindex $f 0]
+	    }
+	    set indexstate($f) "A"
+	    if {![info exists filesha1($f)]} {
+		set state "A"
+		set indexsha1($f) {}
+		set filesha1($f) {}
+		set indexpending($f) 1
+	    } else {
+		set state "PA"
+	    }
+	    addfileentry $othw $f $state
+	    return
+	}
+
+	set tl [split $line "\t"]
+	if {[llength $tl] < 2} {
+	    puts stderr "oops, can't parse line: {$line}"
+	    continue
+	}
+	set l [lindex $tl 0]
+	set f [lindex $tl 1]
+	if {[string index $f 0] eq "\""} {
+	    # remove shell-style quoting
+	    set f [lindex $f 0]
+	}
+	set oldmode [string range [lindex $l 0] 1 end]
+	set newmode [lindex $l 1]
+	set oldsha1 [lindex $l 2]
+	set newsha1 [lindex $l 3]
+	set state [lindex $l 4]
+	set sim [string range $state 1 end]
+	set state [string range $state 0 0]
+
+	if {$isindex} {
+	    set indexstate($f) $state
+	    set indexsha1($f) $newsha1
+	    if {[info exists ficonitem($f)]} {
+		if {$fstate($f) eq "M"} {
+		    if {$newsha1 ne $filesha1($f)} {
+			$flw image conf $ficonitem($f) -image file_parttick
+			if {$state eq "M"} {
+			    set state "P"
+			}
+		    }
+		    append state $fstate($f)
+		    set fstate($f) $state
+		}
+	    } else {
+		set indexpending($f) 1
+	    }
+	} else {
+	    if {$newsha1 eq "0000000000000000000000000000000000000000"} {
+		if {[file exists $f]} {
+		    set newsha1 [exec git hash-object $f]
+		    if {![info exists indexsha1($f)]} {
+			set info [exec git ls-files -s $f]
+			set indexsha1($f) [lindex $info 1]
+		    }
+		    if {$newsha1 eq $indexsha1($f) && $newmode eq $oldmode} {
+			# might want to batch these up eventually...
+			exec git update-index --refresh $f
+			continue
+		    }
+		} else {
+		    # what?
+		}
+	    }
+	    set filesha1($f) $newsha1
+	    if {$initial} {
+		set indexsha1($f) $oldsha1
+		set state "A"
+	    } else {
+		set treesha1($f) $oldsha1
+	    }
+	    if {[info exists indexstate($f)]} {
+		if {($indexstate($f) eq "M" || $indexstate($f) eq "A")
+		    && $newsha1 ne $indexsha1($f)} {
+		    set indexstate($f) "P"
+		}
+		set state $indexstate($f)$state
+		unset indexpending($f)
+	    }
+	    if {[string match "*A" $state]} {
+		addfileentry $othw $f $state
+	    } else {
+		addfileentry $flw $f $state
+	    }
+	}
+    }
+    if {[eof $fd]} {
+	close $fd
+	if {[incr nfopen -1] <= 0} {
+	    readdone
+	}
+    }
+}
+
+proc readfoth {fd} {
+    global othw nfopen
+
+    while {[gets $fd line] >= 0} {
+	if {[string index $line 0] eq "\""} {
+	    # undo "C-style" quoting
+	    set line [lindex $line 0]
+	}
+	addfileentry $othw $line X
+    }
+    if {[eof $fd]} {
+	close $fd
+	if {[incr nfopen -1] <= 0} {
+	    readdone
+	}
+    }
+}
+
+proc checkinout {f} {
+    global fstate ficonitem showingfile diffw
+    global statusfile fst
+
+    switch -- $fstate($f) {
+	"PM" -
+	"M" {
+	    if {[catch {exec git update-index $f} err]} {
+		error_popup "Error checking in $f: $err"
+		return
+	    }
+	    if {$showingfile eq $f && $fstate($f) eq "M"} {
+		$diffw tag conf dp -foreground "#00a000"
+	    }
+	    set fstate($f) "MM"
+	}
+	"MM" -
+	"DD" {
+	    if {[catch {
+		exec git ls-tree HEAD $f | git update-index --index-info
+	    } err]} {
+		error_popup "Error restoring $f: $err"
+		return
+	    }
+	    set fstate($f) [string range $fstate($f) 1 1]
+	    if {$showingfile eq $f} {
+		$diffw tag conf dp -foreground blue
+	    }
+	}
+	"PA" {
+	    if {[catch {exec git update-index $f} err]} {
+		error_popup "Error updating index for $f: $err"
+		return
+	    }
+	    set fstate($f) "AA"
+	}
+	"A" -
+	"AA" {
+	    if {[catch {exec git update-index --force-remove $f} err]} {
+		error_popup "Error removing $f from index: $err"
+		return
+	    }
+	    set fstate($f) "X"
+	}
+	"X" {
+	    if {[catch {exec git update-index --add $f} err]} {
+		error_popup "Error adding $f: $err"
+		return
+	    }
+	    set fstate($f) "AA"
+	}
+	"D" {
+	    if {[catch {exec git update-index --remove $f} err]} {
+		error_popup "Error removing $f from index: $err"
+		return
+	    }
+	    set fstate($f) "DD"
+	}
+	default {
+	    puts "what do I do for state $fstate($f) on $f?"
+	    return
+	}
+    }
+    updateicon $f
+    if {$f eq $statusfile} {
+	$fst conf -text "State: [mapstate $fstate($f)]"
+    }
+}
+
+# check in everything that makes sense
+proc checkinall {} {
+    global wfiles flw fstate
+
+    foreach f $wfiles($flw) {
+	set st $fstate($f)
+	if {$st eq "M" || $st eq "D"} {
+	    checkinout $f
+	}
+    }
+}
+
+proc cleardiff {} {
+    global diffw showingfile
+
+    $diffw conf -state normal
+    $diffw delete 1.0 end
+    $diffw conf -state disabled
+    set showingfile {}
+}
+
+proc showdiff {w f} {
+    global fstate diffw treesha1 showingfile threeway
+
+    # do 3-way diff here...?
+    set cmd [list | git diff-index -p HEAD $f]
+    cleardiff
+    set threeway 0
+    switch $fstate($f) {
+	"UM" -
+	"M" {
+	    $diffw tag conf dm -foreground red
+	    $diffw tag conf dp -foreground blue
+	}
+	"MM" {
+	    $diffw tag conf dm -foreground red
+	    $diffw tag conf dp -foreground "#00a000"
+	}
+	"PA" {
+	    $diffw tag conf dm -foreground "#00a000"
+	    $diffw tag conf dp -foreground blue
+	    set cmd [list | git diff-files -p $f]
+	}
+	"PM" {
+	    $diffw tag conf dm -foreground red
+	    $diffw tag conf dp -foreground blue
+	    set cmd [list | git diff-index -p -c HEAD $f]
+	}
+	"A" -
+	"AA" -
+	"X" {
+	    if {[catch {
+		set fd [open $f r]
+		set stuff [read $fd]
+		close $fd
+	    } err ]} {
+		error_popup "Error reading $f: $err"
+		return
+	    }
+	    set showingfile $f
+	    $diffw conf -state normal
+	    $diffw insert end $stuff
+	    $diffw conf -state disabled
+	    return
+	}
+	"D" -
+	"DD" {
+	    if {[catch {
+		set fd [open [list | git cat-file blob $treesha1($f)] r]
+		set stuff [read $fd]
+		close $fd
+	    } err ]} {
+		error_popup "Error reading $f: $err"
+		return
+	    }
+	    $diffw conf -state normal
+	    $diffw tag conf dm -foreground red
+	    $diffw insert end $stuff dm
+	    $diffw conf -state disabled
+	    return
+	}
+	default {
+	    puts "don't know what to do for state $fstate($f) on $f"
+	    return
+	}
+    }
+    set showingfile $f
+    if {[catch {set difff [open $cmd r]} err]} {
+	error_popup "Error reading diffs: $err"
+	return
+    }
+    fconfigure $difff -blocking 0
+    fileevent $difff readable [list getdiffline $difff]
+}
+
+proc getdiffline {fd} {
+    global diffw threeway
+
+    while {[gets $fd line] >= 0} {
+	if {[string match "index*" $line]} {
+	    if {[string first "," $line] >= 0} {
+		set threeway 1
+	    }
+	}
+	$diffw conf -state normal
+	if {!$threeway} {
+	    set x [string index $line 0]
+	    switch -- $x {
+		"@" {set tags da}
+		"+" {set tags dp}
+		"-" {set tags dm}
+		default {set tags {}}
+	    }
+	} else {
+	    set x [string range $line 0 1]
+	    switch -- $x {
+		"@@" {set tags da}
+		"++" {set tags dp; set x " +"}
+		" +" {set tags {di bold}; set x "++"}
+		"+ " {set tags dni; set x "-+"}
+		"--" {set tags dm; set x " -"}
+		" -" {set tags {dm bold}; set x "--"}
+		"- " {set tags di; set x "+-"}
+		default {set tags {}}
+	    }
+	    set line [string replace $line 0 1 $x]
+	}
+	$diffw insert end $line $tags
+	$diffw insert end "\n"
+	$diffw conf -state disabled
+    }
+    if {[eof $fd]} {
+	close $fd
+    }
+}
+
+proc mapstate {state} {
+    global states descriptions
+
+    set i [lsearch -exact $states $state]
+    if {$i >= 0} {
+	set state [lindex $descriptions $i]
+    }
+    return $state
+}
+
+# called when we have finished reading from all the git subprocesses
+proc readdone {} {
+    global commitbut
+
+    $commitbut conf -state normal
+}
+
+# check if any files are checked in
+proc anycheckedin {} {
+    global wfiles fstate flw othw
+
+    foreach f $wfiles($flw) {
+	set st $fstate($f)
+	if {$st eq "MM" || $st eq "DD" || [string match {[AP]*} $st]} {
+	    return 1
+	}
+    }
+    foreach f $wfiles($othw) {
+	set st $fstate($f)
+	if {[string match {A*} $st]} {
+	    return 1
+	}
+    }
+    return 0
+}
+
+# called when the commit button is pressed
+proc docommit {} {
+    global commw initial commentsfile
+
+    set msg [string trim [$commw get 1.0 end]]
+    if {$msg eq {}} {
+	error_popup "Please supply a description of the commit."
+	return
+    }
+    if {![anycheckedin]} {
+	if {![confirm_popup "Nothing has been checked in.  Are you sure\
+			     you want to create an empty commit?"]} return
+    }
+    set headline $msg
+    set i [string first "\n" $msg]
+    if {$i >= 0} {
+	set headline [string range $msg 0 [expr {$i - 1}]]
+    }
+    # create the tree object
+    if {[catch {set tree [exec git write-tree]} err]} {
+	error_popup "Error creating tree object: $err"
+	return
+    }
+    # get the list of parents; empty or HEAD for now
+    set cmd [list git commit-tree $tree]
+    if {!$initial} {
+	set head [exec git rev-parse --verify HEAD]
+	lappend cmd -p $head
+    } else {
+	# git commit-tree writes to stderr when creating an initial commit :(
+	lappend cmd 2>/dev/null
+    }
+    lappend cmd << $msg
+    # create the commit
+    if {[catch {set cmit [eval exec $cmd]} err]} {
+	error_popup "Error creating commit object: $err"
+	return
+    }
+    # update the HEAD ref
+    set reason "commit"
+    if {$initial} {
+	append reason " (initial)"
+    }
+    append reason ": " $headline
+    set cmd [list git update-ref -m $reason HEAD $cmit]
+    if {!$initial} {
+	lappend initial $head
+    }
+    if {[catch {eval exec $cmd} err]} {
+	error_popup "Error updating HEAD reference: $err"
+	return
+    }
+    catch {file delete $commentsfile}
+    $commw edit modified false
+    destroy .
+}
+
+proc tbindings {w} {
+    bind $w <1> {click %W %x %y 0 %X %Y; break}
+    bind $w <Shift-1> {click %W %x %y 1 %X %Y; break}
+    bind $w <Control-1> {click %W %x %y 2 %X %Y; break}
+    bind $w <Any-B1-Motion> {click %W %x %y 3 %X %Y; break}
+    bind $w <Any-ButtonRelease-1> {unclick %W %x %y; break}
+    bind $w <Any-Button-3> {click %W %x %y 4 %X %Y; break}
+}
+
+proc isselected {w lno} {
+    return [expr {[lsearch -exact sel [$w tag names $lno.0]] >= 0}]
+}
+
+proc selectedlines {w} {
+    set lines {}
+    set last 0
+    foreach {sl el} [$w tag ranges sel] {
+	set sl [lindex [split $sl .] 0]
+	set el [lindex [split $el .] 0]
+	if {$sl == $last} {
+	    incr sl
+	}
+	for {} {$sl < $el} {incr sl} {
+	    lappend lines $sl
+	    set last $sl
+	}
+    }
+    return $lines
+}
+
+# mouse click or drag, with or without shift or control
+# shift == 0: click, 1: shift-click, 2: control-click, 3: drag, 4: right click
+proc click {w x y shift wx wy} {
+    global wfiles fne fst fstate selfiles lastclickline seladding
+    global showingfile statusfile wctxmenu click_col
+    global rclickw rclickfiles rclicklnos useful_states
+
+    set pos [split [$w index @$x,$y] .]
+    set lno [lindex $pos 0]
+    set col [lindex $pos 1]
+    set f [lindex $wfiles($w) [expr {$lno-1}]]
+    if {$f eq {}} return
+    set op add
+    if {$shift <= 2} {
+	set click_col $col
+    }
+    if {($col == 0 || $shift == 4) && [isselected $w $lno]} {
+	# do nothing
+    } elseif {$shift == 0 || $shift == 4 || [$w tag nextrange sel 1.0] eq {}} {
+	$fne conf -state normal
+	$fne delete 0 end
+	$fne insert 0 $f
+	$fne conf -state readonly
+	set statusfile $f
+	$fst conf -text "State: [mapstate $fstate($f)]"
+	$w tag remove sel 1.0 end
+	$w tag add sel $lno.0 [expr {$lno+1}].0
+	if {$col > 0 && $shift != 4} {
+	    # click on a filename
+	    showdiff $w $f
+	} elseif {$f ne $showingfile} {
+	    cleardiff
+	}
+    } elseif {$shift == 1 || $shift == 3} {
+	if {$shift == 3} {
+	    set op $seladding
+	}
+	if {$lno < $lastclickline} {
+	    $w tag $op sel $lno.0 $lastclickline.0
+	} elseif {$lno > $lastclickline} {
+	    $w tag $op sel [expr {$lastclickline+1}].0 [expr {$lno+1}].0
+	}
+    } elseif {$shift == 2} {
+	if {[isselected $w $lno]} {
+	    set op remove
+	}
+	$w tag $op sel $lno.0 [expr {$lno+1}].0
+    }
+    if {$shift == 4} {
+	# pop up right-click menu
+	set rclickfiles {}
+	set rclicklnos [selectedlines $w]
+	set rclickw $w
+	foreach lno $rclicklnos {
+	    lappend rclickfiles [lindex $wfiles($w) [expr {$lno-1}]]
+	}
+	set menu $wctxmenu($w)
+	set i 0
+	foreach ust $useful_states($menu) {
+	    if {$ust eq {}} {
+		set st normal
+	    } else {
+		set st disabled
+		foreach f $rclickfiles {
+		    if {[lsearch -exact $ust $fstate($f)] >= 0} {
+			set st normal
+			break
+		    }
+		}
+	    }
+	    $menu entryconfigure $i -state $st
+	    incr i
+	}
+	tk_popup $wctxmenu($w) $wx $wy
+    }
+    set seladding $op
+    set lastclickline $lno
+}
+
+# Button 1 up; if over an icon and the down event was also over an
+# icon, do some checking in or reverting of the selected files.
+proc unclick {w x y} {
+    global wfiles click_col fstate
+
+    set pos [split [$w index @$x,$y] .]
+    set lno [lindex $pos 0]
+    set col [lindex $pos 1]
+    set f [lindex $wfiles($w) [expr {$lno-1}]]
+    if {$col != 0 || $click_col != 0 || $f eq {}} return
+    set okstates {}
+    foreach ss {{M PM PA X D} {MM A AA DD}} {
+	if {[lsearch -exact $ss $fstate($f)] >= 0} {
+	    set okstates $ss
+	    break
+	}
+    }
+    foreach lno [selectedlines $w] {
+	set lf [lindex $wfiles($w) [expr {$lno-1}]]
+	if {[lsearch -exact $okstates $fstate($lf)] >= 0} {
+	    checkinout $lf
+	}
+    }
+}
+
+proc signoff {} {
+    global commw
+
+    catch {
+	set me [exec git var GIT_COMMITTER_IDENT]
+	if {[regexp {(.*) [0-9]+ [-+0-9]+$} $me me name]} {
+	    set str "Signed-off-by: $name"
+	    if {[$commw get {end -1c linestart} {end -1c}] != $str} {
+		$commw insert end "\n"
+		$commw insert end $str
+	    }
+	}
+    }
+}
+
+# Return files from $rclickfiles whose state is one of the states in
+# the useful list for item $idx in menu $menu.
+proc filterfiles {menu idx} {
+    global rclickfiles fstate useful_states
+
+    set ret {}
+    set useful [lindex $useful_states($menu) $idx]
+    foreach f $rclickfiles {
+	if {[lsearch -exact $useful $fstate($f)] >= 0} {
+	    lappend ret $f
+	}
+    }
+    return $ret
+}
+
+proc describe_files {rf} {
+    if {[llength $rf] == 1} {
+	set f [lindex $rf 0]
+    } else {
+	set f [format "%d files" [llength $rf]]
+    }
+    return $f
+}
+
+# Restore files to last committed state
+proc restorefiles {mod} {
+    if {$mod eq {}} return
+    if {![confirm_popup "Restore [describe_files $mod] to\
+			 their committed state?"]} return
+    if {$mod ne {}} {
+	if {[catch {
+	    eval exec git ls-tree HEAD $mod | git update-index --index-info
+	} err]} {
+	    error_popup "Error restoring index state"
+	    return
+	}
+    }
+    if {[catch {
+	eval exec git checkout-index -f -u -q -- $mod
+    } err]} {
+	error_popup "Error checking out files"
+	return
+    }
+    foreach f $mod {
+	removefileentry $f
+    }
+}
+
+# Restore files to checked-in state
+proc revertfiles {rev} {
+    global fstate
+
+    if {$rev eq {}} return
+    if {![confirm_popup "Revert local changes to [describe_files $rev]?"]} {
+	return
+    }
+    if {[catch {
+	eval exec git checkout-index -f -u -q -- $rev
+    } err]} {
+	error_popup "Error checking out files"
+	return
+    }
+    foreach f $rev {
+	if {$fstate($f) eq "PM"} {
+	    set fstate($f) "MM"
+	    updateicon $f
+	} else {
+	    removefileentry $f
+	}
+    }    
+}
+
+proc ignorefiles {flist} {
+    global gitdir
+
+    if {$flist eq {}} return
+    set patterns $flist
+    if {[llength $flist] > 1} {
+	# try to infer a pattern from the selected filenames
+	foreach f $flist {
+	    if {![info exists first]} {
+		set first $f
+		set npost [set npre [string length $f]]
+	    } else {
+		for {set i 0} {$i < $npre} {incr i} {
+		    if {[string index $f $i] != [string index $first $i]} break
+		}
+		set npre $i
+		for {set i 0} {$i < $npost} {incr i} {
+		    if {[string index $f end-$i]
+			!= [string index $first end-$i]} break
+		}
+		set npost $i
+		if {$npre == 0 && $npost == 0} break
+	    }
+	}
+	if {$npre > 0 || $npost > 0} {
+	    set pat [string range $first 0 [expr {$npre-1}]]
+	    append pat "*"
+	    if {$npost > 0} {
+		append pat [string range $first end-[expr {$npost-1}] end]
+	    }
+	    set patterns [list $pat]
+	}
+    }
+
+    set top .ignores
+    toplevel $top
+    wm title $top "Gitool - add ignores"
+    set ignf [file join $gitdir info exclude]
+    label $top.lpat -text "Patterns to add to $ignf:"
+    grid $top.lpat - -sticky w -pady 10
+    text $top.pats -width 40 -height 10 \
+	-yscrollcommand [list $top.sb set]
+    $top.pats insert end [join $patterns "\n"]
+    scrollbar $top.sb -command [list $top.pats yview]
+    grid $top.pats $top.sb -sticky ns
+
+    frame $top.buts
+    button $top.buts.ok -text "OK" -command [list doignore $top]
+    button $top.buts.can -text "Cancel" -command [list destroy $top]
+    grid $top.buts.ok $top.buts.can
+    grid columnconfigure $top.buts 0 -weight 1 -uniform a
+    grid columnconfigure $top.buts 1 -weight 1 -uniform a
+    grid $top.buts - - -pady 10 -sticky ew
+}
+
+proc doignore {top} {
+    global gitdir wfiles othw
+
+    set patterns [$top.pats get 1.0 end-1c]
+    set fn [file join $gitdir info exclude]
+    if {[catch {
+	set fd [open $fn a]
+	puts $fd $patterns
+	close $fd
+    } err]} {
+	error_popup "Error appending to $fn: $err"
+	destroy $top
+	return
+    }
+    set patterns [split $patterns "\n"]
+    foreach pat $patterns {
+	set pat [string trim $pat]
+	if {$pat eq {}} continue
+	set flist $wfiles($othw)
+	foreach i [lsearch -all -glob $wfiles($othw) $pat] {
+	    removefileentry [lindex $flist $i]
+	}
+    }
+    destroy $top
+}
+
+proc removefiles {flist} {
+    global fstate rclickw
+
+    if {![confirm_popup "Really delete [describe_files $flist]?"]} return
+    foreach f $flist {
+	if {[catch {file delete -- $f} err]} {
+	    error_popup "Error deleting $f: $err"
+	    break
+	}
+	if {$fstate($f) eq "A" || $fstate($f) eq "AA"} {
+	    if {[catch {exec git update-index --remove $f} err]} {
+		error_popup "Error removing $f from index: $err"
+		break
+	    }
+	}
+	removefileentry $f
+    }
+}
+
+proc save_comments {} {
+    global commw commentsfile HEAD
+
+    if {![winfo viewable .]} return
+    if {![$commw edit modified]} return
+    if {[catch {
+	set fd [open $commentsfile w]
+	puts $fd $HEAD
+	puts -nonewline $fd [$commw get 1.0 end]
+	close $fd
+	$commw edit modified false
+    } err]} {
+	puts stderr $err
+    }
+}
+
+proc show_msg {w top msg} {
+    message $w.m -text $msg -justify center -aspect 400
+    pack $w.m -side top -fill x -padx 20 -pady 20
+    button $w.ok -text OK -command "destroy $top"
+    pack $w.ok -side bottom -fill x
+    bind $top <Visibility> "grab $top; focus $top"
+    bind $top <Key-Return> "destroy $top"
+    tkwait window $top
+}
+
+proc error_popup {msg} {
+    set w .error
+    toplevel $w
+    wm transient $w .
+    show_msg $w $w $msg
+}
+
+proc info_popup {msg} {
+    set w .info
+    toplevel $w
+    wm transient $w .
+    show_msg $w $w $msg
+}
+
+proc confirm_popup msg {
+    global confirm_ok
+    set confirm_ok 0
+    set w .confirm
+    toplevel $w
+    wm transient $w .
+    message $w.m -text $msg -justify center -aspect 400
+    pack $w.m -side top -fill x -padx 20 -pady 20
+    button $w.ok -text OK -command "set confirm_ok 1; destroy $w"
+    pack $w.ok -side left -fill x
+    button $w.cancel -text Cancel -command "destroy $w"
+    pack $w.cancel -side right -fill x
+    bind $w <Visibility> "grab $w; focus $w"
+    tkwait window $w
+    return $confirm_ok
+}
+
+proc resizeflist {w wid} {
+    global oldwidth
+
+    if {![info exists oldwidth]} {
+	set oldwidth [winfo reqwidth $w]
+    }
+    set sash [$w sash coord 0]
+    if {$wid != $oldwidth} {
+	set sx [lindex $sash 0]
+	set newsx [expr {$sx * $wid / $oldwidth}]
+	if {$newsx != $sx} {
+	    $w sash place 0 $newsx [lindex $sash 1]
+	}
+    }
+    set oldwidth $wid
+}
+
+set filemask {
+#define mask_width 14
+#define mask_height 15
+static unsigned char mask_bits[] = {
+   0xfe, 0x1f, 0xfe, 0x1f, 0xfe, 0x1f, 0xfe, 0x1f, 0xfe, 0x1f, 0xfe, 0x1f,
+   0xfe, 0x1f, 0xfe, 0x1f, 0xfe, 0x1f, 0xfe, 0x1f, 0xfe, 0x1f, 0xfe, 0x1f,
+   0xfe, 0x1f, 0xfe, 0x1f, 0xfe, 0x1f};
+}
+
+image create bitmap file_plain -background white -foreground black -data {
+#define plain_width 14
+#define plain_height 15
+static unsigned char plain_bits[] = {
+   0xfe, 0x01, 0x02, 0x03, 0x02, 0x05, 0x02, 0x09, 0x02, 0x1f, 0x02, 0x10,
+   0x02, 0x10, 0x02, 0x10, 0x02, 0x10, 0x02, 0x10, 0x02, 0x10, 0x02, 0x10,
+   0x02, 0x10, 0x02, 0x10, 0xfe, 0x1f};
+} -maskdata $filemask
+
+image create bitmap file_mod -background white -foreground blue -data {
+#define mod_width 14
+#define mod_height 15
+static unsigned char mod_bits[] = {
+   0xfe, 0x01, 0x02, 0x03, 0x7a, 0x05, 0x02, 0x09, 0x7a, 0x1f, 0x02, 0x10,
+   0xfa, 0x17, 0x02, 0x10, 0xfa, 0x17, 0x02, 0x10, 0xfa, 0x17, 0x02, 0x10,
+   0xfa, 0x17, 0x02, 0x10, 0xfe, 0x1f};
+} -maskdata $filemask
+
+image create bitmap file_tick -background white -foreground "#007000" -data {
+#define file_tick_width 14
+#define file_tick_height 15
+static unsigned char file_tick_bits[] = {
+   0xfe, 0x01, 0x02, 0x1a, 0x02, 0x0c, 0x02, 0x0c, 0x02, 0x16, 0x02, 0x16,
+   0x02, 0x13, 0x00, 0x13, 0x86, 0x11, 0x8c, 0x11, 0xd8, 0x10, 0xf2, 0x10,
+   0x62, 0x10, 0x02, 0x10, 0xfe, 0x1f};
+} -maskdata $filemask
+
+image create bitmap file_parttick -background white -foreground "#005050" -data {
+#define parttick_width 14
+#define parttick_height 15
+static unsigned char parttick_bits[] = {
+   0xfe, 0x01, 0x02, 0x03, 0x7a, 0x05, 0x02, 0x09, 0x7a, 0x1f, 0x02, 0x10,
+   0x7a, 0x14, 0x02, 0x16, 0x02, 0x13, 0x8a, 0x11, 0xda, 0x10, 0x72, 0x10,
+   0x22, 0x10, 0x02, 0x10, 0xfe, 0x1f};
+} -maskdata $filemask
+
+image create bitmap file_question -background white -foreground black -data {
+#define file_question_width 14
+#define file_question_height 15
+static unsigned char file_question_bits[] = {
+   0xfe, 0x01, 0x02, 0x02, 0xe2, 0x04, 0xf2, 0x09, 0x1a, 0x1b, 0x0a, 0x13,
+   0x82, 0x11, 0xc2, 0x10, 0x62, 0x10, 0x62, 0x10, 0x02, 0x10, 0x62, 0x10,
+   0x62, 0x10, 0x02, 0x10, 0xfe, 0x1f};
+} -maskdata $filemask
+
+image create bitmap file_removed -background white -foreground red -data {
+#define file_removed_width 14
+#define file_removed_height 15
+static unsigned char file_removed_bits[] = {
+   0xfe, 0x01, 0x02, 0x03, 0x02, 0x05, 0x02, 0x09, 0x02, 0x1f, 0x02, 0x10,
+   0x1a, 0x16, 0x32, 0x13, 0xe2, 0x11, 0xc2, 0x10, 0xe2, 0x11, 0x32, 0x13,
+   0x1a, 0x16, 0x02, 0x10, 0xfe, 0x1f};
+} -maskdata $filemask
+
+image create bitmap file_merge -background white -foreground blue -data {
+#define file_merge_width 14
+#define file_merge_height 15
+static unsigned char file_merge_bits[] = {
+   0xfe, 0x01, 0x02, 0x03, 0x62, 0x05, 0x62, 0x09, 0x62, 0x1f, 0x62, 0x10,
+   0xfa, 0x11, 0xf2, 0x10, 0x62, 0x10, 0x02, 0x10, 0xfa, 0x17, 0x02, 0x10,
+   0xfa, 0x17, 0x02, 0x10, 0xfe, 0x1f};
+} -maskdata $filemask
+
+# State is represented as 1 or 2 letters; if 2, the first is the
+# state in the index and the second is the state of the working file.
+# Letters are as reported by git diff-index etc.
+set states {}
+set descriptions {}
+set icons {}
+foreach l {
+    {M  "Modified" mod}
+    {MM "Checked in" tick}
+    {A  "Added" tick}
+    {AA "Added" tick}
+    {PM "Partly checked in" parttick}
+    {PA "Added + modified" parttick}
+    {X  "Untracked" plain}
+    {-  "Unmodified" plain}
+    {UM "Merge conflicts" merge}
+    {UU "Merge error" merge}
+    {D  "Missing" question}
+    {DD "Removed" removed}} {
+    lappend states [lindex $l 0]
+    lappend descriptions [lindex $l 1]
+    lappend icons [lindex $l 2]
+}
+    
+set mainfont {Helvetica 10}
+set textfont {Courier 10}
+set maincursor [. cget -cursor]
+
+if {[catch {set gitdir [exec git rev-parse --git-dir]} err]} {
+    show_msg {} . "Cannot find the git directory: $err"
+    exit 1
+}
+set commentsfile [file join $gitdir "gitool-comments"]
+
+if {[file exists [file join $gitdir MERGE_HEAD]]} {
+    show_msg {} . "You appear to be committing a merge.  This program can't\
+		   do merges yet, sorry."
+    exit 1
+}
+
+panedwindow .ptop -orient vertical
+pack .ptop -fill both -expand 1
+panedwindow .ptop.flist -orient horizontal
+
+frame .ptop.flist.left
+set flw .ptop.flist.left.c
+label .ptop.flist.left.l -text "Modified files"
+scrollbar .ptop.flist.left.sb -command [list $flw yview] -highlightthickness 0
+text $flw -background white -width 40 -height 10 -bd 0 -font $mainfont \
+    -yscrollcommand {.ptop.flist.left.sb set} -cursor $maincursor \
+    -state disabled
+tbindings $flw
+pack .ptop.flist.left.sb -side right -fill y
+pack .ptop.flist.left.l -side top -fill x -expand 1
+pack $flw -side top -fill both -expand 1
+.ptop.flist add .ptop.flist.left -sticky nsew
+
+frame .ptop.flist.right
+set othw .ptop.flist.right.c
+label .ptop.flist.right.l -text "Untracked/new files"
+scrollbar .ptop.flist.right.sb -command [list $othw yview] \
+    -highlightthickness 0
+text $othw -background white -width 40 -height 10 -bd 0 -font $mainfont \
+    -yscrollcommand {.ptop.flist.right.sb set} -cursor $maincursor \
+    -state disabled
+tbindings $othw
+pack .ptop.flist.right.sb -side right -fill y
+pack .ptop.flist.right.l -side top -fill x -expand 1
+pack $othw -side top -fill both -expand 1
+.ptop.flist add .ptop.flist.right -sticky nsew
+.ptop add .ptop.flist -sticky nsew
+bind .ptop.flist <Configure> {resizeflist %W %w}
+
+set wctxmenu($flw) .fctxmenu
+menu .fctxmenu -tearoff 0
+.fctxmenu add command -label "Restore to original state" \
+    -command {restorefiles [filterfiles .fctxmenu 0]}
+.fctxmenu add command -label "Revert local changes" \
+    -command {revertfiles [filterfiles .fctxmenu 1]}
+set useful_states(.fctxmenu) {{MM PM DD D} {M PM}}
+
+set wctxmenu($othw) .octxmenu
+menu .octxmenu -tearoff 0
+.octxmenu add command -label "Ignore" \
+    -command {ignorefiles [filterfiles .octxmenu 0]}
+.octxmenu add command -label "Remove" \
+    -command {removefiles [filterfiles .octxmenu 1]}
+set useful_states(.octxmenu) {{X} {X A AA}}
+
+frame .ptop.diff
+frame .ptop.diff.bar
+label .ptop.diff.bar.l1 -text "File:" -padx 8
+pack .ptop.diff.bar.l1 -side left -fill y
+set fne .ptop.diff.bar.fne
+entry $fne -width 40 -state readonly
+pack $fne -side left -fill both -expand 1
+set fst .ptop.diff.bar.fst
+label $fst -text "State:" -width 30 -justify left
+pack $fst -side right -fill y
+pack .ptop.diff.bar -side top -fill x
+set diffw .ptop.diff.t
+scrollbar .ptop.diff.sb -command [list $diffw yview] -highlightthickness 0
+text $diffw -background white -state disabled -height 20 -font $textfont \
+    -yscrollcommand {.ptop.diff.sb set} -cursor $maincursor
+pack .ptop.diff.sb -side right -fill y
+pack $diffw -side top -fill both -expand 1
+.ptop add .ptop.diff -sticky nsew
+
+$diffw tag conf dm -foreground red
+$diffw tag conf dp -foreground blue
+$diffw tag conf da -font [concat $textfont bold]
+$diffw tag conf di -foreground "#00a000"
+$diffw tag conf dni -foreground "#a000a0"
+$diffw tag conf bold -font [concat $textfont bold]
+
+frame .ptop.comm
+frame .ptop.comm.buts
+set commitbut .ptop.comm.buts.commit
+button $commitbut -text Commit -state disabled -command docommit
+pack $commitbut -side left -fill y
+button .ptop.comm.buts.ciall -text "Check in all" -command checkinall
+pack .ptop.comm.buts.ciall -side left -fill y
+button .ptop.comm.buts.sign -text "Sign off" -command signoff
+pack .ptop.comm.buts.sign -side left -fill y
+button .ptop.comm.buts.rescan -text Rescan -command rescan
+pack .ptop.comm.buts.rescan -side right -fill y
+pack .ptop.comm.buts -side bottom -fill x
+
+set commw .ptop.comm.t
+scrollbar .ptop.comm.sb -command [list $commw yview] -highlightthickness 0
+text $commw -background white -height 15 -yscrollcommand {.ptop.comm.sb set} \
+    -wrap word -font $textfont
+pack .ptop.comm.sb -side right -fill y
+pack .ptop.comm.t -side top -fill both -expand 1
+.ptop add .ptop.comm -sticky nsew
+catch {
+    set fd [open $commentsfile r]
+    gets $fd chead
+    if {$chead eq $HEAD} {
+	set stuff [read $fd]
+	$commw delete 1.0 end
+	$commw insert end $stuff
+    }
+    close $fd
+}
+$commw edit modified false
+
+bind . <Destroy> {save_comments}
+
+rescan
