@@ -9,8 +9,10 @@ git-core (1:1.5.3.4-1~bpo31+1) sarge-backports; urgency=low
   * debian/control: arch all packages: Depends: git-core (= ${Source-Version})
     instead of git-core (>> ${source:Upstream-Version}), git-core (<<
     ${source:Upstream-Version}-.).
+  * debian/control: git-svn: Depends: libsvn-perl (>= 1.4.2dfsg1-2~bpo.1),
+    Suggests: subversion (>= 1.4.2dfsg1-2~bpo.1).
 
- -- Gerrit Pape <pape@smarden.org>  Mon, 15 Oct 2007 09:19:58 +0000
+ -- Gerrit Pape <pape@smarden.org>  Mon, 15 Oct 2007 09:22:05 +0000
 
 git-core (1:1.5.3.4-1) unstable; urgency=low
 

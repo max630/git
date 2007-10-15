@@ -85,9 +85,9 @@ Description: fast, scalable, distributed revision control system (cvs interopera
 
 Package: git-svn
 Architecture: all
-Depends: git-core (= ${Source-Version}), libsvn-perl | libsvn-core-perl, libwww-perl, libterm-readkey-perl
+Depends: git-core (= ${Source-Version}), libsvn-perl (>= 1.4.2dfsg1-2~bpo.1), libwww-perl, libterm-readkey-perl
 Recommends: git-doc
-Suggests: subversion
+Suggests: subversion (>= 1.4.2dfsg1-2~bpo.1)
 Replaces: cogito (<< 0.16rc2-0)
 Description: fast, scalable, distributed revision control system (svn interoperability)
  Git is popular version control system designed to handle very large
