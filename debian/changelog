@@ -1,3 +1,11 @@
+git-core (1:1.5.3.4-1~bpo31+0) sarge-backports; urgency=low
+
+  * backport to sarge.
+  * debian/control: Build-Depends: libcurl4-gnutls-dev | libcurl3-gnutls-dev |
+    libcurl3-dev.
+
+ -- Gerrit Pape <pape@smarden.org>  Mon, 15 Oct 2007 08:03:11 +0000
+
 git-core (1:1.5.3.4-1) unstable; urgency=low
 
   * new upstream point release (closes: #445188).
