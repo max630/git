@@ -140,6 +140,18 @@ static unsigned int digits_in_number(unsigned int number)
 	return result;
 }
 
+static int has_non_ascii(const char *s)
+{
+	int ch;
+	if (!s)
+		return 0;
+	while ((ch = *s++) != '\0') {
+		if (non_ascii(ch))
+			return 1;
+	}
+	return 0;
+}
+
 void show_log(struct rev_info *opt, const char *sep)
 {
 	char *msgbuf = NULL;
@@ -290,7 +302,8 @@ void show_log(struct rev_info *opt, const char *sep)
 	 */
 	len = pretty_print_commit(opt->commit_format, commit, ~0u,
 				  &msgbuf, &msgbuf_len, abbrev, subject,
-				  extra_headers, opt->date_mode);
+				  extra_headers, opt->date_mode,
+				  has_non_ascii(opt->add_signoff));
 
 	if (opt->add_signoff)
 		len = append_signoff(&msgbuf, &msgbuf_len, len,
@@ -321,7 +334,8 @@ int log_tree_diff_flush(struct rev_info *opt)
 		 * output for readability.
 		 */
 		show_log(opt, opt->diffopt.msg_sep);
-		if (opt->verbose_header &&
+		if ((opt->diffopt.output_format & ~DIFF_FORMAT_NO_OUTPUT) &&
+		    opt->verbose_header &&
 		    opt->commit_format != CMIT_FMT_ONELINE) {
 			int pch = DIFF_FORMAT_DIFFSTAT | DIFF_FORMAT_PATCH;
 			if ((pch & opt->diffopt.output_format) == pch)

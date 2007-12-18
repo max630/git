@@ -65,10 +65,17 @@ void mark_tree_uninteresting(struct tree *tree)
 
 	init_tree_desc(&desc, tree->buffer, tree->size);
 	while (tree_entry(&desc, &entry)) {
-		if (S_ISDIR(entry.mode))
+		switch (object_type(entry.mode)) {
+		case OBJ_TREE:
 			mark_tree_uninteresting(lookup_tree(entry.sha1));
-		else
+			break;
+		case OBJ_BLOB:
 			mark_blob_uninteresting(lookup_blob(entry.sha1));
+			break;
+		default:
+			/* Subproject commit - not in this repository */
+			break;
+		}
 	}
 
 	/*
@@ -1256,8 +1263,8 @@ int setup_revisions(int argc, const char **argv, struct rev_info *revs, const ch
 	if (revs->diffopt.output_format & ~DIFF_FORMAT_NO_OUTPUT)
 		revs->diff = 1;
 
-	/* Pickaxe needs diffs */
-	if (revs->diffopt.pickaxe)
+	/* Pickaxe and rename following needs diffs */
+	if (revs->diffopt.pickaxe || revs->diffopt.follow_renames)
 		revs->diff = 1;
 
 	if (revs->topo_order)

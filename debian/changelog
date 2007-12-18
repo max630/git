@@ -1,9 +1,62 @@
+git-core (1:1.5.3.7-1) unstable; urgency=low
+
+  * new upstream point release.
+  * debian/diff/0005-Don-t-cache-DESTDIR-in-perl-perl.mak.diff: new; don't
+    cache DESTDIR in perl/perl.mak (#452077).
+  * debian/rules: remove $(MAKE) -C perl clean to remove the perl/perl.mak
+    again, this is now handled through debian/diff/0005 (thx Pierre
+    Habouzit, #452077).
+
+ -- Gerrit Pape <pape@smarden.org>  Mon,  3 Dec 2007 10:17:11 +0000
+
+git-core (1:1.5.3.6-1.1) unstable; urgency=low
+
+  * Non-maintainer upload: Gerrit is currently changing home, and this bug is
+    preventing people from installing git, I took the initiative to fix it
+    before his return.
+  * debian/rules: force a $(MAKE) -C perl clean to remove the perl/perl.mak
+    that remembers our DESTDIR and makes perl modules be installed in
+    debian/git-core/ in the install-indep target again
+    (closes: #452077, #452078, #452080, #452111, #452324).
+
+ -- Pierre Habouzit <madcoder@debian.org>  Thu, 22 Nov 2007 00:40:08 +0100
+
+git-core (1:1.5.3.6-1) unstable; urgency=low
+
+  * debian/implicit: add proper dependencies to support 'parallel build'
+    through make -j (thx Daniel Schepler for the patch).
+  * debian/rules: support 'nocheck' in DEB_BUILD_OPTIONS to skip running
+    the selftests.
+  * debian/diff/0003-bug-448655-check-etc-mailname-if-author-email-is-un.diff:
+    new; check /etc/mailname if author email is unknown (closes: #448655).
+  * debian/gitweb.docs: new; install gitweb/README.
+  * new upstream point release.
+    * git-cvsimport: really convert underscores in branch names to dots with
+      -u (closes: #446495).
+    * git-mailsplit: with maildirs not only process cur/, but also new/
+      (closes: #447396).
+  * debian/diff/0004-contrib-hooks-post-receive-email-make-subject-prefix.diff:
+    new; cherry-pick'ed from master: contrib/hooks/post-receive-email: make
+    subject prefix configurable (closes: #428418).
+
+ -- Gerrit Pape <pape@smarden.org>  Mon, 19 Nov 2007 12:32:11 +0000
+
 git-core (1:1.5.3.4-1~bpo31+2) sarge-backports; urgency=low
 
   * Be more friendly to sbuild: drop libcurl4-gnutls-dev alternative
     and move libcurl3-dev up front.
 
  -- Frank Lichtenheld <djpig@debian.org>  Thu, 08 Nov 2007 23:32:02 +0100
+
+git-core (1:1.5.3.5-1) unstable; urgency=low
+
+  * new upstream point release.
+    * git-config: handle --file option with relative pathname properly;
+      git-config: print error message if the config file cannot be read;
+      git-config: don't silently ignore options after --list (closes:
+      #445208).
+
+ -- Gerrit Pape <pape@smarden.org>  Thu, 01 Nov 2007 08:35:46 +0000
 
 git-core (1:1.5.3.4-1~bpo31+1) sarge-backports; urgency=low
 

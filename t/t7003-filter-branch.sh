@@ -41,7 +41,9 @@ test_expect_success 'rewrite, renaming a specific file' '
 '
 
 test_expect_success 'test that the file was renamed' '
-	test d = $(git show HEAD:doh)
+	test d = $(git show HEAD:doh) &&
+	test -f doh &&
+	test d = $(cat doh)
 '
 
 git tag oldD HEAD~4
@@ -112,7 +114,7 @@ test_expect_success 'use index-filter to move into a subdirectory' '
 
 test_expect_success 'stops when msg filter fails' '
 	old=$(git rev-parse HEAD) &&
-	! git-filter-branch -f --msg-filter false &&
+	! git-filter-branch -f --msg-filter false HEAD &&
 	test $old = $(git rev-parse HEAD) &&
 	rm -rf .git-rewrite
 '
