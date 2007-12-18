@@ -1,3 +1,10 @@
+git-core (1:1.5.3.4-1~bpo31+2) sarge-backports; urgency=low
+
+  * Be more friendly to sbuild: drop libcurl4-gnutls-dev alternative
+    and move libcurl3-dev up front.
+
+ -- Frank Lichtenheld <djpig@debian.org>  Thu, 08 Nov 2007 23:32:02 +0100
+
 git-core (1:1.5.3.4-1~bpo31+1) sarge-backports; urgency=low
 
   * backport to sarge.
