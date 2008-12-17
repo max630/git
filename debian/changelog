@@ -1,3 +1,15 @@
+git-core (1:1.4.4.4-5) stable-security; urgency=high
+
+  * debian/diff/0003-gitweb-do-not-run-git-diff-that-is-Porcelain.diff:
+    new; fix possible gitweb vulnerability: calling "git diff": Jakub
+    says that legacy-style URI to view two blob differences are never
+    generated since 1.4.3.  This codepath runs "git diff" Porcelain from
+    the gitweb, which is a no-no.  It can trigger diff.external command
+    that is specified in the configuration file of the repository being
+    viewed.
+
+ -- Gerrit Pape <pape@smarden.org>  Wed, 17 Dec 2008 09:16:21 +0000
+
 git-core (1:1.4.4.4-4) stable; urgency=low
 
   [ Pierre Habouzit ]

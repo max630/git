@@ -1,0 +1,68 @@
+From c610f399a9f716a33270d3022ad9236edb45a2b5 Mon Sep 17 00:00:00 2001
+From: Gerrit Pape <pape@smarden.org>
+Date: Wed, 17 Dec 2008 09:10:38 +0000
+Subject: [PATCH] gitweb: do not run "git diff" that is Porcelain
+
+Apply patch from Junio for release v1.5.4:
+
+Jakub says that legacy-style URI to view two blob differences are never
+generated since 1.4.3.  This codepath runs "git diff" Porcelain from the
+gitweb, which is a no-no.  It can trigger diff.external command that is
+specified in the configuration file of the repository being viewed.
+---
+ gitweb/gitweb.perl |   39 +++------------------------------------
+ 1 files changed, 3 insertions(+), 36 deletions(-)
+
+diff --git a/gitweb/gitweb.perl b/gitweb/gitweb.perl
+index 7587595..587f5d3 100755
+--- a/gitweb/gitweb.perl
++++ b/gitweb/gitweb.perl
+@@ -3565,42 +3565,9 @@ sub git_blobdiff {
+ 			or die_error(undef, "Open git-diff-tree failed");
+ 	}
+ 
+-	# old/legacy style URI
+-	if (!%diffinfo && # if new style URI failed
+-	    defined $hash && defined $hash_parent) {
+-		# fake git-diff-tree raw output
+-		$diffinfo{'from_mode'} = $diffinfo{'to_mode'} = "blob";
+-		$diffinfo{'from_id'} = $hash_parent;
+-		$diffinfo{'to_id'}   = $hash;
+-		if (defined $file_name) {
+-			if (defined $file_parent) {
+-				$diffinfo{'status'} = '2';
+-				$diffinfo{'from_file'} = $file_parent;
+-				$diffinfo{'to_file'}   = $file_name;
+-			} else { # assume not renamed
+-				$diffinfo{'status'} = '1';
+-				$diffinfo{'from_file'} = $file_name;
+-				$diffinfo{'to_file'}   = $file_name;
+-			}
+-		} else { # no filename given
+-			$diffinfo{'status'} = '2';
+-			$diffinfo{'from_file'} = $hash_parent;
+-			$diffinfo{'to_file'}   = $hash;
+-		}
+-
+-		# non-textual hash id's can be cached
+-		if ($hash =~ m/^[0-9a-fA-F]{40}$/ &&
+-		    $hash_parent =~ m/^[0-9a-fA-F]{40}$/) {
+-			$expires = '+1d';
+-		}
+-
+-		# open patch output
+-		open $fd, "-|", git_cmd(), "diff", '-p', @diff_opts,
+-			$hash_parent, $hash, "--"
+-			or die_error(undef, "Open git-diff failed");
+-	} else  {
+-		die_error('404 Not Found', "Missing one of the blob diff parameters")
+-			unless %diffinfo;
++	# old/legacy style URI -- not generated anymore since 1.4.3.
++	if (!%diffinfo) {
++		die_error('404 Not Found', "Missing one of the blob diff parameters");
+ 	}
+ 
+ 	# header
+-- 
+1.6.0
+
