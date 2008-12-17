@@ -15,6 +15,11 @@ struct name_entry {
 
 void update_tree_entry(struct tree_desc *);
 const unsigned char *tree_entry_extract(struct tree_desc *, const char **, unsigned int *);
+static inline int tree_entry_len(const char *name, const unsigned char *sha1)
+{
+        return (const char *)sha1 - name - 1;
+}
+
 
 /* Helper function that does both of the above and returns true for success */
 int tree_entry(struct tree_desc *, struct name_entry *);

@@ -1,0 +1,720 @@
+ builtin-count-objects.c |    2 +-
+ builtin-pack-objects.c  |   44 ++++++++---
+ cache.h                 |    9 +-
+ fsck-objects.c          |   11 +--
+ pack-check.c            |   23 +++---
+ pack-redundant.c        |   30 ++++----
+ pack.h                  |   28 +++++++
+ sha1_file.c             |  191 +++++++++++++++++++++++++++++++----------------
+ sha1_name.c             |   18 ++--
+ 9 files changed, 236 insertions(+), 120 deletions(-)
+
+diff --git a/builtin-count-objects.c b/builtin-count-objects.c
+index 73c5982..7795a63 100644
+--- a/builtin-count-objects.c
++++ b/builtin-count-objects.c
+@@ -110,7 +110,7 @@ int cmd_count_objects(int ac, const char **av, const char *prefix)
+ 		for (p = packed_git; p; p = p->next) {
+ 			if (!p->pack_local)
+ 				continue;
+-			packed += num_packed_objects(p);
++			packed += p->num_objects;
+ 		}
+ 		printf("count: %lu\n", loose);
+ 		printf("size: %lu\n", loose_size / 2);
+diff --git a/builtin-pack-objects.c b/builtin-pack-objects.c
+index 69e5dd3..5198563 100644
+--- a/builtin-pack-objects.c
++++ b/builtin-pack-objects.c
+@@ -168,16 +168,37 @@ static int cmp_offset(const void *a_, const void *b_)
+ static void prepare_pack_revindex(struct pack_revindex *rix)
+ {
+ 	struct packed_git *p = rix->p;
+-	int num_ent = num_packed_objects(p);
++	int num_ent = p->num_objects;
+ 	int i;
+-	void *index = p->index_base + 256;
++	const char *index = p->index_data;
+ 
+ 	rix->revindex = xmalloc(sizeof(*rix->revindex) * (num_ent + 1));
+-	for (i = 0; i < num_ent; i++) {
+-		unsigned int hl = *((unsigned int *)((char *) index + 24*i));
+-		rix->revindex[i].offset = ntohl(hl);
+-		rix->revindex[i].nr = i;
++	index += 4 * 256;
++
++	if (p->index_version > 1) {
++		const uint32_t *off_32 =
++			(uint32_t *)(index + 8 + p->num_objects * (20 + 4));
++		const uint32_t *off_64 = off_32 + p->num_objects;
++		for (i = 0; i < num_ent; i++) {
++			uint32_t off = ntohl(*off_32++);
++			if (!(off & 0x80000000)) {
++				rix->revindex[i].offset = off;
++			} else {
++				rix->revindex[i].offset =
++					((uint64_t)ntohl(*off_64++)) << 32;
++				rix->revindex[i].offset |=
++					ntohl(*off_64++);
++			}
++			rix->revindex[i].nr = i;
++		}
++	} else {
++		for (i = 0; i < num_ent; i++) {
++			uint32_t hl = *((uint32_t *)(index + 24 * i));
++			rix->revindex[i].offset = ntohl(hl);
++			rix->revindex[i].nr = i;
++		}
+ 	}
++
+ 	/* This knows the pack format -- the 20-byte trailer
+ 	 * follows immediately after the last object data.
+ 	 */
+@@ -201,7 +222,7 @@ static struct revindex_entry * find_packed_object(struct packed_git *p,
+ 		prepare_pack_revindex(rix);
+ 	revindex = rix->revindex;
+ 	lo = 0;
+-	hi = num_packed_objects(p) + 1;
++	hi = p->num_objects + 1;
+ 	do {
+ 		int mi = (lo + hi) / 2;
+ 		if (revindex[mi].offset == ofs) {
+@@ -222,11 +243,11 @@ static unsigned long find_packed_object_size(struct packed_git *p,
+ 	return entry[1].offset - ofs;
+ }
+ 
+-static unsigned char *find_packed_object_name(struct packed_git *p,
+-					      unsigned long ofs)
++static const unsigned char *find_packed_object_name(struct packed_git *p,
++						    unsigned long ofs)
+ {
+ 	struct revindex_entry *entry = find_packed_object(p, ofs);
+-	return (unsigned char *)(p->index_base + 256) + 24 * entry->nr + 4;
++	return nth_packed_object_sha1(p, entry->nr);
+ }
+ 
+ static void *delta_against(void *buf, unsigned long size, struct object_entry *entry)
+@@ -959,7 +980,8 @@ static void check_object(struct object_entry *entry)
+ 		 * delta.
+ 		 */
+ 		if (!no_reuse_delta) {
+-			unsigned char c, *base_name;
++			unsigned char c;
++			const unsigned char *base_name;
+ 			unsigned long ofs;
+ 			/* there is at least 20 bytes left in the pack */
+ 			switch (entry->in_pack_type) {
+diff --git a/cache.h b/cache.h
+index a0e9727..1bcc7c1 100644
+--- a/cache.h
++++ b/cache.h
+@@ -334,8 +334,10 @@ extern struct packed_git {
+ 	struct packed_git *next;
+ 	unsigned long index_size;
+ 	unsigned long pack_size;
+-	unsigned int *index_base;
++	const void *index_data;
+ 	void *pack_base;
++	unsigned int num_objects;
++	int index_version;
+ 	unsigned int pack_last_used;
+ 	unsigned int pack_use_cnt;
+ 	int pack_local;
+@@ -374,7 +376,7 @@ extern int server_supports(const char *feature);
+ 
+ extern struct packed_git *parse_pack_index(unsigned char *sha1);
+ extern struct packed_git *parse_pack_index_file(const unsigned char *sha1,
+-						char *idx_path);
++						const char *idx_path);
+ 
+ extern void prepare_packed_git(void);
+ extern void reprepare_packed_git(void);
+@@ -386,8 +388,7 @@ extern struct packed_git *find_sha1_pack(const unsigned char *sha1,
+ extern int use_packed_git(struct packed_git *);
+ extern void unuse_packed_git(struct packed_git *);
+ extern struct packed_git *add_packed_git(char *, int, int);
+-extern int num_packed_objects(const struct packed_git *p);
+-extern int nth_packed_object_sha1(const struct packed_git *, int, unsigned char*);
++extern const unsigned char *nth_packed_object_sha1(const struct packed_git *, unsigned int);
+ extern unsigned long find_pack_entry_one(const unsigned char *, struct packed_git *);
+ extern void *unpack_entry_gently(struct packed_git *, unsigned long, char *, unsigned long *);
+ extern unsigned long unpack_object_header_gently(const unsigned char *buf, unsigned long len, enum object_type *type, unsigned long *sizep);
+diff --git a/fsck-objects.c b/fsck-objects.c
+index 46b628c..bdbca54 100644
+--- a/fsck-objects.c
++++ b/fsck-objects.c
+@@ -289,7 +289,7 @@ static int fsck_tag(struct tag *tag)
+ 	return 0;
+ }
+ 
+-static int fsck_sha1(unsigned char *sha1)
++static int fsck_sha1(const unsigned char *sha1)
+ {
+ 	struct object *obj = parse_object(sha1);
+ 	if (!obj)
+@@ -550,12 +550,9 @@ int main(int argc, char **argv)
+ 			verify_pack(p, 0);
+ 
+ 		for (p = packed_git; p; p = p->next) {
+-			int num = num_packed_objects(p);
+-			for (i = 0; i < num; i++) {
+-				unsigned char sha1[20];
+-				nth_packed_object_sha1(p, i, sha1);
+-				fsck_sha1(sha1);
+-			}
++			int num = p->num_objects;
++			for (i = 0; i < num; i++)
++				fsck_sha1(nth_packed_object_sha1(p, i));
+ 		}
+ 	}
+ 
+diff --git a/pack-check.c b/pack-check.c
+index 8e123b7..578f59e 100644
+--- a/pack-check.c
++++ b/pack-check.c
+@@ -6,7 +6,7 @@
+ static int verify_packfile(struct packed_git *p)
+ {
+ 	unsigned long index_size = p->index_size;
+-	void *index_base = p->index_base;
++	const unsigned char *index_base = p->index_data;
+ 	SHA_CTX ctx;
+ 	unsigned char sha1[20];
+ 	struct pack_header *hdr;
+@@ -22,10 +22,10 @@ static int verify_packfile(struct packed_git *p)
+ 		return error("Packfile version %d unsupported",
+ 			     ntohl(hdr->hdr_version));
+ 	nr_objects = ntohl(hdr->hdr_entries);
+-	if (num_packed_objects(p) != nr_objects)
++	if (p->num_objects != nr_objects)
+ 		return error("Packfile claims to have %d objects, "
+ 			     "while idx size expects %d", nr_objects,
+-			     num_packed_objects(p));
++			     p->num_objects);
+ 
+ 	/* Check integrity of pack data with its SHA-1 checksum */
+ 	SHA1_Init(&ctx);
+@@ -42,7 +42,7 @@ static int verify_packfile(struct packed_git *p)
+ 	if (hashcmp(sha1, (unsigned char *)(p->pack_base) + p->pack_size - 20))
+ 		return error("Packfile %s SHA1 mismatch with itself",
+ 			     p->pack_name);
+-	if (hashcmp(sha1, (unsigned char *)index_base + index_size - 40))
++	if (hashcmp(sha1, index_base + index_size - 40))
+ 		return error("Packfile %s SHA1 mismatch with idx",
+ 			     p->pack_name);
+ 
+@@ -51,12 +51,13 @@ static int verify_packfile(struct packed_git *p)
+ 	 * we do not do scan-streaming check on the pack file.
+ 	 */
+ 	for (i = err = 0; i < nr_objects; i++) {
+-		unsigned char sha1[20];
++		const unsigned char *sha1;
+ 		void *data;
+ 		char type[20];
+ 		unsigned long size, offset;
+ 
+-		if (nth_packed_object_sha1(p, i, sha1))
++		sha1 = nth_packed_object_sha1(p, i);
++		if (!sha1)
+ 			die("internal error pack-check nth-packed-object");
+ 		offset = find_pack_entry_one(sha1, p);
+ 		if (!offset)
+@@ -93,14 +94,16 @@ static void show_pack_info(struct packed_git *p)
+ 	memset(chain_histogram, 0, sizeof(chain_histogram));
+ 
+ 	for (i = 0; i < nr_objects; i++) {
+-		unsigned char sha1[20], base_sha1[20];
++		const unsigned char *sha1;
++		unsigned char base_sha1[20];
+ 		char type[20];
+ 		unsigned long size;
+ 		unsigned long store_size;
+ 		unsigned long offset;
+ 		unsigned int delta_chain_length;
+ 
+-		if (nth_packed_object_sha1(p, i, sha1))
++		sha1 = nth_packed_object_sha1(p, i);
++		if (!sha1)
+ 			die("internal error pack-check nth-packed-object");
+ 		offset = find_pack_entry_one(sha1, p);
+ 		if (!offset)
+@@ -136,7 +139,7 @@ static void show_pack_info(struct packed_git *p)
+ int verify_pack(struct packed_git *p, int verbose)
+ {
+ 	unsigned long index_size = p->index_size;
+-	void *index_base = p->index_base;
++	const unsigned char *index_base = p->index_data;
+ 	SHA_CTX ctx;
+ 	unsigned char sha1[20];
+ 	int ret;
+@@ -146,7 +149,7 @@ int verify_pack(struct packed_git *p, int verbose)
+ 	SHA1_Init(&ctx);
+ 	SHA1_Update(&ctx, index_base, index_size - 20);
+ 	SHA1_Final(sha1, &ctx);
+-	if (hashcmp(sha1, (unsigned char *)index_base + index_size - 20))
++	if (hashcmp(sha1, index_base + index_size - 20))
+ 		ret = error("Packfile index for %s SHA1 mismatch",
+ 			    p->pack_name);
+ 
+diff --git a/pack-redundant.c b/pack-redundant.c
+index edb5524..83812f3 100644
+--- a/pack-redundant.c
++++ b/pack-redundant.c
+@@ -17,7 +17,7 @@ static int load_all_packs, verbose, alt_odb;
+ 
+ struct llist_item {
+ 	struct llist_item *next;
+-	unsigned char *sha1;
++	const unsigned char *sha1;
+ };
+ static struct llist {
+ 	struct llist_item *front;
+@@ -104,9 +104,9 @@ static struct llist * llist_copy(struct llist *list)
+ 	return ret;
+ }
+ 
+-static inline struct llist_item * llist_insert(struct llist *list,
+-					       struct llist_item *after,
+-					       unsigned char *sha1)
++static inline struct llist_item *llist_insert(struct llist *list,
++					      struct llist_item *after,
++					       const unsigned char *sha1)
+ {
+ 	struct llist_item *new = llist_item_get();
+ 	new->sha1 = sha1;
+@@ -128,12 +128,14 @@ static inline struct llist_item * llist_insert(struct llist *list,
+ 	return new;
+ }
+ 
+-static inline struct llist_item *llist_insert_back(struct llist *list, unsigned char *sha1)
++static inline struct llist_item *llist_insert_back(struct llist *list,
++						   const unsigned char *sha1)
+ {
+ 	return llist_insert(list, list->back, sha1);
+ }
+ 
+-static inline struct llist_item *llist_insert_sorted_unique(struct llist *list, unsigned char *sha1, struct llist_item *hint)
++static inline struct llist_item *llist_insert_sorted_unique(struct llist *list,
++			const unsigned char *sha1, struct llist_item *hint)
+ {
+ 	struct llist_item *prev = NULL, *l;
+ 
+@@ -246,12 +248,12 @@ static struct pack_list * pack_list_difference(const struct pack_list *A,
+ static void cmp_two_packs(struct pack_list *p1, struct pack_list *p2)
+ {
+ 	int p1_off, p2_off;
+-	unsigned char *p1_base, *p2_base;
++	const unsigned char *p1_base, *p2_base;
+ 	struct llist_item *p1_hint = NULL, *p2_hint = NULL;
+ 
+ 	p1_off = p2_off = 256 * 4 + 4;
+-	p1_base = (unsigned char *) p1->pack->index_base;
+-	p2_base = (unsigned char *) p2->pack->index_base;
++	p1_base = p1->pack->index_data;
++	p2_base = p2->pack->index_data;
+ 
+ 	while (p1_off <= p1->pack->index_size - 3 * 20 &&
+ 	       p2_off <= p2->pack->index_size - 3 * 20)
+@@ -351,11 +353,11 @@ static size_t sizeof_union(struct packed_git *p1, struct packed_git *p2)
+ {
+ 	size_t ret = 0;
+ 	int p1_off, p2_off;
+-	unsigned char *p1_base, *p2_base;
++	const unsigned char *p1_base, *p2_base;
+ 
+ 	p1_off = p2_off = 256 * 4 + 4;
+-	p1_base = (unsigned char *)p1->index_base;
+-	p2_base = (unsigned char *)p2->index_base;
++	p1_base = p1->index_data;
++	p2_base = p2->index_data;
+ 
+ 	while (p1_off <= p1->index_size - 3 * 20 &&
+ 	       p2_off <= p2->index_size - 3 * 20)
+@@ -534,7 +536,7 @@ static struct pack_list * add_pack(struct packed_git *p)
+ {
+ 	struct pack_list l;
+ 	size_t off;
+-	unsigned char *base;
++	const unsigned char *base;
+ 
+ 	if (!p->pack_local && !(alt_odb || verbose))
+ 		return NULL;
+@@ -543,7 +545,7 @@ static struct pack_list * add_pack(struct packed_git *p)
+ 	llist_init(&l.all_objects);
+ 
+ 	off = 256 * 4 + 4;
+-	base = (unsigned char *)p->index_base;
++	base = p->index_data;
+ 	while (off <= p->index_size - 3 * 20) {
+ 		llist_insert_back(l.all_objects, base + off);
+ 		off += 24;
+diff --git a/pack.h b/pack.h
+index 4814800..e0051fd 100644
+--- a/pack.h
++++ b/pack.h
+@@ -15,5 +15,33 @@ struct pack_header {
+ 	unsigned int hdr_entries;
+ };
+ 
++/*
++ * The first four bytes of index formats later than version 1 should
++ * start with this signature, as all older git binaries would find this
++ * value illegal and abort reading the file.
++ *
++ * This is the case because the number of objects in a packfile
++ * cannot exceed 1,431,660,000 as every object would need at least
++ * 3 bytes of data and the overall packfile cannot exceed 4 GiB with
++ * version 1 of the index file due to the offsets limited to 32 bits.
++ * Clearly the signature exceeds this maximum.
++ *
++ * Very old git binaries will also compare the first 4 bytes to the
++ * next 4 bytes in the index and abort with a "non-monotonic index"
++ * error if the second 4 byte word is smaller than the first 4
++ * byte word.  This would be true in the proposed future index
++ * format as idx_signature would be greater than idx_version.
++ */
++#define PACK_IDX_SIGNATURE 0xff744f63	/* "\377tOc" */
++
++/*
++ * Packed object index header
++ */
++struct pack_idx_header {
++	uint32_t idx_signature;
++	uint32_t idx_version;
++};
++
++
+ extern int verify_pack(struct packed_git *, int);
+ #endif
+diff --git a/sha1_file.c b/sha1_file.c
+index 09456d2..927ac06 100644
+--- a/sha1_file.c
++++ b/sha1_file.c
+@@ -402,15 +402,15 @@ static int pack_used_ctr;
+ static unsigned long pack_mapped;
+ struct packed_git *packed_git;
+ 
+-static int check_packed_git_idx(const char *path, unsigned long *idx_size_,
+-				void **idx_map_)
++static int check_packed_git_idx(const char *path,  struct packed_git *p)
+ {
+ 	void *idx_map;
+-	unsigned int *index;
++	struct pack_idx_header *hdr;
+ 	unsigned long idx_size;
+-	int nr, i;
++	unsigned int version, nr, i, *index;
+ 	int fd = open(path, O_RDONLY);
+ 	struct stat st;
++
+ 	if (fd < 0)
+ 		return -1;
+ 	if (fstat(fd, &st)) {
+@@ -423,14 +423,23 @@ static int check_packed_git_idx(const char *path, unsigned long *idx_size_,
+ 	if (idx_map == MAP_FAILED)
+ 		return -1;
+ 
+-	index = idx_map;
+-	*idx_map_ = idx_map;
+-	*idx_size_ = idx_size;
++	hdr = idx_map;
++	if (hdr->idx_signature == htonl(PACK_IDX_SIGNATURE)) {
++		version = ntohl(hdr->idx_version);
++		if (version < 2 || version > 2) {
++			munmap(idx_map, idx_size);
++			return error("index file %s is version %d"
++				     " and is not supported by this binary"
++				     " (try upgrading GIT to a newer version)",
++				     path, version);
++		}
++	} else
++		version = 1;
+ 
+-	/* check index map */
+-	if (idx_size < 4*256 + 20 + 20)
+-		return error("index file too small");
+ 	nr = 0;
++	index = idx_map;
++	if (version > 1)
++		index += 2;  /* skip index header */
+ 	for (i = 0; i < 256; i++) {
+ 		unsigned int n = ntohl(index[i]);
+ 		if (n < nr)
+@@ -438,16 +447,50 @@ static int check_packed_git_idx(const char *path, unsigned long *idx_size_,
+ 		nr = n;
+ 	}
+ 
+-	/*
+-	 * Total size:
+-	 *  - 256 index entries 4 bytes each
+-	 *  - 24-byte entries * nr (20-byte sha1 + 4-byte offset)
+-	 *  - 20-byte SHA1 of the packfile
+-	 *  - 20-byte SHA1 file checksum
+-	 */
+-	if (idx_size != 4*256 + nr * 24 + 20 + 20)
+-		return error("wrong index file size");
++	if (version == 1) {
++		/*
++		 * Total size:
++		 *  - 256 index entries 4 bytes each
++		 *  - 24-byte entries * nr (20-byte sha1 + 4-byte offset)
++		 *  - 20-byte SHA1 of the packfile
++		 *  - 20-byte SHA1 file checksum
++		 */
++		if (idx_size != 4*256 + nr * 24 + 20 + 20) {
++			munmap(idx_map, idx_size);
++			return error("wrong index file size in %s", path);
++		}
++	} else if (version == 2) {
++		/*
++		 * Minimum size:
++		 *  - 8 bytes of header
++		 *  - 256 index entries 4 bytes each
++		 *  - 20-byte sha1 entry * nr
++		 *  - 4-byte crc entry * nr
++		 *  - 4-byte offset entry * nr
++		 *  - 20-byte SHA1 of the packfile
++		 *  - 20-byte SHA1 file checksum
++		 * And after the 4-byte offset table might be a
++		 * variable sized table containing 8-byte entries
++		 * for offsets larger than 2^31.
++		 */
++		unsigned long min_size = 8 + 4*256 + nr*(20 + 4 + 4) + 20 + 20;
++		if (idx_size < min_size || idx_size > min_size + (nr - 1)*8) {
++			munmap(idx_map, idx_size);
++			return error("wrong index file size in %s", path);
++		}
++		if (idx_size != min_size) {
++			/* make sure we can deal with large pack offsets */
++			if (sizeof(unsigned long) <= 4) {
++				munmap(idx_map, idx_size);
++				return error("pack %s too large -- please upgrade your git version", path);
++			}
++		}
++	}
+ 
++	p->index_version = version;
++	p->index_data = idx_map;
++	p->index_size = idx_size;
++	p->num_objects = nr;
+ 	return 0;
+ }
+ 
+@@ -521,7 +564,7 @@ int use_packed_git(struct packed_git *p)
+ 		/* Check if the pack file matches with the index file.
+ 		 * this is cheap.
+ 		 */
+-		if (hashcmp((unsigned char *)(p->index_base) +
++		if (hashcmp((unsigned char *)(p->index_data) +
+ 			    p->index_size - 40,
+ 			    (unsigned char *)p->pack_base +
+ 			    p->pack_size - 20)) {
+@@ -536,35 +579,34 @@ int use_packed_git(struct packed_git *p)
+ struct packed_git *add_packed_git(char *path, int path_len, int local)
+ {
+ 	struct stat st;
+-	struct packed_git *p;
+-	unsigned long idx_size;
+-	void *idx_map;
+-	unsigned char sha1[20];
++	struct packed_git *p = xmalloc(sizeof(*p) + path_len + 2);
+ 
+-	if (check_packed_git_idx(path, &idx_size, &idx_map))
++	/*
++	 * Make sure a corresponding .pack file exists and that
++	 * the index looks sane.
++	 */
++	path_len -= strlen(".idx");
++	if (path_len < 1)
+ 		return NULL;
+-
+-	/* do we have a corresponding .pack file? */
+-	strcpy(path + path_len - 4, ".pack");
+-	if (stat(path, &st) || !S_ISREG(st.st_mode)) {
+-		munmap(idx_map, idx_size);
++	memcpy(p->pack_name, path, path_len);
++	strcpy(p->pack_name + path_len, ".pack");
++	if (stat(p->pack_name, &st) || !S_ISREG(st.st_mode) ||
++	    check_packed_git_idx(path, p)) {
++		free(p);
+ 		return NULL;
+ 	}
++
+ 	/* ok, it looks sane as far as we can check without
+ 	 * actually mapping the pack file.
+ 	 */
+-	p = xmalloc(sizeof(*p) + path_len + 2);
+-	strcpy(p->pack_name, path);
+-	p->index_size = idx_size;
+ 	p->pack_size = st.st_size;
+-	p->index_base = idx_map;
+ 	p->next = NULL;
+ 	p->pack_base = NULL;
+ 	p->pack_last_used = 0;
+ 	p->pack_use_cnt = 0;
+ 	p->pack_local = local;
+-	if ((path_len > 44) && !get_sha1_hex(path + path_len - 44, sha1))
+-		hashcpy(p->sha1, sha1);
++	if (path_len < 40 || get_sha1_hex(path + path_len - 40, p->sha1))
++		hashclr(p->sha1);
+ 	return p;
+ }
+ 
+@@ -574,23 +616,19 @@ struct packed_git *parse_pack_index(unsigned char *sha1)
+ 	return parse_pack_index_file(sha1, path);
+ }
+ 
+-struct packed_git *parse_pack_index_file(const unsigned char *sha1, char *idx_path)
++struct packed_git *parse_pack_index_file(const unsigned char *sha1,
++					 const char *idx_path)
+ {
+-	struct packed_git *p;
+-	unsigned long idx_size;
+-	void *idx_map;
+-	char *path;
++	const char *path = sha1_pack_name(sha1);
++	struct packed_git *p = xmalloc(sizeof(*p) + strlen(path) + 2);
+ 
+-	if (check_packed_git_idx(idx_path, &idx_size, &idx_map))
++	if (check_packed_git_idx(idx_path, p)) {
++		free(p);
+ 		return NULL;
++	}
+ 
+-	path = sha1_pack_name(sha1);
+-
+-	p = xmalloc(sizeof(*p) + strlen(path) + 2);
+ 	strcpy(p->pack_name, path);
+-	p->index_size = idx_size;
+ 	p->pack_size = 0;
+-	p->index_base = idx_map;
+ 	p->next = NULL;
+ 	p->pack_base = NULL;
+ 	p->pack_last_used = 0;
+@@ -1166,35 +1204,60 @@ void *unpack_entry_gently(struct packed_git *p, unsigned long offset,
+ 	}
+ }
+ 
+-int num_packed_objects(const struct packed_git *p)
++const unsigned char *nth_packed_object_sha1(const struct packed_git *p,
++					    unsigned int n)
+ {
+-	/* See check_packed_git_idx() */
+-	return (p->index_size - 20 - 20 - 4*256) / 24;
++	const unsigned char *index = p->index_data;
++	if (n >= p->num_objects)
++		return NULL;
++	index += 4 * 256;
++	if (p->index_version == 1) {
++		return index + 24 * n + 4;
++	} else {
++		index += 8;
++		return index + 20 * n;
++	}
+ }
+ 
+-int nth_packed_object_sha1(const struct packed_git *p, int n,
+-			   unsigned char* sha1)
+-{
+-	void *index = p->index_base + 256;
+-	if (n < 0 || num_packed_objects(p) <= n)
+-		return -1;
+-	hashcpy(sha1, (unsigned char *) index + (24 * n) + 4);
+-	return 0;
++static off_t nth_packed_object_offset(const struct packed_git *p, uint32_t n)
++{
++	const unsigned char *index = p->index_data;
++	index += 4 * 256;
++	if (p->index_version == 1) {
++		return ntohl(*((uint32_t *)(index + 24 * n)));
++	} else {
++		uint32_t off;
++		index += 8 + p->num_objects * (20 + 4);
++		off = ntohl(*((uint32_t *)(index + 4 * n)));
++		if (!(off & 0x80000000))
++			return off;
++		index += p->num_objects * 4 + (off & 0x7fffffff) * 8;
++		return (((uint64_t)ntohl(*((uint32_t *)(index + 0)))) << 32) |
++				   ntohl(*((uint32_t *)(index + 4)));
++	}
+ }
+ 
+ unsigned long find_pack_entry_one(const unsigned char *sha1,
+ 				  struct packed_git *p)
+ {
+-	unsigned int *level1_ofs = p->index_base;
+-	int hi = ntohl(level1_ofs[*sha1]);
+-	int lo = ((*sha1 == 0x0) ? 0 : ntohl(level1_ofs[*sha1 - 1]));
+-	void *index = p->index_base + 256;
++	const unsigned int *level1_ofs = p->index_data;
++	const unsigned char *index = p->index_data;
++	unsigned hi, lo;
++
++	if (p->index_version > 1) {
++		level1_ofs += 2;
++		index += 8;
++	}
++	index += 4 * 256;
++	hi = ntohl(level1_ofs[*sha1]);
++	lo = ((*sha1 == 0x0) ? 0 : ntohl(level1_ofs[*sha1 - 1]));
+ 
+ 	do {
+-		int mi = (lo + hi) / 2;
+-		int cmp = hashcmp((unsigned char *)index + (24 * mi) + 4, sha1);
++		unsigned mi = (lo + hi) / 2;
++		unsigned x = (p->index_version > 1) ? (mi * 20) : (mi * 24 + 4);
++		int cmp = hashcmp(index + x, sha1);
+ 		if (!cmp)
+-			return ntohl(*((unsigned int *) ((char *) index + (24 * mi))));
++			return nth_packed_object_offset(p, mi);
+ 		if (cmp > 0)
+ 			hi = mi;
+ 		else
+diff --git a/sha1_name.c b/sha1_name.c
+index 6d7cd78..be9be52 100644
+--- a/sha1_name.c
++++ b/sha1_name.c
+@@ -71,19 +71,19 @@ static int match_sha(unsigned len, const unsigned char *a, const unsigned char *
+ static int find_short_packed_object(int len, const unsigned char *match, unsigned char *sha1)
+ {
+ 	struct packed_git *p;
+-	unsigned char found_sha1[20];
++	const unsigned char *found_sha1 = NULL;
+ 	int found = 0;
+ 
+ 	prepare_packed_git();
+ 	for (p = packed_git; p && found < 2; p = p->next) {
+-		unsigned num = num_packed_objects(p);
++		unsigned num = p->num_objects;
+ 		unsigned first = 0, last = num;
+ 		while (first < last) {
+ 			unsigned mid = (first + last) / 2;
+-			unsigned char now[20];
++			const unsigned char *now;
+ 			int cmp;
+ 
+-			nth_packed_object_sha1(p, mid, now);
++			now = nth_packed_object_sha1(p, mid);
+ 			cmp = hashcmp(match, now);
+ 			if (!cmp) {
+ 				first = mid;
+@@ -96,14 +96,14 @@ static int find_short_packed_object(int len, const unsigned char *match, unsigne
+ 			last = mid;
+ 		}
+ 		if (first < num) {
+-			unsigned char now[20], next[20];
+-			nth_packed_object_sha1(p, first, now);
++			const unsigned char *now, *next;
++		       now = nth_packed_object_sha1(p, first);
+ 			if (match_sha(len, match, now)) {
+-				if (nth_packed_object_sha1(p, first+1, next) ||
+-				    !match_sha(len, match, next)) {
++				next = nth_packed_object_sha1(p, first+1);
++			       if (!next|| !match_sha(len, match, next)) {
+ 					/* unique within this pack */
+ 					if (!found) {
+-						hashcpy(found_sha1, now);
++						found_sha1 = now;
+ 						found++;
+ 					}
+ 					else if (hashcmp(found_sha1, now)) {

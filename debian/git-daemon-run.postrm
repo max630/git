@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+
+test "$1" = 'purge' || exit 0
+
+rm -rf /var/run/sv.git-daemon /var/run/sv.git-daemon.log
+! getent passwd gitlog >/dev/null || deluser gitlog

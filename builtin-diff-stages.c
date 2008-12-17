@@ -42,16 +42,16 @@ static void diff_stages(int stage1, int stage2, const char **pathspec)
 			continue;
 		if (!one)
 			diff_addremove(&diff_options, '+', ntohl(two->ce_mode),
-				       two->sha1, name, NULL);
+				       two->sha1, name);
 		else if (!two)
 			diff_addremove(&diff_options, '-', ntohl(one->ce_mode),
-				       one->sha1, name, NULL);
+				       one->sha1, name);
 		else if (hashcmp(one->sha1, two->sha1) ||
 			 (one->ce_mode != two->ce_mode) ||
 			 diff_options.find_copies_harder)
 			diff_change(&diff_options,
 				    ntohl(one->ce_mode), ntohl(two->ce_mode),
-				    one->sha1, two->sha1, name, NULL);
+				    one->sha1, two->sha1, name);
 	}
 }
 

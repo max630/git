@@ -1,0 +1,16 @@
+diff --git a/Makefile b/Makefile
+index 36ce8cd..0c98df9 100644
+--- a/Makefile
++++ b/Makefile
+@@ -400,6 +400,11 @@ ifeq ($(uname_S),NetBSD)
+ 	BASIC_LDFLAGS += -L/usr/pkg/lib
+ 	ALL_LDFLAGS += -Wl,-rpath,/usr/pkg/lib
+ endif
++ifeq ($(uname_S),GNU)
++       # GNU stands for GNU/Hurd
++       NO_STRLCPY = YesPlease
++       ALL_CFLAGS += -DPATH_MAX=4096
++endif
+ ifeq ($(uname_S),AIX)
+ 	NO_STRCASESTR=YesPlease
+ 	NO_STRLCPY = YesPlease

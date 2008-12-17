@@ -1,0 +1,49 @@
+From 9a580d9d5d9e148f1cd78807c5b0476ec2431cfd Mon Sep 17 00:00:00 2001
+From: Eygene Ryabinkin <rea-git@codelabs.ru>
+Date: Thu, 1 Mar 2007 19:09:12 +0300
+Subject: [PATCH] Another memory overrun in http-push.c
+
+Use of strlcpy() are wrong, as the source buffer at these
+locations may not be NUL-terminated.
+---
+ http-push.c |   10 +++++++---
+ 1 files changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/http-push.c b/http-push.c
+index 60d2844..3f58ec4 100644
+--- a/http-push.c
++++ b/http-push.c
+@@ -1268,7 +1268,9 @@ xml_cdata(void *userData, const XML_Char *s, int len)
+ 	struct xml_ctx *ctx = (struct xml_ctx *)userData;
+ 	free(ctx->cdata);
+ 	ctx->cdata = xmalloc(len + 1);
+-	strlcpy(ctx->cdata, s, len + 1);
++	/* NB: 's' is not null-terminated, can not use strlcpy here */
++	memcpy(ctx->cdata, s, len);
++	ctx->cdata[len] = '\0';
+ }
+ 
+ static struct remote_lock *lock_remote(const char *path, long timeout)
+@@ -1470,7 +1472,8 @@ static void process_ls_object(struct remote_ls_ctx *ls)
+ 		return;
+ 	path += 8;
+ 	obj_hex = xmalloc(strlen(path));
+-	strlcpy(obj_hex, path, 3);
++	/* NB: path is not null-terminated, can not use strlcpy here */
++	memcpy(obj_hex, path, 2);
+ 	strcpy(obj_hex + 2, path + 3);
+ 	one_remote_object(obj_hex);
+ 	free(obj_hex);
+@@ -2167,7 +2170,8 @@ static void fetch_symref(const char *path, char **symref, unsigned char *sha1)
+ 	/* If it's a symref, set the refname; otherwise try for a sha1 */
+ 	if (!strncmp((char *)buffer.buffer, "ref: ", 5)) {
+ 		*symref = xmalloc(buffer.posn - 5);
+-		strlcpy(*symref, (char *)buffer.buffer + 5, buffer.posn - 5);
++		memcpy(*symref, (char *)buffer.buffer + 5, buffer.posn - 6);
++		(*symref)[buffer.posn - 6] = '\0';
+ 	} else {
+ 		get_sha1_hex(buffer.buffer, sha1);
+ 	}
+-- 
+1.5.0.3
+

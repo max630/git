@@ -1,0 +1,30 @@
+From f727f23b35496ce0dc51f82249c57c29e9b63602 Mon Sep 17 00:00:00 2001
+From: Eygene Ryabinkin <rea-git@codelabs.ru>
+Date: Wed, 28 Feb 2007 12:12:02 -0800
+Subject: [PATCH] http-push.c::lock_remote(): validate all remote refs.
+
+Starting from offset 11 might have been good back when it was
+only used for updating "refs/heads/*", but it is used to update
+"info/refs" and "refs/tags/*" as well.
+
+Signed-off-by: Junio C Hamano <junkio@cox.net>
+---
+ http-push.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/http-push.c b/http-push.c
+index ecefdfd..60d2844 100644
+--- a/http-push.c
++++ b/http-push.c
+@@ -1292,7 +1292,7 @@ static struct remote_lock *lock_remote(const char *path, long timeout)
+ 	sprintf(url, "%s%s", remote->url, path);
+ 
+ 	/* Make sure leading directories exist for the remote ref */
+-	ep = strchr(url + strlen(remote->url) + 11, '/');
++	ep = strchr(url + strlen(remote->url) + 1, '/');
+ 	while (ep) {
+ 		*ep = 0;
+ 		slot = get_active_slot();
+-- 
+1.5.0.3
+
