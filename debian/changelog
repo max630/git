@@ -1,3 +1,11 @@
+git-core (1:1.5.6.5-3+lenny1) stable-security; urgency=high
+
+  * debian/diff/0006-Install-templates-with-the-user-and-group...diff:
+    new, cherry-picked from 71f4637: Install templates with the user and
+    group of the installing personality (closes: #516669).
+
+ -- Gerrit Pape <pape@smarden.org>  Mon, 23 Feb 2009 13:50:14 +0000
+
 git-core (1:1.5.6.5-3) unstable; urgency=high
 
   * debian/rules: no longer install symlink /etc/init.d/git-daemon ->
