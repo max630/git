@@ -1,0 +1,5 @@
+#!/bin/sh
+exec 2>&1
+echo 'git-daemon starting.'
+exec chpst -m64000000 \
+  git-daemon --verbose --base-path=/var/cache /var/cache/git

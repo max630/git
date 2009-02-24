@@ -1,0 +1,26 @@
+Backport of:
+
+From: Jakub Narebski <jnareb@gmail.com>
+Date: Wed, 5 Mar 2008 08:31:55 +0000 (+0100)
+Subject: gitweb: Fix and simplify pickaxe search
+X-Git-Tag: v1.5.5-rc0~48^2
+X-Git-Url: http://repo.or.cz/w/git.git?a=commitdiff_plain;h=c582abae
+
+diff --git a/gitweb/gitweb.perl b/gitweb/gitweb.perl
+index 7587595..832091e 100755
+--- a/gitweb/gitweb.perl
++++ b/gitweb/gitweb.perl
+@@ -3970,9 +3970,10 @@ sub git_search {
+ 
+ 	if ($searchtype eq 'pickaxe') {
+ 		$/ = "\n";
+-		my $git_command = git_cmd_str();
+-		open my $fd, "-|", "$git_command rev-list $hash | " .
+-			"$git_command diff-tree -r --stdin -S\'$searchtext\'";
++		my $cmd = quote_command(git_cmd(), 'rev-list', $hash) . "|"
++		    . quote_command(git_cmd(), qw/diff-tree -r --stdin/,
++				    "-S$searchtext");
++		open my $fd, "-|", $cmd;
+ 		undef %co;
+ 		my @files;
+ 		while (my $line = <$fd>) {

@@ -1,0 +1,57 @@
+Backport of:
+
+From: Lea Wiemann <lewiemann@gmail.com>
+Date: Tue, 17 Jun 2008 21:46:35 +0000 (+0200)
+Subject: gitweb: quote commands properly when calling the shell
+X-Git-Tag: v1.5.6~6
+X-Git-Url: http://repo.or.cz/w/git.git?a=commitdiff_plain;h=516381d5
+
+gitweb: quote commands properly when calling the shell
+
+This eliminates the function git_cmd_str, which was used for composing
+command lines, and adds a quote_command function, which quotes all of
+its arguments (as in quote.c).
+
+Signed-off-by: Lea Wiemann <LeWiemann@gmail.com>
+Signed-off-by: Junio C Hamano <gitster@pobox.com>
+---
+
+diff --git a/gitweb/gitweb.perl b/gitweb/gitweb.perl
+index 7587595..9376809 100755
+--- a/gitweb/gitweb.perl
++++ b/gitweb/gitweb.perl
+@@ -902,9 +902,18 @@ sub git_cmd {
+ 	return $GIT, '--git-dir='.$git_dir;
+ }
+ 
++# quote the given arguments for passing them to the shell
++# quote_command("command", "arg 1", "arg with ' and ! characters")
++# => "'command' 'arg 1' 'arg with '\'' and '\!' characters'"
++# Try to avoid using this function wherever possible.
++sub quote_command {
++	return join(' ',
++		    map( { my $a = $_; $a =~ s/(['!])/'\\$1'/g; "'$a'" } @_ ));
++}
++
+ # returns path to the core git executable and the --git-dir parameter as string
+ sub git_cmd_str {
+-	return join(' ', git_cmd());
++	return quote_command(git_cmd());
+ }
+ 
+ # get HEAD ref of given project as hash
+@@ -3322,11 +3331,11 @@ sub git_snapshot {
+ 		-content_disposition => 'inline; filename="' . "$filename" . '"',
+ 		-status => '200 OK');
+ 
+-	my $git = git_cmd_str();
+ 	my $name = $project;
+ 	$name =~ s/\047/\047\\\047\047/g;
+-	open my $fd, "-|",
+-	"$git archive --format=tar --prefix=\'$name\'/ $hash | $command"
++	my $git_cmd = quote_command(git_cmd(), qw/archive --format=tar/,
++				    "--prefix=$name/", $hash);
++	open my $fd, "-|", "$git_cmd | $command"
+ 		or die_error(undef, "Execute git-tar-tree failed.");
+ 	binmode STDOUT, ':raw';
+ 	print <$fd>;
