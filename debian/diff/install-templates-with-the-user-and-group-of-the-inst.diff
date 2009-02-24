@@ -1,0 +1,34 @@
+From 8a6a00bdf6a2c313bcc7a8eace8d35e467075c4b Mon Sep 17 00:00:00 2001
+From: Gerrit Pape <pape@smarden.org>
+Date: Tue, 24 Feb 2009 23:42:49 +0000
+Subject: [PATCH] Install templates with the user and group of the installing personality
+
+If 'make install' was run with sufficient privileges, then the installed
+templates, which are copied using 'tar', would receive the user and group
+of whoever built git. This instructs 'tar' to ignore the user and group
+that are recorded in the archive.
+
+Signed-off-by: Johannes Sixt <johannes.sixt@telecom.at>
+Signed-off-by: Junio C Hamano <gitster@pobox.com>
+(cherry picked from commit 71f463773a310de016da20136fd7160685f97faa)
+
+Conflicts:
+
+	templates/Makefile
+---
+ templates/Makefile |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/templates/Makefile b/templates/Makefile
+index 9e1ae1a..bf6c371 100644
+--- a/templates/Makefile
++++ b/templates/Makefile
+@@ -43,4 +43,4 @@ clean:
+ install: all
+ 	$(INSTALL) -d -m755 '$(DESTDIR_SQ)$(template_dir_SQ)'
+ 	(cd blt && $(TAR) cf - .) | \
+-	(cd '$(DESTDIR_SQ)$(template_dir_SQ)' && $(TAR) xf -)
++	(cd '$(DESTDIR_SQ)$(template_dir_SQ)' && $(TAR) xfo -)
+-- 
+1.6.1.3
+

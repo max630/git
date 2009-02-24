@@ -1,3 +1,11 @@
+git-core (1:1.4.4.4-4+etch2) oldstable-security; urgency=high
+
+  * debian/diff/install-templates-with-the-user-and-group-of-the...diff:
+    new, cherry-picked from 71f4637: Install templates with the user and
+    group of the installing personality (closes: #516669).
+
+ -- Gerrit Pape <pape@smarden.org>  Mon, 23 Feb 2009 23:43:55 +0000
+
 git-core (1:1.4.4.4-4+etch1) stable-security; urgency=high
 
   * Fix gitweb command injection issues involving diffs, snapshots
