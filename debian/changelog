@@ -1,3 +1,11 @@
+git-core (1:1.4.4.4-4+etch3) oldstable-security; urgency=high
+
+  * debian/diff/0003-daemon-Strictly-parse-the-extra-arg-part-...diff:
+    new, cherry-picked from 73bb33a: daemon: Strictly parse the "extra
+    arg" part of the command (closes: #532935, CVE-2009-2108).
+
+ -- Gerrit Pape <pape@smarden.org>  Tue, 23 Jun 2009 09:46:46 +0000
+
 git-core (1:1.4.4.4-4+etch2) oldstable-security; urgency=high
 
   * debian/diff/install-templates-with-the-user-and-group-of-the...diff:
