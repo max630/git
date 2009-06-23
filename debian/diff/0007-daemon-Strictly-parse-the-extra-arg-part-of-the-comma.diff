@@ -1,0 +1,117 @@
+From 6a315413bd2874f2ec9d725ab1e49d33c4089566 Mon Sep 17 00:00:00 2001
+From: Gerrit Pape <pape@smarden.org>
+Date: Tue, 23 Jun 2009 09:18:52 +0000
+Subject: [PATCH] daemon: Strictly parse the "extra arg" part of the command
+
+Since 1.4.4.5 (49ba83fb67 "Add virtualization support to git-daemon")
+git daemon enters an infinite loop and never terminates if a client
+hides any extra arguments in the initial request line which is not
+exactly "\0host=blah\0".
+
+Since that change, a client must never insert additional extra
+arguments, or attempt to use any argument other than "host=", as
+any daemon will get stuck parsing the request line and will never
+complete the request.
+
+Since the client can't tell if the daemon is patched or not, it
+is not possible to know if additional extra args might actually be
+able to be safely requested.
+
+If we ever need to extend the git daemon protocol to support a new
+feature, we may have to do something like this to the exchange:
+
+  # If both support git:// v2
+  #
+  C: 000cgit://v2
+  S: 0010ok host user
+  C: 0018host git.kernel.org
+  C: 0027git-upload-pack /pub/linux-2.6.git
+  S: ...git-upload-pack header...
+
+  # If client supports git:// v2, server does not:
+  #
+  C: 000cgit://v2
+  S: <EOF>
+
+  C: 003bgit-upload-pack /pub/linux-2.6.git\0host=git.kernel.org\0
+  S: ...git-upload-pack header...
+
+This requires the client to create two TCP connections to talk to
+an older git daemon, however all daemons since the introduction of
+daemon.c will safely reject the unknown "git://v2" command request,
+so the client can quite easily determine the server supports an
+older protocol.
+
+Signed-off-by: Shawn O. Pearce <spearce@spearce.org>
+Signed-off-by: Junio C Hamano <gitster@pobox.com>
+(cherry picked from commit 73bb33a94ec67a53e7d805b12ad9264fa25f4f8d)
+
+Conflicts:
+
+	daemon.c
+---
+ connect.c |    5 ++++-
+ daemon.c  |   10 ++++++----
+ 2 files changed, 10 insertions(+), 5 deletions(-)
+
+diff --git a/connect.c b/connect.c
+index e92af29..8a1b4d1 100644
+--- a/connect.c
++++ b/connect.c
+@@ -573,7 +573,10 @@ struct child_process *git_connect(int fd[2], const char *url_orig,
+ 			git_tcp_connect(fd, host, flags);
+ 		/*
+ 		 * Separate original protocol components prog and path
+-		 * from extended components with a NUL byte.
++		 * from extended host header with a NUL byte.
++		 *
++		 * Note: Do not add any other headers here!  Doing so
++		 * will cause older git-daemon servers to crash.
+ 		 */
+ 		packet_write(fd[1],
+ 			     "%s %s%chost=%s%c",
+diff --git a/daemon.c b/daemon.c
+index ce3a6f5..eef980a 100644
+--- a/daemon.c
++++ b/daemon.c
+@@ -431,16 +431,16 @@ static void make_service_overridable(const char *name, int ena)
+ }
+ 
+ /*
+- * Separate the "extra args" information as supplied by the client connection.
++ * Read the host as supplied by the client connection.
+  * Any resulting data is squirreled away in the given interpolation table.
+  */
+-static void parse_extra_args(struct interp *table, char *extra_args, int buflen)
++static void parse_host_arg(struct interp *table, char *extra_args, int buflen)
+ {
+ 	char *val;
+ 	int vallen;
+ 	char *end = extra_args + buflen;
+ 
+-	while (extra_args < end && *extra_args) {
++	if (extra_args < end && *extra_args) {
+ 		saw_extended_args = 1;
+ 		if (strncasecmp("host=", extra_args, 5) == 0) {
+ 			val = extra_args + 5;
+@@ -460,6 +460,8 @@ static void parse_extra_args(struct interp *table, char *extra_args, int buflen)
+ 			/* On to the next one */
+ 			extra_args = val + vallen;
+ 		}
++		if (extra_args < end && *extra_args)
++			die("Invalid request");
+ 	}
+ }
+ 
+@@ -579,7 +581,7 @@ static int execute(struct sockaddr *addr)
+ 	interp_set_entry(interp_table, INTERP_SLOT_PERCENT, "%");
+ 
+ 	if (len != pktlen) {
+-	    parse_extra_args(interp_table, line + len + 1, pktlen - len - 1);
++	    parse_host_arg(interp_table, line + len + 1, pktlen - len - 1);
+ 	    fill_in_extra_table_entries(interp_table);
+ 	}
+ 
+-- 
+1.6.3.1
+
