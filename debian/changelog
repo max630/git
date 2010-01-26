@@ -1,3 +1,11 @@
+git-core (1:1.4.4.4-4+etch4) oldstable-security; urgency=high
+
+  * debian/diff/0004-git-cvsserver-allow-regex-metacharacters-...diff:
+    new; git-cvsserver: allow regex metacharacters in CVSROOT (fixes
+    build/selftest failure if the build directory pathname contains a +).
+
+ -- Gerrit Pape <pape@smarden.org>  Tue, 26 Jan 2010 15:21:54 +0000
+
 git-core (1:1.4.4.4-4+etch3) oldstable-security; urgency=high
 
   * debian/diff/0003-daemon-Strictly-parse-the-extra-arg-part-...diff:
