@@ -1,0 +1,38 @@
+From 6daf46496c7eeda42fbbb3d9f6b2f0697efda640 Mon Sep 17 00:00:00 2001
+From: Thomas Rast <trast@student.ethz.ch>
+Date: Mon, 10 Jan 2011 13:57:43 +0100
+Subject: Documentation/git-archive: spell --worktree-attributes correctly
+
+The --worktree-attributes option was correctly documented in ba053ea
+(archive: do not read .gitattributes in working directory,
+2009-04-18).  However, later in 9b4c8b0 (archive documentation:
+attributes are taken from the tree by default, 2010-02-10) the
+misspelling "--work-tree-attributes" was used to refer to it.  Fix
+this.
+
+Noticed-by: Jeffrey Phillips Freeman <jeffrey.freeman@syncleus.com>
+Signed-off-by: Thomas Rast <trast@student.ethz.ch>
+Signed-off-by: Junio C Hamano <gitster@pobox.com>
+(cherry picked from commit fc7642a096b99295a636ebde03e4b951a7da9c5a)
+
+Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
+---
+ Documentation/git-archive.txt |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/Documentation/git-archive.txt b/Documentation/git-archive.txt
+index 8d3e666..bc0eaef 100644
+--- a/Documentation/git-archive.txt
++++ b/Documentation/git-archive.txt
+@@ -116,7 +116,7 @@ Note that attributes are by default taken from the `.gitattributes` files
+ in the tree that is being archived.  If you want to tweak the way the
+ output is generated after the fact (e.g. you committed without adding an
+ appropriate export-ignore in its `.gitattributes`), adjust the checked out
+-`.gitattributes` file as necessary and use `--work-tree-attributes`
++`.gitattributes` file as necessary and use `--worktree-attributes`
+ option.  Alternatively you can keep necessary attributes that should apply
+ while archiving any tree in your `$GIT_DIR/info/attributes` file.
+ 
+-- 
+1.7.6
+

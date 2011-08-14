@@ -1,0 +1,95 @@
+From 25976c71edbc16f22f0693e6744b9130d59a29e2 Mon Sep 17 00:00:00 2001
+From: Christian Couder <chriscool@tuxfamily.org>
+Date: Thu, 22 Jul 2010 15:18:30 +0200
+Subject: revert: refactor code to find commit subject in find_commit_subject()
+
+Signed-off-by: Christian Couder <chriscool@tuxfamily.org>
+Signed-off-by: Junio C Hamano <gitster@pobox.com>
+(cherry picked from commit 11af2aaed657d10dea083f5d5cb7f93bb96a7b70)
+
+Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
+---
+ builtin/revert.c |   14 ++------------
+ commit.c         |   19 +++++++++++++++++++
+ commit.h         |    3 +++
+ 3 files changed, 24 insertions(+), 12 deletions(-)
+
+diff --git a/builtin/revert.c b/builtin/revert.c
+index 87fad24..7295038 100644
+--- a/builtin/revert.c
++++ b/builtin/revert.c
+@@ -102,7 +102,7 @@ struct commit_message {
+ static int get_message(const char *raw_message, struct commit_message *out)
+ {
+ 	const char *encoding;
+-	const char *p, *abbrev, *eol;
++	const char *p, *abbrev;
+ 	char *q;
+ 	int abbrev_len, oneline_len;
+ 
+@@ -125,17 +125,7 @@ static int get_message(const char *raw_message, struct commit_message *out)
+ 	abbrev = find_unique_abbrev(commit->object.sha1, DEFAULT_ABBREV);
+ 	abbrev_len = strlen(abbrev);
+ 
+-	/* Find beginning and end of commit subject. */
+-	p = out->message;
+-	while (*p && (*p != '\n' || p[1] != '\n'))
+-		p++;
+-	if (*p) {
+-		p += 2;
+-		for (eol = p; *eol && *eol != '\n'; eol++)
+-			; /* do nothing */
+-	} else
+-		eol = p;
+-	oneline_len = eol - p;
++	oneline_len = find_commit_subject(out->message, &p);
+ 
+ 	out->parent_label = xmalloc(strlen("parent of ") + abbrev_len +
+ 			      strlen("... ") + oneline_len + 1);
+diff --git a/commit.c b/commit.c
+index e9b0750..0094ec1 100644
+--- a/commit.c
++++ b/commit.c
+@@ -315,6 +315,25 @@ int parse_commit(struct commit *item)
+ 	return ret;
+ }
+ 
++int find_commit_subject(const char *commit_buffer, const char **subject)
++{
++	const char *eol;
++	const char *p = commit_buffer;
++
++	while (*p && (*p != '\n' || p[1] != '\n'))
++		p++;
++	if (*p) {
++		p += 2;
++		for (eol = p; *eol && *eol != '\n'; eol++)
++			; /* do nothing */
++	} else
++		eol = p;
++
++	*subject = p;
++
++	return eol - p;
++}
++
+ struct commit_list *commit_list_insert(struct commit *item, struct commit_list **list_p)
+ {
+ 	struct commit_list *new_list = xmalloc(sizeof(struct commit_list));
+diff --git a/commit.h b/commit.h
+index eb2b8ac..9113bbe 100644
+--- a/commit.h
++++ b/commit.h
+@@ -41,6 +41,9 @@ int parse_commit_buffer(struct commit *item, void *buffer, unsigned long size);
+ 
+ int parse_commit(struct commit *item);
+ 
++/* Find beginning and length of commit subject. */
++int find_commit_subject(const char *commit_buffer, const char **subject);
++
+ struct commit_list * commit_list_insert(struct commit *item, struct commit_list **list_p);
+ unsigned commit_list_count(const struct commit_list *l);
+ struct commit_list * insert_by_date(struct commit *item, struct commit_list **list);
+-- 
+1.7.6
+

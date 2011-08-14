@@ -1,0 +1,42 @@
+From 21e9989634b5136df96307f9c649cff2dc348d26 Mon Sep 17 00:00:00 2001
+From: Christian Couder <chriscool@tuxfamily.org>
+Date: Thu, 22 Jul 2010 15:18:34 +0200
+Subject: merge-recursive: use find_commit_subject() instead of custom code
+
+Signed-off-by: Christian Couder <chriscool@tuxfamily.org>
+Signed-off-by: Junio C Hamano <gitster@pobox.com>
+(cherry picked from commit 49b7120ef1c915439b01f23f30ddfe64565ec9cc)
+
+Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
+---
+ merge-recursive.c |   14 ++++----------
+ 1 files changed, 4 insertions(+), 10 deletions(-)
+
+diff --git a/merge-recursive.c b/merge-recursive.c
+index fb6aa4a..7635659 100644
+--- a/merge-recursive.c
++++ b/merge-recursive.c
+@@ -136,16 +136,10 @@ static void output_commit_title(struct merge_options *o, struct commit *commit)
+ 		if (parse_commit(commit) != 0)
+ 			printf("(bad commit)\n");
+ 		else {
+-			const char *s;
+-			int len;
+-			for (s = commit->buffer; *s; s++)
+-				if (*s == '\n' && s[1] == '\n') {
+-					s += 2;
+-					break;
+-				}
+-			for (len = 0; s[len] && '\n' != s[len]; len++)
+-				; /* do nothing */
+-			printf("%.*s\n", len, s);
++			const char *title;
++			int len = find_commit_subject(commit->buffer, &title);
++			if (len)
++				printf("%.*s\n", len, title);
+ 		}
+ 	}
+ }
+-- 
+1.7.6
+

@@ -1,0 +1,71 @@
+From 040868aac52795b93648acf3a5587799fc155ad6 Mon Sep 17 00:00:00 2001
+From: Christian Couder <chriscool@tuxfamily.org>
+Date: Thu, 22 Jul 2010 15:18:29 +0200
+Subject: revert: fix off by one read when searching the end of a commit subject
+
+A test case is added but the problem can only be seen when running
+the test case with --valgrind.
+
+Signed-off-by: Christian Couder <chriscool@tuxfamily.org>
+Acked-by: Jonathan Nieder <jrnieder@gmail.com>
+Signed-off-by: Junio C Hamano <gitster@pobox.com>
+(cherry picked from commit 2c048a3038fd4d94e150fbc1dfd2242325ca7db6)
+
+Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
+---
+ builtin/revert.c             |    2 +-
+ t/t3505-cherry-pick-empty.sh |   20 +++++++++++++++++++-
+ 2 files changed, 20 insertions(+), 2 deletions(-)
+
+diff --git a/builtin/revert.c b/builtin/revert.c
+index 54d13cf..87fad24 100644
+--- a/builtin/revert.c
++++ b/builtin/revert.c
+@@ -131,7 +131,7 @@ static int get_message(const char *raw_message, struct commit_message *out)
+ 		p++;
+ 	if (*p) {
+ 		p += 2;
+-		for (eol = p + 1; *eol && *eol != '\n'; eol++)
++		for (eol = p; *eol && *eol != '\n'; eol++)
+ 			; /* do nothing */
+ 	} else
+ 		eol = p;
+diff --git a/t/t3505-cherry-pick-empty.sh b/t/t3505-cherry-pick-empty.sh
+index e51e505..c10b28c 100755
+--- a/t/t3505-cherry-pick-empty.sh
++++ b/t/t3505-cherry-pick-empty.sh
+@@ -13,12 +13,30 @@ test_expect_success setup '
+ 
+ 	git checkout -b empty-branch &&
+ 	test_tick &&
+-	git commit --allow-empty -m "empty"
++	git commit --allow-empty -m "empty" &&
++
++	echo third >> file1 &&
++	git add file1 &&
++	test_tick &&
++	git commit --allow-empty-message -m ""
+ 
+ '
+ 
+ test_expect_success 'cherry-pick an empty commit' '
+ 	git checkout master && {
++		git cherry-pick empty-branch^
++		test "$?" = 1
++	}
++'
++
++test_expect_success 'index lockfile was removed' '
++
++	test ! -f .git/index.lock
++
++'
++
++test_expect_success 'cherry-pick a commit with an empty message' '
++	git checkout master && {
+ 		git cherry-pick empty-branch
+ 		test "$?" = 1
+ 	}
+-- 
+1.7.6
+

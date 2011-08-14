@@ -1,0 +1,42 @@
+From 58d81d043304ec5f3607b3ccb9031178938673c0 Mon Sep 17 00:00:00 2001
+From: Thomas Rast <trast@student.ethz.ch>
+Date: Mon, 10 Jan 2011 13:42:23 +0100
+Subject: Documentation/githooks: post-rewrite-copy-notes never existed
+
+The documentation for the post-rewrite hook contains a paragraph from
+its early development, where the automatic notes copying facilities
+were not part of the series and thus this had to be a hook.  Later
+versions of the series implemented notes copying as a core feature.
+
+Thus mentioning post-rewrite-copy-notes was never correct.  As the
+other hooks do not have a "there is no default hook, but..." sentence
+unless they ship a sample hook in either templates or contrib, we
+simply remove the whole paragraph.
+
+Signed-off-by: Thomas Rast <trast@student.ethz.ch>
+Signed-off-by: Junio C Hamano <gitster@pobox.com>
+(cherry picked from commit 920a5d436b0309072de598a44b493ba0793b074c)
+
+Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
+---
+ Documentation/githooks.txt |    4 ----
+ 1 files changed, 0 insertions(+), 4 deletions(-)
+
+diff --git a/Documentation/githooks.txt b/Documentation/githooks.txt
+index 7183aa9..28edefa 100644
+--- a/Documentation/githooks.txt
++++ b/Documentation/githooks.txt
+@@ -350,10 +350,6 @@ rebase::
+ The commits are guaranteed to be listed in the order that they were
+ processed by rebase.
+ 
+-There is no default 'post-rewrite' hook, but see the
+-`post-receive-copy-notes` script in `contrib/hooks` for an example
+-that copies your git-notes to the rewritten commits.
+-
+ 
+ GIT
+ ---
+-- 
+1.7.6
+

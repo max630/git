@@ -1,0 +1,57 @@
+From c863a34a631fd0e24be900901cd9fc8b5227df12 Mon Sep 17 00:00:00 2001
+From: Christian Couder <chriscool@tuxfamily.org>
+Date: Thu, 22 Jul 2010 15:18:31 +0200
+Subject: revert: rename variables related to subject in get_message()
+
+Generic-looking pointer variable "p" was used only to point at subject
+string and had a rather lifespan.
+
+Signed-off-by: Christian Couder <chriscool@tuxfamily.org>
+Signed-off-by: Junio C Hamano <gitster@pobox.com>
+(cherry picked from commit dfe7effe7d873015c8624d438b98671083c12e27)
+
+Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
+---
+ builtin/revert.c |   10 +++++-----
+ 1 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/builtin/revert.c b/builtin/revert.c
+index 7295038..070dcc7 100644
+--- a/builtin/revert.c
++++ b/builtin/revert.c
+@@ -102,9 +102,9 @@ struct commit_message {
+ static int get_message(const char *raw_message, struct commit_message *out)
+ {
+ 	const char *encoding;
+-	const char *p, *abbrev;
++	const char *abbrev, *subject;
++	int abbrev_len, subject_len;
+ 	char *q;
+-	int abbrev_len, oneline_len;
+ 
+ 	if (!raw_message)
+ 		return -1;
+@@ -125,17 +125,17 @@ static int get_message(const char *raw_message, struct commit_message *out)
+ 	abbrev = find_unique_abbrev(commit->object.sha1, DEFAULT_ABBREV);
+ 	abbrev_len = strlen(abbrev);
+ 
+-	oneline_len = find_commit_subject(out->message, &p);
++	subject_len = find_commit_subject(out->message, &subject);
+ 
+ 	out->parent_label = xmalloc(strlen("parent of ") + abbrev_len +
+-			      strlen("... ") + oneline_len + 1);
++			      strlen("... ") + subject_len + 1);
+ 	q = out->parent_label;
+ 	q = mempcpy(q, "parent of ", strlen("parent of "));
+ 	out->label = q;
+ 	q = mempcpy(q, abbrev, abbrev_len);
+ 	q = mempcpy(q, "... ", strlen("... "));
+ 	out->subject = q;
+-	q = mempcpy(q, p, oneline_len);
++	q = mempcpy(q, subject, subject_len);
+ 	*q = '\0';
+ 	return 0;
+ }
+-- 
+1.7.6
+

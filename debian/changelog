@@ -1,3 +1,14 @@
+git (1:1.7.2.5-2.1) stable; urgency=low
+
+  * debian/diff/0034..0043: new from the upstream maint-1.7.2 branch:
+    * bisect, blame, cherry-pick, merge-recursive, revert: fix
+      off-by-one read when searching for the end of a commit subject.
+    * fast-import: allow frontends to check for notes import feature
+      with a "feature" command.
+    * some minor documentation updates.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Sun, 14 Aug 2011 14:50:33 -0500
+
 git (1:1.7.2.5-2) stable; urgency=low
 
   * debian/git-daemon-run.postrm purge: terminate the git-daemon/log

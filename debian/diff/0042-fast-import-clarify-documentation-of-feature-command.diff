@@ -1,0 +1,79 @@
+From 6842190a886e546dd588339d8dcdf1baf2810e33 Mon Sep 17 00:00:00 2001
+From: Jonathan Nieder <jrnieder@gmail.com>
+Date: Sun, 28 Nov 2010 13:43:57 -0600
+Subject: fast-import: clarify documentation of "feature" command
+
+The "feature" command allows streams to specify options for the import
+that must not be ignored.  Logically, they are part of the stream,
+even though technically most supported features are synonyms to
+command-line options.
+
+Make this more obvious by being more explicit about how the analogy
+between most "feature" commands and command-line options works.  Treat
+the feature (import-marks) that does not fit this analogy separately.
+
+Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
+Acked-by: Sverre Rabbelier <srabbelier@gmail.com>
+Signed-off-by: Junio C Hamano <gitster@pobox.com>
+Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
+Signed-off-by: Junio C Hamano <gitster@pobox.com>
+(cherry picked from commit 68595cd442caabbd8b43ff0789d2829454efff1b)
+
+Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
+---
+ Documentation/git-fast-import.txt |   33 +++++++++++++++------------------
+ 1 files changed, 15 insertions(+), 18 deletions(-)
+
+diff --git a/Documentation/git-fast-import.txt b/Documentation/git-fast-import.txt
+index 77a0a24..00e086e 100644
+--- a/Documentation/git-fast-import.txt
++++ b/Documentation/git-fast-import.txt
+@@ -878,28 +878,25 @@ Require that fast-import supports the specified feature, or abort if
+ it does not.
+ 
+ ....
+-	'feature' SP <feature> LF
++	'feature' SP <feature> ('=' <argument>)? LF
+ ....
+ 
+-The <feature> part of the command may be any string matching
+-^[a-zA-Z][a-zA-Z-]*$ and should be understood by fast-import.
+-
+-Feature work identical as their option counterparts with the
+-exception of the import-marks feature, see below.
+-
+-The following features are currently supported:
+-
+-* date-format
+-* import-marks
+-* export-marks
+-* relative-marks
+-* no-relative-marks
+-* force
+-
+-The import-marks behaves differently from when it is specified as
+-commandline option in that only one "feature import-marks" is allowed
+-per stream. Also, any --import-marks= specified on the commandline
+-will override those from the stream (if any).
++The <feature> part of the command may be any one of the following:
++
++date-format::
++export-marks::
++relative-marks::
++no-relative-marks::
++force::
++	Act as though the corresponding command-line option with
++	a leading '--' was passed on the command line
++	(see OPTIONS, above).
++
++import-marks::
++	Like --import-marks except in two respects: first, only one
++	"feature import-marks" command is allowed per stream;
++	second, an --import-marks= command-line option overrides
++	any "feature import-marks" command in the stream.
+ 
+ `option`
+ ~~~~~~~~
+-- 
+1.7.6
+
