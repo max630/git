@@ -1,23 +1,23 @@
-git (1:1.7.2.5-2.1) stable; urgency=low
+git (1:1.7.2.5-3) stable; urgency=low
 
   * debian/diff/0034..0043: new from the upstream maint-1.7.2 branch:
     * bisect, blame, cherry-pick, merge-recursive, revert: fix
       off-by-one read when searching for the end of a commit subject.
-    * fast-import: allow frontends to check for notes import feature
-      with a "feature" command.
+    * fast-import: allow frontends to check for notes import feature.
     * some minor documentation updates.
   * debian/diff/0044-upload-pack-start-pack-objects-before-...: new
     from upstream; upload-pack: start child that reads pack_pipe
     before writing to it.  This prevents server-side deadlocks on
     shallow clone (closes: #607346).
   * debian/git-daemon/run: use SO_REUSEADDR when binding the listening
-    socket so the server does not have to wait for old connections to
-    time out to restart (thx Daniel Kahn Gillmor; closes: #609405).
-  * debian/git-daemon-run.postrm purge: terminate git-daemon/log even if
-    there is an active connection using it, to allow the logs and gitlog
-    user to be removed (thx Daniel Kahn Gillmor; closes: #627314).
+    socket so the server can restart without waiting for old connections
+    to time out (thx Daniel Kahn Gillmor; closes: #609405).
+  * debian/git-daemon-run.postrm purge: terminate the git-daemon/log
+    service, even if there is an active connection using it, before
+    deleting logs and the gitlog user (thx Daniel Kahn Gillmor; closes:
+    #627314).
 
- -- Jonathan Nieder <jrnieder@gmail.com>  Sun, 14 Aug 2011 14:50:33 -0500
+ -- Jonathan Nieder <jrnieder@gmail.com>  Sun, 14 Aug 2011 18:29:50 -0500
 
 git (1:1.7.2.5-2) stable; urgency=low
 
