@@ -6,6 +6,10 @@ git (1:1.7.2.5-2.1) stable; urgency=low
     * fast-import: allow frontends to check for notes import feature
       with a "feature" command.
     * some minor documentation updates.
+  * debian/diff/0044-upload-pack-start-pack-objects-before-...: new
+    from upstream; upload-pack: start child that reads pack_pipe
+    before writing to it.  This prevents server-side deadlocks on
+    shallow clone (closes: #607346).
 
  -- Jonathan Nieder <jrnieder@gmail.com>  Sun, 14 Aug 2011 14:50:33 -0500
 
