@@ -1,11 +1,10 @@
 git (1:1.7.2.5-3) stable; urgency=low
 
-  * debian/diff/0034..0043: new from the upstream maint-1.7.2 branch:
+  * debian/diff/0034..0042: new from the upstream maint-1.7.2 branch:
     * bisect, blame, cherry-pick, merge-recursive, revert: fix
       off-by-one read when searching for the end of a commit subject.
-    * fast-import: allow frontends to check for notes import feature.
     * some minor documentation updates.
-  * debian/diff/0044-upload-pack-start-pack-objects-before-...: new
+  * debian/diff/0043-upload-pack-start-pack-objects-before-...: new
     from upstream; upload-pack: start child that reads pack_pipe
     before writing to it.  This prevents server-side deadlocks on
     shallow clone (closes: #607346).
@@ -17,7 +16,7 @@ git (1:1.7.2.5-3) stable; urgency=low
     deleting logs and the gitlog user (thx Daniel Kahn Gillmor; closes:
     #627314).
 
- -- Jonathan Nieder <jrnieder@gmail.com>  Sun, 14 Aug 2011 18:29:50 -0500
+ -- Jonathan Nieder <jrnieder@gmail.com>  Sun, 18 Sep 2011 12:59:28 -0500
 
 git (1:1.7.2.5-2) stable; urgency=low
 
