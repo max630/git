@@ -3310,8 +3310,8 @@ ${NS}::scrollbar .vpane.lower.commarea.buffer.sby \
 	-command [list $ui_comm yview]
 pack .vpane.lower.commarea.buffer.header -side top -fill x
 pack .vpane.lower.commarea.buffer.sby -side right -fill y
-pack $ui_comm -side left -fill y
-pack .vpane.lower.commarea.buffer -side left -fill y
+pack $ui_comm -side left -fill both -expand 1
+pack .vpane.lower.commarea.buffer -side left -fill both -expand 1
 
 # -- Commit Message Buffer Context Menu
 #
