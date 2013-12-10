@@ -8141,8 +8141,8 @@ proc dosearch {} {
 	suppress_highlighting_file_for_current_scrollpos
 	highlightfile_for_scrollpos $match
 	set mend "$match + $mlen c"
-	$ctext tag add sel $match $mend
-	$ctext mark unset anchor
+	#$ctext tag add sel $match $mend
+	$ctext mark set anchor $match
 	rehighlight_search_results
     }
 }
@@ -8170,8 +8170,8 @@ proc dosearchback {} {
 	suppress_highlighting_file_for_current_scrollpos
 	highlightfile_for_scrollpos $match
 	set mend "$match + $ml c"
-	$ctext tag add sel $match $mend
-	$ctext mark unset anchor
+	#$ctext tag add sel $match $mend
+        $ctext mark set anchor $match
 	rehighlight_search_results
     }
 }
