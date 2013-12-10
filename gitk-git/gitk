@@ -8093,19 +8093,25 @@ proc settabs {{firstab {}}} {
 proc incrsearch {name ix op} {
     global ctext searchstring searchdirn
 
-    if {[catch {$ctext index anchor}]} {
+    if {[catch {set prev_anchor [$ctext index anchor]}]} {
 	# no anchor set, use start of selection, or of visible area
 	set sel [$ctext tag ranges sel]
 	if {$sel ne {}} {
-	    $ctext mark set anchor [lindex $sel 0]
+	    set start [lindex $sel 0]
 	} elseif {$searchdirn eq "-forwards"} {
-	    $ctext mark set anchor @0,0
+	    set start @0,0
 	} else {
-	    $ctext mark set anchor @0,[winfo height $ctext]
+	    set start @0,[winfo height $ctext]
+	}
+    } else {
+	if {$searchdirn eq "-forwards"} {
+	    set start $prev_anchor
+	} else {
+	    set start "$prev_anchor + [string length $searchstring] c"
 	}
     }
     if {$searchstring ne {}} {
-	set here [$ctext search -count mlen $searchdirn -- $searchstring anchor]
+	set here [$ctext search -count mlen $searchdirn -- $searchstring $start]
 	if {$here ne {}} {
 	    $ctext see $here
 	    set mend "$here + $mlen c"
