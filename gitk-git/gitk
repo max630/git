@@ -8128,7 +8128,7 @@ proc dosearch {} {
 	set sel [$ctext tag ranges sel]
 	if {$sel ne {}} {
 	    set start "[lindex $sel 0] + 1c"
-	} elseif {[catch {set start [$ctext index anchor]}]} {
+	} elseif {[catch {set start "[$ctext index anchor] + 1c"}]} {
 	    set start "@0,0"
 	}
 	set match [$ctext search -count mlen -- $searchstring $start]
@@ -8191,14 +8191,15 @@ proc searchmark {first last} {
     global ctext searchstring
     puts [list $first $last]
 
-    set sel [$ctext tag ranges sel]
+    #TODO: catch no anchor
+    set anchor [$ctext index anchor]
 
     set mend $first.0
     while {1} {
 	set match [$ctext search -count mlen -- $searchstring $mend $last.end]
 	if {$match eq {}} break
 	set mend "$match + $mlen c"
-	if {$sel ne {} && [$ctext compare $match == [lindex $sel 0]]} {
+	if {$anchor eq $match} {
 	    $ctext tag add currentsearchhit $match $mend
 	} else {
 	    $ctext tag add found $match $mend
