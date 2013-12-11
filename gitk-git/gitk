@@ -8115,8 +8115,6 @@ proc incrsearch {name ix op} {
 	if {$here ne {}} {
 	    $ctext see $here
 	    set mend "$here + $mlen c"
-	    #$ctext tag remove sel 1.0 end
-	    #$ctext tag add sel $here $mend
 	    $ctext mark set anchor $here
 	    suppress_highlighting_file_for_current_scrollpos
 	    highlightfile_for_scrollpos $here
@@ -8148,7 +8146,6 @@ proc dosearch {} {
 	suppress_highlighting_file_for_current_scrollpos
 	highlightfile_for_scrollpos $match
 	set mend "$match + $mlen c"
-	#$ctext tag add sel $match $mend
 	$ctext mark set anchor $match
 	rehighlight_search_results
     }
@@ -8177,7 +8174,6 @@ proc dosearchback {} {
 	suppress_highlighting_file_for_current_scrollpos
 	highlightfile_for_scrollpos $match
 	set mend "$match + $ml c"
-	#$ctext tag add sel $match $mend
         $ctext mark set anchor $match
 	rehighlight_search_results
     }
