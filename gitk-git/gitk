@@ -8192,7 +8192,6 @@ proc rehighlight_search_results {} {
 
 proc searchmark {first last} {
     global ctext searchstring
-    puts [list $first $last]
 
     #TODO: catch no anchor
     set anchor [$ctext index anchor]
