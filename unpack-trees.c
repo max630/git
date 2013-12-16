@@ -105,12 +105,11 @@ void setup_unpack_trees_porcelain(struct unpack_trees_options *opts,
 static void do_add_entry(struct unpack_trees_options *o, struct cache_entry *ce,
 			 unsigned int set, unsigned int clear)
 {
-	clear |= CE_HASHED | CE_UNHASHED;
+	clear |= CE_HASHED;
 
 	if (set & CE_REMOVE)
 		set |= CE_WT_REMOVE;
 
-	ce->next = NULL;
 	ce->ce_flags = (ce->ce_flags & ~clear) | set;
 	add_index_entry(&o->result, ce,
 			ADD_CACHE_OK_TO_ADD | ADD_CACHE_OK_TO_REPLACE);
@@ -1763,14 +1762,23 @@ int twoway_merge(const struct cache_entry * const *src,
 		newtree = NULL;
 
 	if (current) {
-		if ((!oldtree && !newtree) || /* 4 and 5 */
-		    (!oldtree && newtree &&
-		     same(current, newtree)) || /* 6 and 7 */
-		    (oldtree && newtree &&
-		     same(oldtree, newtree)) || /* 14 and 15 */
-		    (oldtree && newtree &&
-		     !same(oldtree, newtree) && /* 18 and 19 */
-		     same(current, newtree))) {
+		if (current->ce_flags & CE_CONFLICTED) {
+			if (same(oldtree, newtree) || o->reset) {
+				if (!newtree)
+					return deleted_entry(current, current, o);
+				else
+					return merged_entry(newtree, current, o);
+			}
+			return o->gently ? -1 : reject_merge(current, o);
+		}
+		else if ((!oldtree && !newtree) || /* 4 and 5 */
+			 (!oldtree && newtree &&
+			  same(current, newtree)) || /* 6 and 7 */
+			 (oldtree && newtree &&
+			  same(oldtree, newtree)) || /* 14 and 15 */
+			 (oldtree && newtree &&
+			  !same(oldtree, newtree) && /* 18 and 19 */
+			  same(current, newtree))) {
 			return keep_entry(current, o);
 		}
 		else if (oldtree && !newtree && same(current, oldtree)) {
