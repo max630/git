@@ -1,3 +1,20 @@
+git (1:2.0~next.20131213-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit 523f7c43
+    (closes: #730520).
+  * debian/copyright: document where to get upstream tarball.
+  * debian/diff:
+    * 0001-remove-interpreter-line-from-shell-libraries.diff,
+      0010-git-remote-mediawiki-do-not-remove-installed-...diff:
+      remove; applied upstream.
+    * 0002...0009: rename to 0001-*, ..., 0008-*.
+    * 0009-record-version.diff: new; git and git-gui version
+      strings computed by GIT-VERSION-GEN.
+  * debian/rules install: no more need to include DESTDIR in
+    mw-to-git INSTLIBDIR.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Mon, 16 Dec 2013 16:20:23 -0800
+
 git (1:1.8.5.1-1) unstable; urgency=medium
 
   * new upstream point release.

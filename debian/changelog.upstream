@@ -1,3 +1,266 @@
+Version next; changes since v1.8.5.1:
+-------------------------------------
+
+Anders Kaseorg (1):
+      submodule foreach: skip eval for more than one argument
+
+Carlos Martín Nieto (1):
+      send-pack: don't send a thin pack to a server which doesn't support it
+
+Christian Couder (4):
+      environment: normalize use of prefixcmp() by removing " != 0"
+      builtin/remote: remove postfixcmp() and use suffixcmp() instead
+      strbuf: introduce starts_with() and ends_with()
+      replace {pre,suf}fixcmp() with {starts,ends}_with()
+
+Crestez Dan Leonard (1):
+      git p4: Use git diff-tree instead of format-patch
+
+Felipe Contreras (6):
+      test-lib.sh: convert $TEST_DIRECTORY to an absolute path
+      test-bzr.sh, test-hg.sh: allow running from any dir
+      abspath: trivial style fix
+      t: trivial whitespace cleanups
+      fetch: add missing documentation
+      remote: fix status with branch...rebase=preserve
+
+Greg Jacobson (1):
+      push: enhance unspecified push default warning
+
+Jason St. John (6):
+      Documentation/git-log: update "--log-size" description
+      Documentation/git-log.txt: mark-up fix and minor rephasing
+      State correct usage of literal examples in man pages in the coding standards
+      Documentation/rev-list-options.txt: fix mark-up
+      Documentation/rev-list-options.txt: fix some grammatical issues and typos
+      Documentation/gitcli.txt: fix double quotes
+
+Jeff King (18):
+      log_tree_diff: die when we fail to parse a commit
+      assume parse_commit checks commit->object.parsed
+      assume parse_commit checks for NULL commit
+      use parse_commit_or_die instead of segfaulting
+      use parse_commit_or_die instead of custom message
+      checkout: do not die when leaving broken detached HEAD
+      sha1write: make buffer const-correct
+      use @@PERL@@ in built scripts
+      http: return curl's AUTHAVAIL via slot_results
+      remote-curl: pass curl slot_results back through run_slot
+      unpack-trees: fix "read-tree -u --reset A B" with conflicted index
+      drop support for "experimental" loose objects
+      t5000: simplify gzip prerequisite checks
+      pack-objects: name pack files after trailer hash
+      rev-parse: correctly diagnose revision errors before "--"
+      rev-parse: be more careful with munging arguments
+      cat-file: pass expand_data to print_object_or_die
+      cat-file: handle --batch format with missing type/size
+
+Jens Lehmann (3):
+      submodule: don't access the .gitmodules cache entry after removing it
+      submodule update: remove unnecessary orig_flags variable
+      commit -v: strip diffs and submodule shortlogs from the commit message
+
+Johan Herland (1):
+      sha1_file.c:create_tmpfile(): Fix race when creating loose object dirs
+
+Johannes Sixt (3):
+      document --exclude option
+      git_connect: remove artificial limit of a remote command
+      git_connect: factor out discovery of the protocol and its parts
+
+John Keeping (6):
+      repo-config: remove deprecated alias for "git config"
+      tar-tree: remove deprecated command
+      lost-found: remove deprecated command
+      peek-remote: remove deprecated alias of ls-remote
+      pull: use merge-base --fork-point when appropriate
+      rebase: use reflog to find common base with upstream
+
+John Murphy (1):
+      git-gui: corrected setup of git worktree under cygwin.
+
+Jonathan Nieder (14):
+      git-remote-mediawiki: do not remove installed files in "clean" target
+      git-remote-mediawiki: honor DESTDIR in "make install"
+      git-remote-mediawiki build: make 'install' command configurable
+      git-remote-mediawiki build: handle DESTDIR/INSTLIBDIR with whitespace
+      Makefile: rebuild perl scripts when perl paths change
+      Makefile: add PERLLIB_EXTRA variable that adds to default perl path
+      mark Windows build scripts executable
+      mark perl test scripts executable
+      mark contributed hooks executable
+      contrib: remove git-p4import
+      test: make FILEMODE a lazy prereq
+      test: replace shebangs with descriptions in shell libraries
+      remove #!interpreter line from shell libraries
+      stop installing git-tar-tree link
+
+Junio C Hamano (21):
+      git add <pathspec>... defaults to "-A"
+      git add: -u/-A now affects the entire working tree
+      core.statinfo: remove as promised in Git 2.0
+      push: switch default from "matching" to "simple"
+      diff: remove "diff-files -q" in a version of Git in a distant future
+      revision: introduce --exclude=<glob> to tame wildcards
+      merge-base: use OPT_CMDMODE and clarify the command line parsing
+      merge-base: teach "--fork-point" mode
+      rev-list --exclude: tests
+      rev-list --exclude: export add/clear-ref-exclusion and ref-excluded API
+      rev-parse: introduce --exclude=<glob> to tame wildcards
+      t1005: reindent
+      t1005: add test for "read-tree --reset -u A B"
+      sha1_loose_object_info(): do not return success on missing object
+      bundle: use argv-array
+      push: switch default from "matching" to "simple"
+      builtin/push.c: use strbuf instead of manual allocation
+      push: use remote.$name.push as a refmap
+      push: also use "upstream" mapping when pushing a single ref
+      Start 1.9 cycle
+      Update draft release notes to 1.9
+
+Karsten Blees (14):
+      add a hashtable implementation that supports O(1) removal
+      buitin/describe.c: use new hash map implementation
+      diffcore-rename.c: move code around to prepare for the next patch
+      diffcore-rename.c: simplify finding exact renames
+      diffcore-rename.c: use new hash map implementation
+      name-hash.c: use new hash map implementation for directories
+      name-hash.c: remove unreferenced directory entries
+      name-hash.c: use new hash map implementation for cache entries
+      name-hash.c: remove cache entries instead of marking them CE_UNHASHED
+      remove old hash.[ch] implementation
+      fix 'git update-index --verbose --again' output
+      builtin/update-index.c: cleanup update_one
+      read-cache.c: fix memory leaks caused by removed cache entries
+      gitignore.txt: clarify recursive nature of excluded directories
+
+Krzesimir Nowak (4):
+      gitweb: Move check-ref-format code into separate function
+      gitweb: Return 1 on validation success instead of passed input
+      gitweb: Add a feature for adding more branch refs
+      gitweb: Denote non-heads, non-remotes branches
+
+Mads Dørup (1):
+      git-gui: Improve font rendering on retina macbooks
+
+Masanari Iida (4):
+      typofixes: fix misspelt comments
+      Documentation/technical/http-protocol.txt: typofixes
+      contrib: typofixes
+      git-gui: correct spelling errors in comments
+
+Matthieu Moy (1):
+      mv: let 'git mv file no-such-dir/' error out
+
+Max Kirillov (2):
+      git-gui: Add gui.displayuntracked option
+      git-gui: right half window is paned
+
+Michael Haggerty (23):
+      t5510: use the correct tag name in test
+      t5510: prepare test refs more straightforwardly
+      t5510: check that "git fetch --prune --tags" does not prune branches
+      api-remote.txt: correct section "struct refspec"
+      get_ref_map(): rename local variables
+      builtin/fetch.c: reorder function definitions
+      get_expanded_map(): add docstring
+      get_expanded_map(): avoid memory leak
+      fetch: only opportunistically update references based on command line
+      fetch --tags: fetch tags *in addition to* other stuff
+      fetch --prune: prune only based on explicit refspecs
+      query_refspecs(): move some constants out of the loop
+      builtin/remote.c: reorder function definitions
+      builtin/remote.c:update(): use struct argv_array
+      fetch, remote: properly convey --no-prune options to subprocesses
+      fetch-options.txt: simplify ifdef/ifndef/endif usage
+      git-fetch.txt: improve description of tag auto-following
+      ref_remove_duplicates(): avoid redundant bisection
+      t5536: new test of refspec conflicts when fetching
+      ref_remove_duplicates(): simplify loop logic
+      ref_remote_duplicates(): extract a function handle_duplicate()
+      handle_duplicate(): mark error message for translation
+      fetch: improve the error messages emitted for conflicting refspecs
+
+Nguyễn Thái Ngọc Duy (9):
+      wt-status: take the alignment burden off translators
+      diff: restrict pathspec limitations to diff b/f case only
+      glossary-content.txt: fix documentation of "**" patterns
+      gettext.c: detect the vsnprintf bug at runtime
+      clone,fetch: catch non positive --depth option value
+      glossary-content.txt: rephrase magic signature part
+      Support pathspec magic :(exclude) and its short form :!
+      pathspec.c: support adding prefix magic to a pathspec with mnemonic magic
+      parse-options: remove OPT_BOOLEAN
+
+Nicolas Vigier (2):
+      Use the word 'stuck' instead of 'sticked'
+      rev-parse --parseopt: add the --stuck-long mode
+
+Pat Thoyts (3):
+      git-gui: added gui.maxrecentrepo to extend the number of remembered repos
+      git-gui: show the maxrecentrepo config option in the preferences dialog
+      git-gui: add menu item to launch a bash shell on Windows.
+
+Paul Mackerras (1):
+      gitk: Tag display improvements
+
+Ramkumar Ramachandra (6):
+      t6300 (for-each-ref): clearly demarcate setup
+      t6300 (for-each-ref): don't hardcode SHA-1 hexes
+      for-each-ref: introduce %(HEAD) asterisk marker
+      for-each-ref: introduce %(upstream:track[short])
+      for-each-ref: introduce %(color:...) for color
+      for-each-ref: avoid color leakage
+
+René Scharfe (1):
+      SubmittingPatches: document how to handle multiple patches
+
+Richard Hansen (6):
+      test-bzr.sh, test-hg.sh: prepare for change to push.default=simple
+      test-hg.sh: eliminate 'local' bashism
+      test-hg.sh: avoid obsolete 'test' syntax
+      test-hg.sh: fix duplicate content strings in author tests
+      test-hg.sh: help user correlate verbose output with email test
+      remote-bzr, remote-hg: fix email address regular expression
+
+Thomas Gummerer (2):
+      diff: move no-index detection to builtin/diff.c
+      diff: don't read index when --no-index is given
+
+Thomas Rast (13):
+      commit-slab: document clear_$slabname()
+      commit-slab: declare functions "static inline"
+      Documentation: revamp git-cherry(1)
+      gitk: Support -G option from the command line
+      gitk: Refactor per-line part of getblobdiffline and its support
+      gitk: Split out diff part in $commitinfo
+      gitk: Support showing the gathered inline diffs
+      gitk: Recognize -L option
+      commit-slab: sizeof() the right type in xrealloc
+      send-email: pass Debug to Net::SMTP::SSL::new
+      send-email: --smtp-ssl-cert-path takes an argument
+      send-email: set SSL options through IO::Socket::SSL::set_client_defaults
+      config: arbitrary number of matches for --unset and --replace-all
+
+Torsten Bögershausen (9):
+      git-fetch-pack uses URLs like git-fetch
+      t5601: remove clear_ssh, refactor setup_ssh_wrapper
+      t5601: add tests for ssh
+      git fetch-pack: add --diag-url
+      t5500: add test cases for diag-url
+      git fetch: support host:/~repo
+      git_connect(): refactor the port handling for ssh
+      connect.c: refactor url parsing
+      git_connect(): use common return point
+
+Zoltan Klinger (1):
+      difftool: display the number of files in the diff queue in the prompt
+
+brian m. carlson (2):
+      remote-curl: fix large pushes with GSSAPI
+      Documentation: document pitfalls with 3-way merge
+
+
 Version v1.8.5.1; changes since v1.8.5:
 ---------------------------------------
 
