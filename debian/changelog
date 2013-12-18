@@ -1,5 +1,6 @@
-git (1:2.0~next.20131213-1.1) experimental; urgency=low
+git (1:2.0~next.20131217-0.1) experimental; urgency=low
 
+  * new snapshot, taken from upstream commit 3e57c29e.
   * merge branch debian-sid.
 
  -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 17 Dec 2013 16:33:18 -0800

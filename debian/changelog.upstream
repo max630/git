@@ -7,18 +7,31 @@ Anders Kaseorg (1):
 Carlos Martín Nieto (1):
       send-pack: don't send a thin pack to a server which doesn't support it
 
-Christian Couder (4):
+Christian Couder (14):
       environment: normalize use of prefixcmp() by removing " != 0"
       builtin/remote: remove postfixcmp() and use suffixcmp() instead
       strbuf: introduce starts_with() and ends_with()
       replace {pre,suf}fixcmp() with {starts,ends}_with()
+      rename READ_SHA1_FILE_REPLACE flag to LOOKUP_REPLACE_OBJECT
+      replace_object: don't check read_replace_refs twice
+      sha1_file.c: add lookup_replace_object_extended() to pass flags
+      sha1_object_info_extended(): add an "unsigned flags" parameter
+      t6050: show that git cat-file --batch fails with replace objects
+      sha1_file: perform object replacement in sha1_object_info_extended()
+      builtin/replace: teach listing using short, medium or full formats
+      t6050: add tests for listing with --format
+      builtin/replace: unset read_replace_refs
+      Documentation/git-replace: describe --format option
 
 Crestez Dan Leonard (1):
       git p4: Use git diff-tree instead of format-patch
 
-Felipe Contreras (6):
+Felipe Contreras (9):
       test-lib.sh: convert $TEST_DIRECTORY to an absolute path
       test-bzr.sh, test-hg.sh: allow running from any dir
+      remote-helpers: add extra safety checks
+      remote-hg: fix 'shared path' path
+      remote-hg: add tests for special filenames
       abspath: trivial style fix
       t: trivial whitespace cleanups
       fetch: add missing documentation
@@ -27,7 +40,7 @@ Felipe Contreras (6):
 Greg Jacobson (1):
       push: enhance unspecified push default warning
 
-Jeff King (17):
+Jeff King (19):
       log_tree_diff: die when we fail to parse a commit
       assume parse_commit checks commit->object.parsed
       assume parse_commit checks for NULL commit
@@ -45,6 +58,8 @@ Jeff King (17):
       rev-parse: be more careful with munging arguments
       cat-file: pass expand_data to print_object_or_die
       cat-file: handle --batch format with missing type/size
+      pack-objects doc: treat output filename as opaque
+      diff.c: fix some recent whitespace style violations
 
 Jens Lehmann (3):
       submodule: don't access the .gitmodules cache entry after removing it
@@ -67,7 +82,10 @@ John Keeping (6):
 John Murphy (1):
       git-gui: corrected setup of git worktree under cygwin.
 
-Jonathan Nieder (14):
+John Szakmeister (1):
+      contrib/git-credential-gnome-keyring.c: small stylistic cleanups
+
+Jonathan Nieder (16):
       git-remote-mediawiki: do not remove installed files in "clean" target
       git-remote-mediawiki: honor DESTDIR in "make install"
       git-remote-mediawiki build: make 'install' command configurable
@@ -82,8 +100,10 @@ Jonathan Nieder (14):
       test: replace shebangs with descriptions in shell libraries
       remove #!interpreter line from shell libraries
       stop installing git-tar-tree link
+      Add test-hashmap to .gitignore
+      Drop unnecessary #includes from test-hashmap
 
-Junio C Hamano (18):
+Junio C Hamano (19):
       git add <pathspec>... defaults to "-A"
       git add: -u/-A now affects the entire working tree
       core.statinfo: remove as promised in Git 2.0
@@ -101,6 +121,7 @@ Junio C Hamano (18):
       push: use remote.$name.push as a refmap
       push: also use "upstream" mapping when pushing a single ref
       Start 1.9 cycle
+      Update draft release notes to 1.9
       Update draft release notes to 1.9
 
 Karsten Blees (14):
@@ -200,9 +221,11 @@ Richard Hansen (6):
       test-hg.sh: help user correlate verbose output with email test
       remote-bzr, remote-hg: fix email address regular expression
 
-Thomas Gummerer (2):
+Thomas Gummerer (4):
       diff: move no-index detection to builtin/diff.c
       diff: don't read index when --no-index is given
+      diff: add test for --no-index executed outside repo
+      diff: avoid some nesting
 
 Thomas Rast (12):
       commit-slab: document clear_$slabname()
@@ -234,6 +257,9 @@ Zoltan Klinger (1):
 brian m. carlson (2):
       remote-curl: fix large pushes with GSSAPI
       Documentation: document pitfalls with 3-way merge
+
+jcb91 (1):
+      remote-hg: avoid buggy strftime()
 
 
 Version v1.8.5.2; changes since v1.8.5.1:
