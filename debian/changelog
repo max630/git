@@ -1,9 +1,14 @@
-git (1:2.0~next.20131217-0.1) experimental; urgency=low
+git (1:2.0~next.20131217-1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit 3e57c29e.
   * merge branch debian-sid.
+  * debian/diff/0010-submodule-prepare-for-recursive-...diff, ...,
+    0014-Teach-checkout-to-recursively-checkout-submodules.diff:
+    new from the git-submod-enhancements project: recursively checkout
+    submodules when requested by --recurse-submodules (thx Jens
+    Lehmann; closes: #730521).
 
- -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 17 Dec 2013 16:33:18 -0800
+ -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 17 Dec 2013 17:13:25 -0800
 
 git (1:1.8.5.2-1) unstable; urgency=low
 
