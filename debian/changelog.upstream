@@ -1,4 +1,4 @@
-Version next; changes since v1.8.5.1:
+Version next; changes since v1.8.5.2:
 -------------------------------------
 
 Anders Kaseorg (1):
@@ -27,15 +27,7 @@ Felipe Contreras (6):
 Greg Jacobson (1):
       push: enhance unspecified push default warning
 
-Jason St. John (6):
-      Documentation/git-log: update "--log-size" description
-      Documentation/git-log.txt: mark-up fix and minor rephasing
-      State correct usage of literal examples in man pages in the coding standards
-      Documentation/rev-list-options.txt: fix mark-up
-      Documentation/rev-list-options.txt: fix some grammatical issues and typos
-      Documentation/gitcli.txt: fix double quotes
-
-Jeff King (18):
+Jeff King (17):
       log_tree_diff: die when we fail to parse a commit
       assume parse_commit checks commit->object.parsed
       assume parse_commit checks for NULL commit
@@ -46,7 +38,6 @@ Jeff King (18):
       use @@PERL@@ in built scripts
       http: return curl's AUTHAVAIL via slot_results
       remote-curl: pass curl slot_results back through run_slot
-      unpack-trees: fix "read-tree -u --reset A B" with conflicted index
       drop support for "experimental" loose objects
       t5000: simplify gzip prerequisite checks
       pack-objects: name pack files after trailer hash
@@ -59,9 +50,6 @@ Jens Lehmann (3):
       submodule: don't access the .gitmodules cache entry after removing it
       submodule update: remove unnecessary orig_flags variable
       commit -v: strip diffs and submodule shortlogs from the commit message
-
-Johan Herland (1):
-      sha1_file.c:create_tmpfile(): Fix race when creating loose object dirs
 
 Johannes Sixt (3):
       document --exclude option
@@ -95,7 +83,7 @@ Jonathan Nieder (14):
       remove #!interpreter line from shell libraries
       stop installing git-tar-tree link
 
-Junio C Hamano (21):
+Junio C Hamano (18):
       git add <pathspec>... defaults to "-A"
       git add: -u/-A now affects the entire working tree
       core.statinfo: remove as promised in Git 2.0
@@ -107,9 +95,6 @@ Junio C Hamano (21):
       rev-list --exclude: tests
       rev-list --exclude: export add/clear-ref-exclusion and ref-excluded API
       rev-parse: introduce --exclude=<glob> to tame wildcards
-      t1005: reindent
-      t1005: add test for "read-tree --reset -u A B"
-      sha1_loose_object_info(): do not return success on missing object
       bundle: use argv-array
       push: switch default from "matching" to "simple"
       builtin/push.c: use strbuf instead of manual allocation
@@ -143,10 +128,7 @@ Krzesimir Nowak (4):
 Mads Dørup (1):
       git-gui: Improve font rendering on retina macbooks
 
-Masanari Iida (4):
-      typofixes: fix misspelt comments
-      Documentation/technical/http-protocol.txt: typofixes
-      contrib: typofixes
+Masanari Iida (1):
       git-gui: correct spelling errors in comments
 
 Matthieu Moy (1):
@@ -181,10 +163,8 @@ Michael Haggerty (23):
       handle_duplicate(): mark error message for translation
       fetch: improve the error messages emitted for conflicting refspecs
 
-Nguyễn Thái Ngọc Duy (9):
+Nguyễn Thái Ngọc Duy (7):
       wt-status: take the alignment burden off translators
-      diff: restrict pathspec limitations to diff b/f case only
-      glossary-content.txt: fix documentation of "**" patterns
       gettext.c: detect the vsnprintf bug at runtime
       clone,fetch: catch non positive --depth option value
       glossary-content.txt: rephrase magic signature part
@@ -212,9 +192,6 @@ Ramkumar Ramachandra (6):
       for-each-ref: introduce %(color:...) for color
       for-each-ref: avoid color leakage
 
-René Scharfe (1):
-      SubmittingPatches: document how to handle multiple patches
-
 Richard Hansen (6):
       test-bzr.sh, test-hg.sh: prepare for change to push.default=simple
       test-hg.sh: eliminate 'local' bashism
@@ -227,10 +204,9 @@ Thomas Gummerer (2):
       diff: move no-index detection to builtin/diff.c
       diff: don't read index when --no-index is given
 
-Thomas Rast (13):
+Thomas Rast (12):
       commit-slab: document clear_$slabname()
       commit-slab: declare functions "static inline"
-      Documentation: revamp git-cherry(1)
       gitk: Support -G option from the command line
       gitk: Refactor per-line part of getblobdiffline and its support
       gitk: Split out diff part in $commitinfo
@@ -242,8 +218,7 @@ Thomas Rast (13):
       send-email: set SSL options through IO::Socket::SSL::set_client_defaults
       config: arbitrary number of matches for --unset and --replace-all
 
-Torsten Bögershausen (9):
-      git-fetch-pack uses URLs like git-fetch
+Torsten Bögershausen (8):
       t5601: remove clear_ssh, refactor setup_ssh_wrapper
       t5601: add tests for ssh
       git fetch-pack: add --diag-url
@@ -259,6 +234,51 @@ Zoltan Klinger (1):
 brian m. carlson (2):
       remote-curl: fix large pushes with GSSAPI
       Documentation: document pitfalls with 3-way merge
+
+
+Version v1.8.5.2; changes since v1.8.5.1:
+-----------------------------------------
+
+Jason St. John (6):
+      Documentation/git-log: update "--log-size" description
+      Documentation/git-log.txt: mark-up fix and minor rephasing
+      State correct usage of literal examples in man pages in the coding standards
+      Documentation/rev-list-options.txt: fix mark-up
+      Documentation/rev-list-options.txt: fix some grammatical issues and typos
+      Documentation/gitcli.txt: fix double quotes
+
+Jeff King (1):
+      unpack-trees: fix "read-tree -u --reset A B" with conflicted index
+
+Johan Herland (1):
+      sha1_file.c:create_tmpfile(): Fix race when creating loose object dirs
+
+Junio C Hamano (4):
+      t1005: reindent
+      t1005: add test for "read-tree --reset -u A B"
+      sha1_loose_object_info(): do not return success on missing object
+      Git 1.8.5.2
+
+Masanari Iida (3):
+      typofixes: fix misspelt comments
+      Documentation/technical/http-protocol.txt: typofixes
+      contrib: typofixes
+
+Michael Haggerty (1):
+      cmd_repack(): remove redundant local variable "nr_packs"
+
+Nguyễn Thái Ngọc Duy (2):
+      diff: restrict pathspec limitations to diff b/f case only
+      glossary-content.txt: fix documentation of "**" patterns
+
+René Scharfe (1):
+      SubmittingPatches: document how to handle multiple patches
+
+Thomas Rast (1):
+      Documentation: revamp git-cherry(1)
+
+Torsten Bögershausen (1):
+      git-fetch-pack uses URLs like git-fetch
 
 
 Version v1.8.5.1; changes since v1.8.5:
