@@ -1,11 +1,12 @@
-git (1:2.0~next.20131217-1.1) experimental; urgency=low
+git (1:2.0~next.20131230-1) experimental; urgency=low
 
+  * new snapshot, taken from upstream commit b83cf2e7.
   * debian/rules: drop obsolete THREADED_DELTA_SEARCH setting.
   * debian/rules: add SANE_TOOL_PATH= INSTALL=install TAR=tar to
     OPTS to fix the Dyson build (thx Игорь Пашев; closes:
     #734097).
 
- -- Jonathan Nieder <jrnieder@gmail.com>  Fri, 03 Jan 2014 11:54:44 -0800
+ -- Jonathan Nieder <jrnieder@gmail.com>  Fri, 03 Jan 2014 13:30:15 -0800
 
 git (1:2.0~next.20131217-1) experimental; urgency=low
 

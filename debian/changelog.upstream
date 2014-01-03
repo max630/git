@@ -4,6 +4,9 @@ Version next; changes since v1.8.5.2:
 Anders Kaseorg (1):
       submodule foreach: skip eval for more than one argument
 
+Antoine Pelisse (1):
+      remote-hg: test 'shared_path' in a moved clone
+
 Carlos Martín Nieto (1):
       send-pack: don't send a thin pack to a server which doesn't support it
 
@@ -205,13 +208,14 @@ Pat Thoyts (3):
 Paul Mackerras (1):
       gitk: Tag display improvements
 
-Ramkumar Ramachandra (6):
+Ramkumar Ramachandra (7):
       t6300 (for-each-ref): clearly demarcate setup
       t6300 (for-each-ref): don't hardcode SHA-1 hexes
       for-each-ref: introduce %(HEAD) asterisk marker
       for-each-ref: introduce %(upstream:track[short])
       for-each-ref: introduce %(color:...) for color
       for-each-ref: avoid color leakage
+      for-each-ref: remove unused variable
 
 Richard Hansen (6):
       test-bzr.sh, test-hg.sh: prepare for change to push.default=simple
@@ -220,6 +224,9 @@ Richard Hansen (6):
       test-hg.sh: fix duplicate content strings in author tests
       test-hg.sh: help user correlate verbose output with email test
       remote-bzr, remote-hg: fix email address regular expression
+
+Roman Kagan (1):
+      git-svn: workaround for a bug in svn serf backend
 
 Thomas Gummerer (4):
       diff: move no-index detection to builtin/diff.c
