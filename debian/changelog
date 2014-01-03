@@ -1,6 +1,9 @@
 git (1:2.0.0-1.1) unstable; urgency=low
 
   * debian/rules: drop obsolete THREADED_DELTA_SEARCH setting.
+  * debian/rules: add SANE_TOOL_PATH= INSTALL=install TAR=tar to
+    OPTS to fix the Dyson build (thx Игорь Пашев; closes:
+    #734097).
 
  -- Jonathan Nieder <jrnieder@gmail.com>  Fri, 03 Jan 2014 11:54:44 -0800
 
