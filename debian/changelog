@@ -1,8 +1,20 @@
-git (1:2.0~next.20140107-0.1) experimental; urgency=low
+git (1:2.0~next.20140107-1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit 4cdf8d04.
+  * merge branch debian-sid.
 
- -- Jonathan Nieder <jrnieder@gmail.com>  Thu, 09 Jan 2014 14:10:21 -0800
+ -- Jonathan Nieder <jrnieder@gmail.com>  Thu, 09 Jan 2014 15:10:22 -0800
+
+git (1:1.8.5.2-2) unstable; urgency=low
+
+  * /etc/bash_completion.d/git-prompt: check for git-sh-prompt
+    and do not source it if git is removed but not purged (thx
+    Craig Small; closes: #726669).
+  * debian/control: package git Breaks: git-buildpackage versions
+    that rely on output from 'git status' without the --porcelain
+    flag (closes: #734223).
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Thu, 09 Jan 2014 14:46:23 -0800
 
 git (1:2.0~next.20131230-1) experimental; urgency=low
 
