@@ -1,4 +1,4 @@
-From 70c8a5d718dae7dfa13f4f2745b484c35b7acaa5 Mon Sep 17 00:00:00 2001
+From 8b779c052a6dfd3ff6ed1d3c18ed93c8e7585638 Mon Sep 17 00:00:00 2001
 From: Jens Lehmann <Jens.Lehmann@web.de>
 Date: Mon, 18 Jun 2012 22:11:45 +0200
 Subject: submodule: teach unpack_trees() to repopulate submodules
@@ -127,10 +127,10 @@ index df291cf..3657ca8 100644
  void show_submodule_summary(FILE *f, const char *path,
  		const char *line_prefix,
 diff --git a/unpack-trees.c b/unpack-trees.c
-index 99a8d22..b4d1947 100644
+index 6db1931..b61487a 100644
 --- a/unpack-trees.c
 +++ b/unpack-trees.c
-@@ -1366,6 +1366,7 @@ static int check_ok_to_remove(const char *name, int len, int dtype,
+@@ -1369,6 +1369,7 @@ static int check_ok_to_remove(const char *name, int len, int dtype,
  			      struct unpack_trees_options *o)
  {
  	const struct cache_entry *result;
@@ -138,7 +138,7 @@ index 99a8d22..b4d1947 100644
  
  	/*
  	 * It may be that the 'lstat()' succeeded even though
-@@ -1408,6 +1409,24 @@ static int check_ok_to_remove(const char *name, int len, int dtype,
+@@ -1411,6 +1412,24 @@ static int check_ok_to_remove(const char *name, int len, int dtype,
  			return 0;
  	}
  
