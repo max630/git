@@ -3012,45 +3012,40 @@ blame {
 		set subcommand_args {rev? path}
 	}
 	if {$argv eq {}} usage
-	set head {}
-	set path {}
 	set jump_spec {}
-	set is_path 0
+	set pos_args {}
+	set check_jump [string equal $subcommand blame]
 	foreach a $argv {
 		set p [file join $_prefix $a]
 
-		if {$is_path || [file exists $p]} {
-			if {$path ne {}} usage
-			set path [normalize_relpath $p]
-			break
-		} elseif {$a eq {--}} {
-			if {$path ne {}} {
-				if {$head ne {}} usage
-				set head $path
-				set path {}
-			}
-			set is_path 1
-		} elseif {[regexp {^--line=(\d+)$} $a a lnum]} {
-			if {$jump_spec ne {} || $head ne {}} usage
+		if {$check_jump && [regexp {^--line=(\d+)$} $a a lnum]} {
 			set jump_spec [list $lnum]
-		} elseif {$head eq {}} {
-			if {$head ne {}} usage
-			set head $a
-			set is_path 1
-		} else {
+			set check_jump 0
+		} elseif {[llength $pos_args] > 2} {
 			usage
+		} else {
+			lappend pos_args $a
+			set check_jump 0
 		}
 	}
-	unset is_path
 
-	if {$head ne {} && $path eq {}} {
-		if {[string index $head 0] eq {/}} {
-			set path [normalize_relpath $head]
-			set head {}
-		} else {
-			set path [normalize_relpath $_prefix$head]
-			set head {}
-		}
+	switch -- [llength $pos_args] {
+	1 {
+		set path [lindex $pos_args 0]
+		set head {}
+	}
+	2 {
+		set head [lindex $pos_args 0]
+		set path [lindex $pos_args 1]
+	}
+	default {
+		usage
+	}
+	}
+	if {[string index $path 0] eq {/}} {
+		set path [normalize_relpath $path]
+	} else {
+		set path [normalize_relpath $_prefix$path]
 	}
 
 	if {$head eq {}} {
