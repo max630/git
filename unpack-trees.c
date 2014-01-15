@@ -8,6 +8,7 @@
 #include "progress.h"
 #include "refs.h"
 #include "attr.h"
+#include "submodule.h"
 
 /*
  * Error messages expected by scripts out of plumbing commands such as
@@ -25,6 +26,9 @@ static const char *unpack_plumbing_errors[NB_UNPACK_TREES_ERROR_TYPES] = {
 
 	/* ERROR_NOT_UPTODATE_DIR */
 	"Updating '%s' would lose untracked files in it",
+
+	/* ERROR_NOT_UPTODATE_SUBMODULE */
+	"Updating submodule '%s' would lose modifications in it",
 
 	/* ERROR_WOULD_LOSE_UNTRACKED_OVERWRITTEN */
 	"Untracked working tree file '%s' would be overwritten by merge.",
@@ -70,6 +74,8 @@ void setup_unpack_trees_porcelain(struct unpack_trees_options *opts,
 
 	msgs[ERROR_NOT_UPTODATE_DIR] =
 		"Updating the following directories would lose untracked files in it:\n%s";
+	msgs[ERROR_NOT_UPTODATE_SUBMODULE] =
+		"Updating the following submodules would lose modifications in it:\n%s";
 
 	if (advice_commit_before_merge)
 		msg = "The following untracked working tree files would be %s by %s:\n%%s"
@@ -105,12 +111,11 @@ void setup_unpack_trees_porcelain(struct unpack_trees_options *opts,
 static void do_add_entry(struct unpack_trees_options *o, struct cache_entry *ce,
 			 unsigned int set, unsigned int clear)
 {
-	clear |= CE_HASHED | CE_UNHASHED;
+	clear |= CE_HASHED;
 
 	if (set & CE_REMOVE)
 		set |= CE_WT_REMOVE;
 
-	ce->next = NULL;
 	ce->ce_flags = (ce->ce_flags & ~clear) | set;
 	add_index_entry(&o->result, ce,
 			ADD_CACHE_OK_TO_ADD | ADD_CACHE_OK_TO_REPLACE);
@@ -830,23 +835,24 @@ static int unpack_callback(int n, unsigned long mask, unsigned long dirmask, str
 }
 
 static int clear_ce_flags_1(struct cache_entry **cache, int nr,
-			    char *prefix, int prefix_len,
+			    struct strbuf *prefix,
 			    int select_mask, int clear_mask,
 			    struct exclude_list *el, int defval);
 
 /* Whole directory matching */
 static int clear_ce_flags_dir(struct cache_entry **cache, int nr,
-			      char *prefix, int prefix_len,
+			      struct strbuf *prefix,
 			      char *basename,
 			      int select_mask, int clear_mask,
 			      struct exclude_list *el, int defval)
 {
 	struct cache_entry **cache_end;
 	int dtype = DT_DIR;
-	int ret = is_excluded_from_list(prefix, prefix_len,
+	int ret = is_excluded_from_list(prefix->buf, prefix->len,
 					basename, &dtype, el);
+	int rc;
 
-	prefix[prefix_len++] = '/';
+	strbuf_addch(prefix, '/');
 
 	/* If undecided, use matching result of parent dir in defval */
 	if (ret < 0)
@@ -854,7 +860,7 @@ static int clear_ce_flags_dir(struct cache_entry **cache, int nr,
 
 	for (cache_end = cache; cache_end != cache + nr; cache_end++) {
 		struct cache_entry *ce = *cache_end;
-		if (strncmp(ce->name, prefix, prefix_len))
+		if (strncmp(ce->name, prefix->buf, prefix->len))
 			break;
 	}
 
@@ -865,10 +871,12 @@ static int clear_ce_flags_dir(struct cache_entry **cache, int nr,
 	 * calling clear_ce_flags_1(). That function will call
 	 * the expensive is_excluded_from_list() on every entry.
 	 */
-	return clear_ce_flags_1(cache, cache_end - cache,
-				prefix, prefix_len,
-				select_mask, clear_mask,
-				el, ret);
+	rc = clear_ce_flags_1(cache, cache_end - cache,
+			      prefix,
+			      select_mask, clear_mask,
+			      el, ret);
+	strbuf_setlen(prefix, prefix->len - 1);
+	return rc;
 }
 
 /*
@@ -887,7 +895,7 @@ static int clear_ce_flags_dir(struct cache_entry **cache, int nr,
  * Top level path has prefix_len zero.
  */
 static int clear_ce_flags_1(struct cache_entry **cache, int nr,
-			    char *prefix, int prefix_len,
+			    struct strbuf *prefix,
 			    int select_mask, int clear_mask,
 			    struct exclude_list *el, int defval)
 {
@@ -907,10 +915,10 @@ static int clear_ce_flags_1(struct cache_entry **cache, int nr,
 			continue;
 		}
 
-		if (prefix_len && strncmp(ce->name, prefix, prefix_len))
+		if (prefix->len && strncmp(ce->name, prefix->buf, prefix->len))
 			break;
 
-		name = ce->name + prefix_len;
+		name = ce->name + prefix->len;
 		slash = strchr(name, '/');
 
 		/* If it's a directory, try whole directory match first */
@@ -918,29 +926,26 @@ static int clear_ce_flags_1(struct cache_entry **cache, int nr,
 			int processed;
 
 			len = slash - name;
-			memcpy(prefix + prefix_len, name, len);
+			strbuf_add(prefix, name, len);
 
-			/*
-			 * terminate the string (no trailing slash),
-			 * clear_c_f_dir needs it
-			 */
-			prefix[prefix_len + len] = '\0';
 			processed = clear_ce_flags_dir(cache, cache_end - cache,
-						       prefix, prefix_len + len,
-						       prefix + prefix_len,
+						       prefix,
+						       prefix->buf + prefix->len - len,
 						       select_mask, clear_mask,
 						       el, defval);
 
 			/* clear_c_f_dir eats a whole dir already? */
 			if (processed) {
 				cache += processed;
+				strbuf_setlen(prefix, prefix->len - len);
 				continue;
 			}
 
-			prefix[prefix_len + len++] = '/';
+			strbuf_addch(prefix, '/');
 			cache += clear_ce_flags_1(cache, cache_end - cache,
-						  prefix, prefix_len + len,
+						  prefix,
 						  select_mask, clear_mask, el, defval);
+			strbuf_setlen(prefix, prefix->len - len - 1);
 			continue;
 		}
 
@@ -961,9 +966,12 @@ static int clear_ce_flags(struct cache_entry **cache, int nr,
 			    int select_mask, int clear_mask,
 			    struct exclude_list *el)
 {
-	char prefix[PATH_MAX];
+	static struct strbuf prefix = STRBUF_INIT;
+
+	strbuf_reset(&prefix);
+
 	return clear_ce_flags_1(cache, nr,
-				prefix, 0,
+				&prefix,
 				select_mask, clear_mask,
 				el, 0);
 }
@@ -1220,17 +1228,15 @@ static int verify_uptodate_1(const struct cache_entry *ce,
 	if (!lstat(ce->name, &st)) {
 		int flags = CE_MATCH_IGNORE_VALID|CE_MATCH_IGNORE_SKIP_WORKTREE;
 		unsigned changed = ie_match_stat(o->src_index, ce, &st, flags);
-		if (!changed)
-			return 0;
-		/*
-		 * NEEDSWORK: the current default policy is to allow
-		 * submodule to be out of sync wrt the superproject
-		 * index.  This needs to be tightened later for
-		 * submodules that are marked to be automatically
-		 * checked out.
-		 */
-		if (S_ISGITLINK(ce->ce_mode))
-			return 0;
+		if (!changed) {
+			if (!S_ISGITLINK(ce->ce_mode) || !submodule_needs_update(ce->name) ||
+			    (ce_stage(ce) ? is_submodule_checkout_safe(ce->name, ce->sha1)
+			    : !is_submodule_modified(ce->name, 1)))
+				return 0;
+		} else
+			if (S_ISGITLINK(ce->ce_mode) && !submodule_needs_update(ce->name))
+				return 0;
+
 		errno = 0;
 	}
 	if (errno == ENOENT)
@@ -1253,6 +1259,36 @@ static int verify_uptodate_sparse(const struct cache_entry *ce,
 	return verify_uptodate_1(ce, o, ERROR_SPARSE_NOT_UPTODATE_FILE);
 }
 
+/*
+ * When a submodule gets turned into an unmerged entry, we want it to be
+ * up-to-date regarding the merge changes.
+ */
+static int verify_uptodate_submodule(const struct cache_entry *old,
+				     const struct cache_entry *new,
+				     struct unpack_trees_options *o)
+{
+	struct stat st;
+
+	if (o->index_only || (!((old->ce_flags & CE_VALID) || ce_skip_worktree(old)) && (o->reset || ce_uptodate(old))))
+		return 0;
+	if (!lstat(old->name, &st)) {
+		unsigned changed = ie_match_stat(o->src_index, old, &st, CE_MATCH_IGNORE_VALID|CE_MATCH_IGNORE_SKIP_WORKTREE);
+		if (!changed) {
+			if (!S_ISGITLINK(old->ce_mode) ||
+			    !submodule_needs_update(new->name) ||
+			    is_submodule_checkout_safe(new->name, new->sha1))
+				return 0;
+		} else
+			if (S_ISGITLINK(old->ce_mode) && !submodule_needs_update(new->name))
+				return 0;
+		errno = 0;
+	}
+	if (errno == ENOENT)
+		return 0;
+	return o->gently ? -1 :
+		add_rejected_path(o, ERROR_NOT_UPTODATE_SUBMODULE, old->name);
+}
+
 static void invalidate_ce_path(const struct cache_entry *ce,
 			       struct unpack_trees_options *o)
 {
@@ -1263,14 +1299,13 @@ static void invalidate_ce_path(const struct cache_entry *ce,
 /*
  * Check that checking out ce->sha1 in subdir ce->name is not
  * going to overwrite any working files.
- *
- * Currently, git does not checkout subprojects during a superproject
- * checkout, so it is not going to overwrite anything.
  */
 static int verify_clean_submodule(const struct cache_entry *ce,
 				  enum unpack_trees_error_types error_type,
 				  struct unpack_trees_options *o)
 {
+	if (submodule_needs_update(ce->name) && is_submodule_modified(ce->name, 0))
+		return 1;
 	return 0;
 }
 
@@ -1367,6 +1402,7 @@ static int check_ok_to_remove(const char *name, int len, int dtype,
 			      struct unpack_trees_options *o)
 {
 	const struct cache_entry *result;
+	char *name_copy, *separator;
 
 	/*
 	 * It may be that the 'lstat()' succeeded even though
@@ -1408,6 +1444,24 @@ static int check_ok_to_remove(const char *name, int len, int dtype,
 		if (result->ce_flags & CE_REMOVE)
 			return 0;
 	}
+
+	/*
+	 * If the path lies inside a to be added submodule it
+	 * is ok to remove it.
+	 */
+	name_copy = xstrdup(name);
+	while ((separator = strrchr(name_copy, '/'))) {
+		int i;
+		*separator = '\0';
+		for (i = 0; i < the_index.cache_nr; i++) {
+			struct cache_entry *ce = the_index.cache[i];
+			if (!strcmp(ce->name, name_copy) && S_ISGITLINK(ce->ce_mode)) {
+				free(name_copy);
+				return 0;
+			}
+		}
+	}
+	free(name_copy);
 
 	return o->gently ? -1 :
 		add_rejected_path(o, error_type, name);
@@ -1513,9 +1567,17 @@ static int merged_entry(const struct cache_entry *ce,
 			copy_cache_entry(merge, old);
 			update = 0;
 		} else {
-			if (verify_uptodate(old, o)) {
-				free(merge);
-				return -1;
+			if (S_ISGITLINK(old->ce_mode) ||
+			    S_ISGITLINK(merge->ce_mode)) {
+				if (verify_uptodate_submodule(old, merge, o)) {
+					free(merge);
+					return -1;
+				}
+			} else {
+				if (verify_uptodate(old, o)) {
+					free(merge);
+					return -1;
+				}
 			}
 			/* Migrate old flags over */
 			update |= old->ce_flags & (CE_SKIP_WORKTREE | CE_NEW_SKIP_WORKTREE);

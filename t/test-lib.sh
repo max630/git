@@ -1,4 +1,4 @@
-#!/bin/sh
+# Test framework for git.  See t/README for usage.
 #
 # Copyright (c) 2005 Junio C Hamano
 #
@@ -26,6 +26,10 @@ then
 	# outside of t/, e.g. for running tests on the test library
 	# itself.
 	TEST_DIRECTORY=$(pwd)
+else
+	# ensure that TEST_DIRECTORY is an absolute path so that it
+	# is valid even if the current working directory is changed
+	TEST_DIRECTORY=$(cd "$TEST_DIRECTORY" && pwd) || exit 1
 fi
 if test -z "$TEST_OUTPUT_DIRECTORY"
 then
@@ -477,8 +481,6 @@ test_at_end_hook_ () {
 test_done () {
 	GIT_EXIT_OK=t
 
-	# Note: t0000 relies on $HARNESS_ACTIVE disabling the .counts
-	# output file
 	if test -z "$HARNESS_ACTIVE"
 	then
 		test_results_dir="$TEST_OUTPUT_DIRECTORY/test-results"
@@ -826,6 +828,10 @@ test_lazy_prereq PIPE '
 test_lazy_prereq SYMLINKS '
 	# test whether the filesystem supports symbolic links
 	ln -s x y && test -h y
+'
+
+test_lazy_prereq FILEMODE '
+	test "$(git config --bool core.filemode)" = true
 '
 
 test_lazy_prereq CASE_INSENSITIVE_FS '

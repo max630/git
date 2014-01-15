@@ -3,7 +3,7 @@
 
 #include "git-compat-util.h"
 #include "strbuf.h"
-#include "hash.h"
+#include "hashmap.h"
 #include "advice.h"
 #include "gettext.h"
 #include "convert.h"
@@ -130,12 +130,12 @@ struct stat_data {
 };
 
 struct cache_entry {
+	struct hashmap_entry ent;
 	struct stat_data ce_stat_data;
 	unsigned int ce_mode;
 	unsigned int ce_flags;
 	unsigned int ce_namelen;
 	unsigned char sha1[20];
-	struct cache_entry *next;
 	char name[FLEX_ARRAY]; /* more */
 };
 
@@ -159,7 +159,6 @@ struct cache_entry {
 #define CE_ADDED             (1 << 19)
 
 #define CE_HASHED            (1 << 20)
-#define CE_UNHASHED          (1 << 21)
 #define CE_WT_REMOVE         (1 << 22) /* remove in work directory */
 #define CE_CONFLICTED        (1 << 23)
 
@@ -195,17 +194,18 @@ struct pathspec;
  * Copy the sha1 and stat state of a cache entry from one to
  * another. But we never change the name, or the hash state!
  */
-#define CE_STATE_MASK (CE_HASHED | CE_UNHASHED)
 static inline void copy_cache_entry(struct cache_entry *dst,
 				    const struct cache_entry *src)
 {
-	unsigned int state = dst->ce_flags & CE_STATE_MASK;
+	unsigned int state = dst->ce_flags & CE_HASHED;
 
 	/* Don't copy hash chain and name */
-	memcpy(dst, src, offsetof(struct cache_entry, next));
+	memcpy(&dst->ce_stat_data, &src->ce_stat_data,
+			offsetof(struct cache_entry, name) -
+			offsetof(struct cache_entry, ce_stat_data));
 
 	/* Restore the hash state */
-	dst->ce_flags = (dst->ce_flags & ~CE_STATE_MASK) | state;
+	dst->ce_flags = (dst->ce_flags & ~CE_HASHED) | state;
 }
 
 static inline unsigned create_ce_flags(unsigned stage)
@@ -277,8 +277,8 @@ struct index_state {
 	struct cache_time timestamp;
 	unsigned name_hash_initialized : 1,
 		 initialized : 1;
-	struct hash_table name_hash;
-	struct hash_table dir_hash;
+	struct hashmap name_hash;
+	struct hashmap dir_hash;
 };
 
 extern struct index_state the_index;
@@ -316,7 +316,6 @@ extern void free_name_hash(struct index_state *istate);
 #define ce_modified(ce, st, options) ie_modified(&the_index, (ce), (st), (options))
 #define cache_dir_exists(name, namelen) index_dir_exists(&the_index, (name), (namelen))
 #define cache_file_exists(name, namelen, igncase) index_file_exists(&the_index, (name), (namelen), (igncase))
-#define cache_name_exists(name, namelen, igncase) index_name_exists(&the_index, (name), (namelen), (igncase))
 #define cache_name_is_other(name, namelen) index_name_is_other(&the_index, (name), (namelen))
 #define resolve_undo_clear() resolve_undo_clear_index(&the_index)
 #define unmerge_cache_entry_at(at) unmerge_index_entry_at(&the_index, at)
@@ -354,6 +353,7 @@ static inline enum object_type object_type(unsigned int mode)
 #define DB_ENVIRONMENT "GIT_OBJECT_DIRECTORY"
 #define INDEX_ENVIRONMENT "GIT_INDEX_FILE"
 #define GRAFT_ENVIRONMENT "GIT_GRAFT_FILE"
+#define GIT_SHALLOW_FILE_ENVIRONMENT "GIT_SHALLOW_FILE"
 #define TEMPLATE_DIR_ENVIRONMENT "GIT_TEMPLATE_DIR"
 #define CONFIG_ENVIRONMENT "GIT_CONFIG"
 #define CONFIG_DATA_ENVIRONMENT "GIT_CONFIG_PARAMETERS"
@@ -466,7 +466,6 @@ extern int unmerged_index(const struct index_state *);
 extern int verify_path(const char *path);
 extern struct cache_entry *index_dir_exists(struct index_state *istate, const char *name, int namelen);
 extern struct cache_entry *index_file_exists(struct index_state *istate, const char *name, int namelen, int igncase);
-extern struct cache_entry *index_name_exists(struct index_state *istate, const char *name, int namelen, int igncase);
 extern int index_name_pos(const struct index_state *, const char *name, int namelen);
 #define ADD_CACHE_OK_TO_ADD 1		/* Ok to add */
 #define ADD_CACHE_OK_TO_REPLACE 2	/* Ok to replace file/directory */
@@ -483,7 +482,6 @@ extern int remove_file_from_index(struct index_state *, const char *path);
 #define ADD_CACHE_IGNORE_ERRORS	4
 #define ADD_CACHE_IGNORE_REMOVAL 8
 #define ADD_CACHE_INTENT 16
-#define ADD_CACHE_IMPLICIT_DOT 32	/* internal to "git add -u/-A" */
 extern int add_to_index(struct index_state *, const char *path, struct stat *, int flags);
 extern int add_file_to_index(struct index_state *, const char *path, int flags);
 extern struct cache_entry *make_cache_entry(unsigned int mode, const unsigned char *sha1, const char *path, int stage, int refresh);
@@ -760,11 +758,11 @@ int daemon_avoid_alias(const char *path);
 int offset_1st_component(const char *path);
 
 /* object replacement */
-#define READ_SHA1_FILE_REPLACE 1
+#define LOOKUP_REPLACE_OBJECT 1
 extern void *read_sha1_file_extended(const unsigned char *sha1, enum object_type *type, unsigned long *size, unsigned flag);
 static inline void *read_sha1_file(const unsigned char *sha1, enum object_type *type, unsigned long *size)
 {
-	return read_sha1_file_extended(sha1, type, size, READ_SHA1_FILE_REPLACE);
+	return read_sha1_file_extended(sha1, type, size, LOOKUP_REPLACE_OBJECT);
 }
 extern const unsigned char *do_lookup_replace_object(const unsigned char *sha1);
 static inline const unsigned char *lookup_replace_object(const unsigned char *sha1)
@@ -772,6 +770,12 @@ static inline const unsigned char *lookup_replace_object(const unsigned char *sh
 	if (!read_replace_refs)
 		return sha1;
 	return do_lookup_replace_object(sha1);
+}
+static inline const unsigned char *lookup_replace_object_extended(const unsigned char *sha1, unsigned flag)
+{
+	if (!(flag & LOOKUP_REPLACE_OBJECT))
+		return sha1;
+	return lookup_replace_object(sha1);
 }
 
 /* Read and unpack a sha1 file into memory, write memory to a sha1 file */
@@ -1074,6 +1078,7 @@ struct object_info {
 	enum object_type *typep;
 	unsigned long *sizep;
 	unsigned long *disk_sizep;
+	unsigned char *delta_base_sha1;
 
 	/* Response */
 	enum {
@@ -1098,7 +1103,7 @@ struct object_info {
 		} packed;
 	} u;
 };
-extern int sha1_object_info_extended(const unsigned char *, struct object_info *);
+extern int sha1_object_info_extended(const unsigned char *, struct object_info *, unsigned flags);
 
 /* Dumb servers support */
 extern int update_server_info(int);
@@ -1236,6 +1241,8 @@ __attribute__((format (printf, 2, 3)))
 extern void trace_argv_printf(const char **argv, const char *format, ...);
 extern void trace_repo_setup(const char *prefix);
 extern int trace_want(const char *key);
+__attribute__((format (printf, 2, 3)))
+extern void trace_printf_key(const char *key, const char *fmt, ...);
 extern void trace_strbuf(const char *key, const struct strbuf *buf);
 
 void packet_trace_identity(const char *prog);

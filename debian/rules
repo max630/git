@@ -14,7 +14,7 @@ OPTS =NO_OPENSSL=1 prefix=/usr gitexecdir=/usr/lib/git-core \
   NO_PYTHON=1 \
   USE_SRV_RR=1 \
   USE_LIBPCRE=1 \
-  THREADED_DELTA_SEARCH=1 \
+  SANE_TOOL_PATH= INSTALL=install TAR=tar \
   NO_CROSS_DIRECTORY_HARDLINKS=1 NO_INSTALL_HARDLINKS=1 \
   DEFAULT_PAGER=pager DEFAULT_EDITOR=editor \
   CC='$(CC)' CFLAGS='$(CFLAGS)' LDFLAGS='$(LDFLAGS)'
@@ -177,7 +177,7 @@ install-indep: build-arch-stamp build-indep-stamp
 	DESTDIR='$(TMP)' $(MAKE) install install-doc $(OPTS)
 	install -d -m0755 '$(TMP)/usr/share/perl5/Git'
 	DESTDIR='$(TMP)' $(MAKE) -Ccontrib/mw-to-git install $(OPTS) \
-	  INSTLIBDIR='$(TMP)/usr/share/perl5'
+	  INSTLIBDIR=/usr/share/perl5
 	$(MAKE) -CDocumentation install-webdoc WEBDOC_DEST='$(TMP)'/html \
 	  2>/dev/null
 	# RelNotes are shipped in git

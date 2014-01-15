@@ -1,3 +1,10 @@
+git (1:2.0~next.20140107-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit 4cdf8d04.
+  * merge branch debian-sid.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Thu, 09 Jan 2014 15:10:22 -0800
+
 git (1:1.8.5.2-2) unstable; urgency=low
 
   * /etc/bash_completion.d/git-prompt: check for git-sh-prompt
@@ -9,11 +16,50 @@ git (1:1.8.5.2-2) unstable; urgency=low
 
  -- Jonathan Nieder <jrnieder@gmail.com>  Thu, 09 Jan 2014 14:46:23 -0800
 
+git (1:2.0~next.20131230-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit b83cf2e7.
+  * debian/rules: drop obsolete THREADED_DELTA_SEARCH setting.
+  * debian/rules: add SANE_TOOL_PATH= INSTALL=install TAR=tar to
+    OPTS to fix the Dyson build (thx Игорь Пашев; closes:
+    #734097).
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Fri, 03 Jan 2014 13:30:15 -0800
+
+git (1:2.0~next.20131217-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit 3e57c29e.
+  * merge branch debian-sid.
+  * debian/diff/0010-submodule-prepare-for-recursive-...diff, ...,
+    0014-Teach-checkout-to-recursively-checkout-submodules.diff:
+    new from the git-submod-enhancements project: recursively checkout
+    submodules when requested by --recurse-submodules (thx Jens
+    Lehmann; closes: #730521).
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 17 Dec 2013 17:13:25 -0800
+
 git (1:1.8.5.2-1) unstable; urgency=low
 
   * new upstream point release.
 
  -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 17 Dec 2013 16:31:01 -0800
+
+git (1:2.0~next.20131213-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit 523f7c43
+    (closes: #730520).
+  * debian/copyright: document where to get upstream tarball.
+  * debian/diff:
+    * 0001-remove-interpreter-line-from-shell-libraries.diff,
+      0010-git-remote-mediawiki-do-not-remove-installed-...diff:
+      remove; applied upstream.
+    * 0002...0009: rename to 0001-*, ..., 0008-*.
+    * 0009-record-version.diff: new; git and git-gui version
+      strings computed by GIT-VERSION-GEN.
+  * debian/rules install: no more need to include DESTDIR in
+    mw-to-git INSTLIBDIR.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Mon, 16 Dec 2013 16:20:23 -0800
 
 git (1:1.8.5.1-1) unstable; urgency=medium
 

@@ -142,19 +142,13 @@ advice.*::
 --
 	pushUpdateRejected::
 		Set this variable to 'false' if you want to disable
-		'pushNonFFCurrent', 'pushNonFFDefault',
+		'pushNonFFCurrent',
 		'pushNonFFMatching', 'pushAlreadyExists',
 		'pushFetchFirst', and 'pushNeedsForce'
 		simultaneously.
 	pushNonFFCurrent::
 		Advice shown when linkgit:git-push[1] fails due to a
 		non-fast-forward update to the current branch.
-	pushNonFFDefault::
-		Advice to set 'push.default' to 'upstream' or 'current'
-		when you ran linkgit:git-push[1] and pushed 'matching
-		refs' by default (i.e. you did not provide an explicit
-		refspec, and no 'push.default' configuration was set)
-		and it resulted in a non-fast-forward error.
 	pushNonFFMatching::
 		Advice shown when you ran linkgit:git-push[1] and pushed
 		'matching refs' explicitly (i.e. you used ':', or
@@ -987,6 +981,14 @@ commit.cleanup::
 	would do `git config commit.cleanup whitespace` (note that you will
 	have to remove the help lines that begin with `#` in the commit log
 	template yourself, if you do this).
+
+commit.gpgsign::
+
+	A boolean to specify whether all commits should be GPG signed.
+	Use of this option when doing operations such as rebase can
+	result in a large number of commits being signed. It may be
+	convenient to use an agent to avoid typing your GPG passphrase
+	several times.
 
 commit.status::
 	A boolean to enable/disable inclusion of status information in the
@@ -1929,7 +1931,7 @@ When pushing to a remote that is different from the remote you normally
 pull from, work as `current`.  This is the safest option and is suited
 for beginners.
 +
-This mode will become the default in Git 2.0.
+This mode has become the default in Git 2.0.
 
 * `matching` - push all branches having the same name on both ends.
   This makes the repository you are pushing to remember the set of
@@ -1948,8 +1950,8 @@ suitable for pushing into a shared central repository, as other
 people may add new branches there, or update the tip of existing
 branches outside your control.
 +
-This is currently the default, but Git 2.0 will change the default
-to `simple`.
+This used to be the default, but not since Git 2.0 (`simple` is the
+new default).
 
 --
 
@@ -2026,6 +2028,10 @@ receive.updateserverinfo::
 	If set to true, git-receive-pack will run git-update-server-info
 	after receiving data from git-push and updating refs.
 
+receive.shallowupdate::
+	If set to true, .git/shallow can be updated when new refs
+	require new shallow roots. Otherwise those refs are rejected.
+
 remote.pushdefault::
 	The remote to push to by default.  Overrides
 	`branch.<name>.remote` for all branches, and is overridden by
@@ -2087,8 +2093,8 @@ remote.<name>.vcs::
 
 remote.<name>.prune::
 	When set to true, fetching from this remote by default will also
-	remove any remote-tracking branches which no longer exist on the
-	remote (as if the `--prune` option was give on the command line).
+	remove any remote-tracking references that no longer exist on the
+	remote (as if the `--prune` option was given on the command line).
 	Overrides `fetch.prune` settings, if any.
 
 remotes.<group>::

@@ -13,7 +13,7 @@
 #define STR_(s)	# s
 #define STR(s)	STR_(s)
 
-static void get_host_and_port(char **host, const char **port)
+void get_host_and_port(char **host, const char **port)
 {
 	char *colon, *end;
 
@@ -261,3 +261,4 @@ struct child_process *git_proxy_connect(int fd[2], char *host)
 	fd[1] = proxy->in;  /* write to proxy stdin */
 	return proxy;
 }
+
