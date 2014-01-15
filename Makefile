@@ -465,7 +465,6 @@ SCRIPT_SH += git-pull.sh
 SCRIPT_SH += git-quiltimport.sh
 SCRIPT_SH += git-rebase.sh
 SCRIPT_SH += git-remote-testgit.sh
-SCRIPT_SH += git-repack.sh
 SCRIPT_SH += git-request-pull.sh
 SCRIPT_SH += git-stash.sh
 SCRIPT_SH += git-submodule.sh
@@ -489,11 +488,9 @@ SCRIPT_PERL += git-relink.perl
 SCRIPT_PERL += git-send-email.perl
 SCRIPT_PERL += git-svn.perl
 
-SCRIPT_PYTHON += git-remote-testpy.py
 SCRIPT_PYTHON += git-p4.py
 
 NO_INSTALL += git-remote-testgit
-NO_INSTALL += git-remote-testpy
 
 # Generated files for scripts
 SCRIPT_SH_GEN = $(patsubst %.sh,%,$(SCRIPT_SH))
@@ -581,6 +578,7 @@ TEST_PROGRAMS_NEED_X += test-sigchain
 TEST_PROGRAMS_NEED_X += test-string-list
 TEST_PROGRAMS_NEED_X += test-subprocess
 TEST_PROGRAMS_NEED_X += test-svn-fe
+TEST_PROGRAMS_NEED_X += test-urlmatch-normalization
 TEST_PROGRAMS_NEED_X += test-wildmatch
 
 TEST_PROGRAMS = $(patsubst %,%$X,$(TEST_PROGRAMS_NEED_X))
@@ -739,6 +737,7 @@ LIB_H += tree-walk.h
 LIB_H += tree.h
 LIB_H += unpack-trees.h
 LIB_H += url.h
+LIB_H += urlmatch.h
 LIB_H += userdiff.h
 LIB_H += utf8.h
 LIB_H += varint.h
@@ -890,6 +889,7 @@ LIB_OBJS += tree.o
 LIB_OBJS += tree-walk.o
 LIB_OBJS += unpack-trees.o
 LIB_OBJS += url.o
+LIB_OBJS += urlmatch.o
 LIB_OBJS += usage.o
 LIB_OBJS += userdiff.o
 LIB_OBJS += utf8.o
@@ -975,6 +975,7 @@ BUILTIN_OBJS += builtin/reflog.o
 BUILTIN_OBJS += builtin/remote.o
 BUILTIN_OBJS += builtin/remote-ext.o
 BUILTIN_OBJS += builtin/remote-fd.o
+BUILTIN_OBJS += builtin/repack.o
 BUILTIN_OBJS += builtin/replace.o
 BUILTIN_OBJS += builtin/rerere.o
 BUILTIN_OBJS += builtin/reset.o
@@ -1185,6 +1186,9 @@ ifdef NEEDS_SSL_WITH_CRYPTO
 	LIB_4_CRYPTO = $(OPENSSL_LINK) -lcrypto -lssl
 else
 	LIB_4_CRYPTO = $(OPENSSL_LINK) -lcrypto
+endif
+ifdef APPLE_COMMON_CRYPTO
+	LIB_4_CRYPTO += -framework Security -framework CoreFoundation
 endif
 endif
 ifdef NEEDS_LIBICONV
@@ -1676,9 +1680,6 @@ endif
 ifndef NO_PERL
 	$(QUIET_SUBDIR0)perl $(QUIET_SUBDIR1) PERL_PATH='$(PERL_PATH_SQ)' prefix='$(prefix_SQ)' localedir='$(localedir_SQ)' all
 endif
-ifndef NO_PYTHON
-	$(QUIET_SUBDIR0)git_remote_helpers $(QUIET_SUBDIR1) PYTHON_PATH='$(PYTHON_PATH_SQ)' prefix='$(prefix_SQ)' all
-endif
 	$(QUIET_SUBDIR0)templates $(QUIET_SUBDIR1) SHELL_PATH='$(SHELL_PATH_SQ)' PERL_PATH='$(PERL_PATH_SQ)'
 
 please_set_SHELL_PATH_to_a_more_modern_shell:
@@ -1846,12 +1847,7 @@ ifndef NO_PYTHON
 $(SCRIPT_PYTHON_GEN): GIT-CFLAGS GIT-PREFIX GIT-PYTHON-VARS
 $(SCRIPT_PYTHON_GEN): % : %.py
 	$(QUIET_GEN)$(RM) $@ $@+ && \
-	INSTLIBDIR=`MAKEFLAGS= $(MAKE) -C git_remote_helpers -s \
-		--no-print-directory prefix='$(prefix_SQ)' DESTDIR='$(DESTDIR_SQ)' \
-		instlibdir` && \
 	sed -e '1s|#!.*python|#!$(PYTHON_PATH_SQ)|' \
-	    -e 's|\(os\.getenv("GITPYTHONLIB"\)[^)]*)|\1,"@@INSTLIBDIR@@")|' \
-	    -e 's|@@INSTLIBDIR@@|'"$$INSTLIBDIR"'|g' \
 	    $< >$@+ && \
 	chmod +x $@+ && \
 	mv $@+ $@
@@ -2038,6 +2034,9 @@ attr.sp attr.s attr.o: EXTRA_CPPFLAGS = \
 gettext.sp gettext.s gettext.o: GIT-PREFIX
 gettext.sp gettext.s gettext.o: EXTRA_CPPFLAGS = \
 	-DGIT_LOCALE_PATH='"$(localedir_SQ)"'
+
+http-push.sp http.sp http-walker.sp remote-curl.sp: SPARSE_FLAGS += \
+	-DCURL_DISABLE_TYPECHECK
 
 ifdef NO_EXPAT
 http-walker.sp http-walker.s http-walker.o: EXTRA_CPPFLAGS = -DNO_EXPAT
@@ -2358,9 +2357,6 @@ ifndef NO_PERL
 	$(MAKE) -C perl prefix='$(prefix_SQ)' DESTDIR='$(DESTDIR_SQ)' install
 	$(MAKE) -C gitweb install
 endif
-ifndef NO_PYTHON
-	$(MAKE) -C git_remote_helpers prefix='$(prefix_SQ)' DESTDIR='$(DESTDIR_SQ)' install
-endif
 ifndef NO_TCLTK
 	$(MAKE) -C gitk-git install
 	$(MAKE) -C git-gui gitexecdir='$(gitexec_instdir_SQ)' install
@@ -2507,9 +2503,6 @@ clean: profile-clean coverage-clean
 ifndef NO_PERL
 	$(MAKE) -C gitweb clean
 	$(MAKE) -C perl clean
-endif
-ifndef NO_PYTHON
-	$(MAKE) -C git_remote_helpers clean
 endif
 	$(MAKE) -C templates/ clean
 	$(MAKE) -C t/ clean

@@ -201,6 +201,10 @@ extern struct commit_list *get_shallow_commits(struct object_array *heads,
 		int depth, int shallow_flag, int not_shallow_flag);
 extern void check_shallow_file_for_update(void);
 extern void set_alternate_shallow_file(const char *path);
+extern int write_shallow_commits(struct strbuf *out, int use_pack_protocol);
+extern void setup_alternate_shallow(struct lock_file *shallow_lock,
+				    const char **alternate_shallow_file);
+extern char *setup_temporary_shallow(void);
 
 int is_descendant_of(struct commit *, struct commit_list *);
 int in_merge_bases(struct commit *, struct commit *);
@@ -208,7 +212,7 @@ int in_merge_bases_many(struct commit *, int, struct commit **);
 
 extern int interactive_add(int argc, const char **argv, const char *prefix, int patch);
 extern int run_add_interactive(const char *revision, const char *patch_mode,
-			       const char **pathspec);
+			       const struct pathspec *pathspec);
 
 static inline int single_parent(struct commit *commit)
 {

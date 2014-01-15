@@ -1,5 +1,7 @@
 #include "cache.h"
+#include "tcp.h"
 #include "run-command.h"
+#include "connect.h"
 #include "srv.h"
 
 #ifndef NO_IPV6

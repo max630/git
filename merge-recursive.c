@@ -298,7 +298,7 @@ static int get_files_dirs(struct merge_options *o, struct tree *tree)
 {
 	int n;
 	struct pathspec match_all;
-	init_pathspec(&match_all, NULL);
+	memset(&match_all, 0, sizeof(match_all));
 	if (read_tree_recursive(tree, "", 0, 0, &match_all, save_files_dirs, o))
 		return 0;
 	n = o->current_file_set.nr + o->current_directory_set.nr;
@@ -2069,8 +2069,8 @@ int parse_merge_opt(struct merge_options *o, const char *s)
 		o->xdl_opts = DIFF_WITH_ALG(o, PATIENCE_DIFF);
 	else if (!strcmp(s, "histogram"))
 		o->xdl_opts = DIFF_WITH_ALG(o, HISTOGRAM_DIFF);
-	else if (!strcmp(s, "diff-algorithm=")) {
-		long value = parse_algorithm_value(s+15);
+	else if (!prefixcmp(s, "diff-algorithm=")) {
+		long value = parse_algorithm_value(s + strlen("diff-algorithm="));
 		if (value < 0)
 			return -1;
 		/* clear out previous settings */
