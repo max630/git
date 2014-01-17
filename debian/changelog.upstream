@@ -11,6 +11,9 @@ Antoine Pelisse (2):
 Benny Siegert (1):
       Add MirBSD support to the build system.
 
+Brodie Rao (1):
+      sha1_name: don't resolve refs when core.warnambiguousrefs is false
+
 Carlos Martín Nieto (1):
       send-pack: don't send a thin pack to a server which doesn't support it
 
@@ -49,10 +52,13 @@ Felipe Contreras (9):
       fetch: add missing documentation
       remote: fix status with branch...rebase=preserve
 
+Francesco Pretto (1):
+      git-submodule.sh: 'checkout' is a valid update mode
+
 Greg Jacobson (1):
       push: enhance unspecified push default warning
 
-Jeff King (28):
+Jeff King (35):
       log_tree_diff: die when we fail to parse a commit
       assume parse_commit checks commit->object.parsed
       assume parse_commit checks for NULL commit
@@ -76,32 +82,43 @@ Jeff King (28):
       do not pretend sha1write returns errors
       sha1_object_info_extended: provide delta base sha1s
       cat-file: provide %(deltabase) batch format
+      pack-objects: split add_object_entry
+      repack: stop using magic number for ARRAY_SIZE(exts)
+      repack: turn exts array into array-of-struct
+      repack: handle optional files created by pack-objects
+      t: add basic bitmap functionality tests
+      t/perf: add tests for pack bitmaps
       Revert "prompt: clean up strbuf usage"
       use distinct username/password for http auth tests
       t0000: set TEST_OUTPUT_DIRECTORY for sub-tests
       t0000: simplify HARNESS_ACTIVE hack
       t0000: drop "known breakage" test
+      t5531: further "matching" fixups
 
-Jens Lehmann (3):
+Jens Lehmann (5):
       submodule: don't access the .gitmodules cache entry after removing it
       submodule update: remove unnecessary orig_flags variable
       commit -v: strip diffs and submodule shortlogs from the commit message
+      mv: better document side effects when moving a submodule
+      rm: better document side effects when removing a submodule
 
 Johannes Schindelin (1):
       Remove the line length limit for graft files
 
-Johannes Sixt (3):
+Johannes Sixt (4):
       document --exclude option
       git_connect: remove artificial limit of a remote command
       git_connect: factor out discovery of the protocol and its parts
+      mv: let 'git mv file no-such-dir/' error out on Windows, too
 
-John Keeping (6):
+John Keeping (7):
       repo-config: remove deprecated alias for "git config"
       tar-tree: remove deprecated command
       lost-found: remove deprecated command
       peek-remote: remove deprecated alias of ls-remote
       pull: use merge-base --fork-point when appropriate
       rebase: use reflog to find common base with upstream
+      rebase: fix fork-point with zero arguments
 
 John Murphy (1):
       git-gui: corrected setup of git worktree under cygwin.
@@ -109,7 +126,7 @@ John Murphy (1):
 John Szakmeister (1):
       contrib/git-credential-gnome-keyring.c: small stylistic cleanups
 
-Jonathan Nieder (16):
+Jonathan Nieder (18):
       git-remote-mediawiki: do not remove installed files in "clean" target
       git-remote-mediawiki: honor DESTDIR in "make install"
       git-remote-mediawiki build: make 'install' command configurable
@@ -126,8 +143,10 @@ Jonathan Nieder (16):
       stop installing git-tar-tree link
       Add test-hashmap to .gitignore
       Drop unnecessary #includes from test-hashmap
+      pager: set LV=-c alongside LESS=FRSX
+      diff test: reading a directory as a file need not error out
 
-Junio C Hamano (24):
+Junio C Hamano (27):
       git add <pathspec>... defaults to "-A"
       git add: -u/-A now affects the entire working tree
       core.statinfo: remove as promised in Git 2.0
@@ -152,6 +171,9 @@ Junio C Hamano (24):
       get_max_fd_limit(): fall back to OPEN_MAX upon getrlimit/sysconf failure
       merge-base: separate "--independent" codepath into its own helper
       merge-base --octopus: reduce the result from get_octopus_merge_bases()
+      Update draft release notes to 1.9
+      Git 1.8.5.3
+      Update draft release notes to 1.9
 
 Karsten Blees (15):
       add a hashtable implementation that supports O(1) removal
@@ -192,7 +214,7 @@ Max Kirillov (2):
       git-gui: Add gui.displayuntracked option
       git-gui: right half window is paned
 
-Michael Haggerty (23):
+Michael Haggerty (26):
       t5510: use the correct tag name in test
       t5510: prepare test refs more straightforwardly
       t5510: check that "git fetch --prune --tags" does not prune branches
@@ -216,8 +238,11 @@ Michael Haggerty (23):
       ref_remote_duplicates(): extract a function handle_duplicate()
       handle_duplicate(): mark error message for translation
       fetch: improve the error messages emitted for conflicting refspecs
+      shorten_unambiguous_ref(): introduce a new local variable
+      gen_scanf_fmt(): delete function and use snprintf() instead
+      shorten_unambiguous_ref(): tighten up pointer arithmetic
 
-Nguyễn Thái Ngọc Duy (38):
+Nguyễn Thái Ngọc Duy (40):
       wt-status: take the alignment burden off translators
       gettext.c: detect the vsnprintf bug at runtime
       clone,fetch: catch non positive --depth option value
@@ -256,6 +281,8 @@ Nguyễn Thái Ngọc Duy (38):
       daemon: be strict at parsing parameters --[no-]informative-errors
       add: don't complain when adding empty project root
       commit.c: make "tree" a const pointer in commit_tree*()
+      count-objects: recognize .bitmap in garbage-checking
+      t5537: fix incorrect expectation in test case 10
 
 Nicolas Vigier (4):
       Use the word 'stuck' instead of 'sticked'
@@ -274,7 +301,7 @@ Paul Mackerras (1):
 Ralf Thielow (1):
       l10n: de.po: fix translation of 'prefix'
 
-Ramkumar Ramachandra (11):
+Ramkumar Ramachandra (12):
       t6300 (for-each-ref): clearly demarcate setup
       t6300 (for-each-ref): don't hardcode SHA-1 hexes
       for-each-ref: introduce %(HEAD) asterisk marker
@@ -286,6 +313,7 @@ Ramkumar Ramachandra (11):
       completion: introduce __gitcomp_nl_append ()
       completion: fix branch.autosetup(merge|rebase)
       completion: fix remote.pushdefault
+      completion: complete format.coverLetter
 
 Ramsay Allan Jones (2):
       send-pack.c: mark a file-local function static
@@ -315,8 +343,9 @@ Sebastian Schuberth (3):
       builtin/help.c: call load_command_list() only when it is needed
       builtin/help.c: speed up is_git_command() by checking for builtin commands first
 
-Thomas Ackermann (1):
+Thomas Ackermann (2):
       user-manual: improve html and pdf formatting
+      pack-heuristics.txt: mark up the file header properly
 
 Thomas Gummerer (4):
       diff: move no-index detection to builtin/diff.c
@@ -355,6 +384,22 @@ Torsten Bögershausen (8):
 Vasily Makarov (1):
       get_octopus_merge_bases(): cleanup redundant variable
 
+Vicent Marti (14):
+      revindex: export new APIs
+      pack-objects: refactor the packing list
+      pack-objects: factor out name_hash
+      revision: allow setting custom limiter function
+      sha1_file: export `git_open_noatime`
+      compat: add endianness helpers
+      ewah: compressed bitmap implementation
+      documentation: add documentation for the bitmap format
+      pack-bitmap: add support for bitmap indexes
+      pack-objects: use bitmaps when packing objects
+      rev-list: add bitmap mode to speed up object lists
+      pack-objects: implement bitmap writing
+      repack: consider bitmaps when performing repacks
+      pack-bitmap: implement optional name_hash cache
+
 W. Trevor King (1):
       Documentation/gitmodules: Only 'update' and 'url' are required
 
@@ -368,6 +413,9 @@ brian m. carlson (3):
 
 jcb91 (1):
       remote-hg: avoid buggy strftime()
+
+Øystein Walle (1):
+      stash: handle specifying stashes with $IFS
 
 
 Version v1.8.5.2; changes since v1.8.5.1:

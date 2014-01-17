@@ -1,13 +1,17 @@
-From bbbe97798c89b3392220328734b5acb113feb357 Mon Sep 17 00:00:00 2001
+From 4006263ad315ce9abddfce9bc0621db0bea911f6 Mon Sep 17 00:00:00 2001
 From: Jens Lehmann <Jens.Lehmann@web.de>
 Date: Mon, 18 Jun 2012 22:17:59 +0200
 Subject: submodule: prepare for recursive checkout of submodules
+
+commit 1962f06493f17eeef4c30d08d87e92bf092f334e upstream.
 
 This commit adds the functions needed for configuration, for setting the
 default behavior and for determining if a submodule path should be updated
 automatically.
 
 Signed-off-by: Jens Lehmann <Jens.Lehmann@web.de>
+Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
+Signed-off-by: Junio C Hamano <gitster@pobox.com>
 Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
 ---
  submodule.c | 36 ++++++++++++++++++++++++++++++++++++
@@ -96,5 +100,5 @@ index 7beec48..055918c 100644
  int fetch_populated_submodules(const struct argv_array *options,
  			       const char *prefix, int command_line_option,
 -- 
-1.8.5.1
+1.8.5.2
 

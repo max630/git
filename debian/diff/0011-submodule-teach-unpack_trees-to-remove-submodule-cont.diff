@@ -1,7 +1,9 @@
-From b9716156d564c12ceeb84ee70e23bd9edaa1bca6 Mon Sep 17 00:00:00 2001
+From f4604fb3d970a9f401df23bce53ee925462c7e07 Mon Sep 17 00:00:00 2001
 From: Jens Lehmann <Jens.Lehmann@web.de>
 Date: Tue, 19 Jun 2012 20:55:45 +0200
 Subject: submodule: teach unpack_trees() to remove submodule contents
+
+commit 500aa5eaf58530961b77590d9844a3857fcff5d2 upstream.
 
 Implement the functionality needed to enable work tree manipulating
 commands to that a deleted submodule should not only affect the index
@@ -19,6 +21,8 @@ that a submodule configured to be removed is not modified before scheduling
 it for removal.
 
 Signed-off-by: Jens Lehmann <Jens.Lehmann@web.de>
+Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
+Signed-off-by: Junio C Hamano <gitster@pobox.com>
 Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
 ---
  submodule.c    | 37 +++++++++++++++++++++++++++++++++++++
@@ -138,5 +142,5 @@ index 0cc5636..425a3fd 100644
  }
  
 -- 
-1.8.5.1
+1.8.5.2
 

@@ -1,9 +1,13 @@
-From 749416b69b88de3817ee490ca3ec779bc30757b3 Mon Sep 17 00:00:00 2001
+From ef83c1de5dbd99ee461dabd94e889c17fa24e8cf Mon Sep 17 00:00:00 2001
 From: Jens Lehmann <Jens.Lehmann@web.de>
 Date: Wed, 13 Jun 2012 18:50:10 +0200
 Subject: Teach checkout to recursively checkout submodules
 
+commit d4fa852597ffab711675528f2baccb1a0fb3bc82 upstream.
+
 Signed-off-by: Jens Lehmann <Jens.Lehmann@web.de>
+Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
+Signed-off-by: Junio C Hamano <gitster@pobox.com>
 Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
 ---
  Documentation/git-checkout.txt |   8 ++
@@ -365,5 +369,5 @@ index 06b18f8..bc3e1ca 100755
 +
  test_done
 -- 
-1.8.5.1
+1.8.5.2
 

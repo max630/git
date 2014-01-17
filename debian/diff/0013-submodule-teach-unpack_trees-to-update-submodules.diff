@@ -1,9 +1,13 @@
-From 6a81046d419ff54df8d57fe99caaa3bb06f089cd Mon Sep 17 00:00:00 2001
+From d452f0b68fa3a7ce28f4ca0dad38025b63da8498 Mon Sep 17 00:00:00 2001
 From: Jens Lehmann <Jens.Lehmann@web.de>
 Date: Fri, 5 Apr 2013 18:35:27 +0200
 Subject: submodule: teach unpack_trees() to update submodules
 
+commit de40c413f0e600668db1ccbf5bdf34694c29843f upstream.
+
 Signed-off-by: Jens Lehmann <Jens.Lehmann@web.de>
+Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
+Signed-off-by: Junio C Hamano <gitster@pobox.com>
 Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
 ---
  entry.c        | 15 ++++++++--
@@ -303,5 +307,5 @@ index 36a73a6..bee8740 100644
  	ERROR_WOULD_LOSE_UNTRACKED_REMOVED,
  	ERROR_BIND_OVERLAP,
 -- 
-1.8.5.1
+1.8.5.2
 

@@ -1,9 +1,13 @@
-From 8b779c052a6dfd3ff6ed1d3c18ed93c8e7585638 Mon Sep 17 00:00:00 2001
+From 4fc510702ba73dff31dbd3bfcf8b4351c50cce0e Mon Sep 17 00:00:00 2001
 From: Jens Lehmann <Jens.Lehmann@web.de>
 Date: Mon, 18 Jun 2012 22:11:45 +0200
 Subject: submodule: teach unpack_trees() to repopulate submodules
 
+commit 00eeddeac8feded2a45ebf31f3d7ab5140cbe21a upstream.
+
 Signed-off-by: Jens Lehmann <Jens.Lehmann@web.de>
+Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
+Signed-off-by: Junio C Hamano <gitster@pobox.com>
 Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
 ---
  entry.c        |  4 ++++
@@ -164,5 +168,5 @@ index 6db1931..b61487a 100644
  		add_rejected_path(o, error_type, name);
  }
 -- 
-1.8.5.1
+1.8.5.2
 
