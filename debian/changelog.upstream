@@ -1,4 +1,4 @@
-Version next; changes since v1.8.5.2:
+Version next; changes since v1.8.5.3:
 -------------------------------------
 
 Anders Kaseorg (1):
@@ -58,7 +58,7 @@ Francesco Pretto (1):
 Greg Jacobson (1):
       push: enhance unspecified push default warning
 
-Jeff King (35):
+Jeff King (30):
       log_tree_diff: die when we fail to parse a commit
       assume parse_commit checks commit->object.parsed
       assume parse_commit checks for NULL commit
@@ -72,10 +72,6 @@ Jeff King (35):
       drop support for "experimental" loose objects
       t5000: simplify gzip prerequisite checks
       pack-objects: name pack files after trailer hash
-      rev-parse: correctly diagnose revision errors before "--"
-      rev-parse: be more careful with munging arguments
-      cat-file: pass expand_data to print_object_or_die
-      cat-file: handle --batch format with missing type/size
       pack-objects doc: treat output filename as opaque
       diff.c: fix some recent whitespace style violations
       builtin/prune.c: use strbuf to avoid having to worry about PATH_MAX
@@ -88,7 +84,6 @@ Jeff King (35):
       repack: handle optional files created by pack-objects
       t: add basic bitmap functionality tests
       t/perf: add tests for pack bitmaps
-      Revert "prompt: clean up strbuf usage"
       use distinct username/password for http auth tests
       t0000: set TEST_OUTPUT_DIRECTORY for sub-tests
       t0000: simplify HARNESS_ACTIVE hack
@@ -105,11 +100,10 @@ Jens Lehmann (5):
 Johannes Schindelin (1):
       Remove the line length limit for graft files
 
-Johannes Sixt (4):
+Johannes Sixt (3):
       document --exclude option
       git_connect: remove artificial limit of a remote command
       git_connect: factor out discovery of the protocol and its parts
-      mv: let 'git mv file no-such-dir/' error out on Windows, too
 
 John Keeping (7):
       repo-config: remove deprecated alias for "git config"
@@ -146,7 +140,7 @@ Jonathan Nieder (18):
       pager: set LV=-c alongside LESS=FRSX
       diff test: reading a directory as a file need not error out
 
-Junio C Hamano (27):
+Junio C Hamano (26):
       git add <pathspec>... defaults to "-A"
       git add: -u/-A now affects the entire working tree
       core.statinfo: remove as promised in Git 2.0
@@ -172,7 +166,6 @@ Junio C Hamano (27):
       merge-base: separate "--independent" codepath into its own helper
       merge-base --octopus: reduce the result from get_octopus_merge_bases()
       Update draft release notes to 1.9
-      Git 1.8.5.3
       Update draft release notes to 1.9
 
 Karsten Blees (15):
@@ -198,17 +191,11 @@ Krzesimir Nowak (4):
       gitweb: Add a feature for adding more branch refs
       gitweb: Denote non-heads, non-remotes branches
 
-Kyle J. McKay (1):
-      gc: notice gc processes run by other users
-
 Mads Dørup (1):
       git-gui: Improve font rendering on retina macbooks
 
 Masanari Iida (1):
       git-gui: correct spelling errors in comments
-
-Matthieu Moy (1):
-      mv: let 'git mv file no-such-dir/' error out
 
 Max Kirillov (2):
       git-gui: Add gui.displayuntracked option
@@ -242,7 +229,7 @@ Michael Haggerty (26):
       gen_scanf_fmt(): delete function and use snprintf() instead
       shorten_unambiguous_ref(): tighten up pointer arithmetic
 
-Nguyễn Thái Ngọc Duy (40):
+Nguyễn Thái Ngọc Duy (39):
       wt-status: take the alignment burden off translators
       gettext.c: detect the vsnprintf bug at runtime
       clone,fetch: catch non positive --depth option value
@@ -278,7 +265,6 @@ Nguyễn Thái Ngọc Duy (40):
       clone: use git protocol for cloning shallow repo locally
       prune: clean .git/shallow after pruning objects
       git-clone.txt: remove shallow clone limitations
-      daemon: be strict at parsing parameters --[no-]informative-errors
       add: don't complain when adding empty project root
       commit.c: make "tree" a const pointer in commit_tree*()
       count-objects: recognize .bitmap in garbage-checking
@@ -298,17 +284,13 @@ Pat Thoyts (3):
 Paul Mackerras (1):
       gitk: Tag display improvements
 
-Ralf Thielow (1):
-      l10n: de.po: fix translation of 'prefix'
-
-Ramkumar Ramachandra (12):
+Ramkumar Ramachandra (11):
       t6300 (for-each-ref): clearly demarcate setup
       t6300 (for-each-ref): don't hardcode SHA-1 hexes
       for-each-ref: introduce %(HEAD) asterisk marker
       for-each-ref: introduce %(upstream:track[short])
       for-each-ref: introduce %(color:...) for color
       for-each-ref: avoid color leakage
-      for-each-ref: remove unused variable
       zsh completion: find matching custom bash completion
       completion: introduce __gitcomp_nl_append ()
       completion: fix branch.autosetup(merge|rebase)
@@ -343,9 +325,8 @@ Sebastian Schuberth (3):
       builtin/help.c: call load_command_list() only when it is needed
       builtin/help.c: speed up is_git_command() by checking for builtin commands first
 
-Thomas Ackermann (2):
+Thomas Ackermann (1):
       user-manual: improve html and pdf formatting
-      pack-heuristics.txt: mark up the file header properly
 
 Thomas Gummerer (4):
       diff: move no-index detection to builtin/diff.c
@@ -400,9 +381,6 @@ Vicent Marti (14):
       repack: consider bitmaps when performing repacks
       pack-bitmap: implement optional name_hash cache
 
-W. Trevor King (1):
-      Documentation/gitmodules: Only 'update' and 'url' are required
-
 Zoltan Klinger (1):
       difftool: display the number of files in the diff queue in the prompt
 
@@ -416,6 +394,44 @@ jcb91 (1):
 
 Øystein Walle (1):
       stash: handle specifying stashes with $IFS
+
+
+Version v1.8.5.3; changes since v1.8.5.2:
+-----------------------------------------
+
+Jeff King (5):
+      rev-parse: correctly diagnose revision errors before "--"
+      rev-parse: be more careful with munging arguments
+      cat-file: pass expand_data to print_object_or_die
+      cat-file: handle --batch format with missing type/size
+      Revert "prompt: clean up strbuf usage"
+
+Johannes Sixt (1):
+      mv: let 'git mv file no-such-dir/' error out on Windows, too
+
+Junio C Hamano (1):
+      Git 1.8.5.3
+
+Kyle J. McKay (1):
+      gc: notice gc processes run by other users
+
+Matthieu Moy (1):
+      mv: let 'git mv file no-such-dir/' error out
+
+Nguyễn Thái Ngọc Duy (1):
+      daemon: be strict at parsing parameters --[no-]informative-errors
+
+Ralf Thielow (1):
+      l10n: de.po: fix translation of 'prefix'
+
+Ramkumar Ramachandra (1):
+      for-each-ref: remove unused variable
+
+Thomas Ackermann (1):
+      pack-heuristics.txt: mark up the file header properly
+
+W. Trevor King (1):
+      Documentation/gitmodules: Only 'update' and 'url' are required
 
 
 Version v1.8.5.2; changes since v1.8.5.1:
