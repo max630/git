@@ -3742,9 +3742,9 @@ proc external_blame {parent_idx {line {}}} {
 }
 
 proc show_line_source {} {
-    global cmitmode currentid parents curview blamestuff blameinst
+    global cmitmode currentid parents curview
     global diff_menu_line diff_menu_filebase flist_menu_file
-    global nullid nullid2 gitdir cdup
+    global nullid nullid2 gitdir
 
     set from_index {}
     if {$cmitmode eq "tree"} {
@@ -3787,6 +3787,13 @@ proc show_line_source {} {
 	}
 	set line [lindex $h 1]
     }
+    startblaming $id $from_index $flist_menu_file $line
+}
+
+proc startblaming {id from_index fname line} {
+    global blamestuff blameinst
+    global cdup
+
     set blameargs {}
     if {$from_index ne {}} {
 	lappend blameargs | git cat-file blob $from_index
@@ -3797,7 +3804,7 @@ proc show_line_source {} {
     } else {
 	lappend blameargs $id
     }
-    lappend blameargs -- [file join $cdup $flist_menu_file]
+    lappend blameargs -- [file join $cdup $fname]
     if {[catch {
 	set f [open $blameargs r]
     } err]} {
