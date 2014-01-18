@@ -2622,6 +2622,7 @@ proc makewindow {} {
     global diff_menu
     set diff_menu .diffctxmenu
     makemenu $diff_menu {
+	{mc "Show origin of selected region" command show_selection_source}
 	{mc "Show origin of this line" command show_line_source}
 	{mc "Run git gui blame on this line" command {external_blame_diff}}
     }
@@ -3783,6 +3784,54 @@ proc show_line_source {} {
 	set line [lindex $h 1]
     }
     startblaming $id $from_index $flist_menu_file $line 1
+}
+
+proc show_selection_source {} {
+    global ctext
+
+    set selection [$ctext tag ranges sel]
+    if {[llength $selection] != 2} {
+	return
+    }
+    set start_line [lindex [split [lindex $selection 0] "."] 0]
+    set end_index [split [lindex $selection 1] "."]
+    if {[lindex $end_index 1] eq 0} {
+	set end_line [expr [lindex $end_index 0] - 1]
+    } else {
+	set end_line [lindex $end_index 0]
+    }
+    show_region_source $start_line $end_line
+}
+
+proc show_region_source {start_line end_line} {
+    global currentid parents curview
+    if {$start_line > $end_line} {
+	error_popup "Cannot blame region: $start_line > $end_line"
+	return
+    }
+    set f [find_ctext_fileinfo $start_line]
+    set fname [lindex $f 0]
+    set filebase [lindex $f 1]
+    set start_lnum {}
+    set end_lnum {}
+    foreach cl_spec [resolve_hunk_lines $filebase $start_line] {
+	set diffline [lindex $cl_spec 0]
+	if {$diffline > $end_line} {
+	    break
+	} elseif {$diffline >= $start_line} {
+	    foreach branch [lindex $cl_spec 1] {
+		if {[lindex $branch 0] == 1} {
+		    if {$start_lnum eq {}} {
+			set start_lnum [lindex $branch 1]
+		    }
+		    set end_lnum [lindex $branch 1]
+		}
+	    }
+	}
+    }
+    if {$start_lnum ne {} && $end_lnum ne {}} {
+	startblaming [lindex $parents($curview,$currentid) 0] {} $fname $start_lnum [expr $end_lnum - $start_lnum + 1]
+    }
 }
 
 proc startblaming {id from_index fname line nlines} {
