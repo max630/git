@@ -3816,10 +3816,10 @@ proc show_line_source {} {
 	}
 	set line [lindex $h 1]
     }
-    startblaming $id $from_index $flist_menu_file $line
+    startblaming $id $from_index $flist_menu_file $line 1
 }
 
-proc startblaming {id from_index fname line} {
+proc startblaming {id from_index fname line nlines} {
     global blamestuff blameinst
     global cdup
 
@@ -3827,7 +3827,7 @@ proc startblaming {id from_index fname line} {
     if {$from_index ne {}} {
 	lappend blameargs | git cat-file blob $from_index
     }
-    lappend blameargs | git blame -p -L$line,+1
+    lappend blameargs | git blame -p -L$line,+$nlines
     if {$from_index ne {}} {
 	lappend blameargs --contents -
     } else {
@@ -3845,7 +3845,7 @@ proc startblaming {id from_index fname line} {
     set i [reg_instance $f]
     set blamestuff($i) {}
     set blameinst $i
-    filerun $f [list read_line_source $f $i]
+    filerun $f [list read_blame_output $f $i]
 }
 
 proc stopblaming {} {
@@ -3858,7 +3858,7 @@ proc stopblaming {} {
     }
 }
 
-proc read_line_source {fd inst} {
+proc read_blame_output {fd inst} {
     global blamestuff curview commfd blameinst nullid nullid2
 
     while {[gets $fd line] >= 0} {
@@ -3877,19 +3877,45 @@ proc read_line_source {fd inst} {
     }
 
     set fname {}
-    set line [split [lindex $blamestuff($inst) 0] " "]
-    set id [lindex $line 0]
-    set lnum [lindex $line 1]
-    if {[string length $id] == 40 && [string is xdigit $id] &&
-	[string is digit -strict $lnum]} {
-	# look for "filename" line
-	foreach l $blamestuff($inst) {
-	    if {[string match "filename *" $l]} {
-		set fname [string range $l 9 end]
-		break
+    set latest_committime {}
+    array set current { hash {} lnum {} fname {} committime {} }
+    foreach l $blamestuff($inst) {
+	if {[regexp "^(\[a-f0-9\]{40}) (\[0-9\]+) (\[0-9\]+) (\[0-9\]+)?\$" $l all hash old_lnum new_lnum span]} {
+	    if {$span eq {}} {
+		continue
+	    }
+	    if {$current(hash) ne {}} {
+		# handle the line
+		if {$latest_committime eq "" || $current(committime) ne "" && $current(committime) > $latest_committime} {
+		    set fname $current(fname)
+		    set latest_committime $current(committime)
+		    set lnum $current(lnum)
+		    set id $current(hash)
+		}
+	    }
+	    array set current [list hash $hash lnum $old_lnum fname {} committime {}]
+	} elseif {[string equal -length 1 "\t" $l]} {
+	    # continue
+	} else {
+	    if {![regexp "^(\[a-z-\]+) (.*)$" $l all keyword value]} {
+		# error
+	    }
+	    switch -- $keyword {
+		filename { set current(fname) $value }
+		committer-time { set current(committime) $value }
 	    }
 	}
     }
+    if {$current(hash) ne {}} {
+	# handle the line
+	if {$latest_committime eq "" || $current(committime) ne "" && $current(committime) > $latest_committime} {
+	    set fname $current(fname)
+	    set latest_committime $current(committime)
+	    set lnum $current(lnum)
+	    set id $current(hash)
+	}
+    }
+
     if {$fname ne {}} {
 	# all looks good, select it
 	if {$id eq $nullid} {
