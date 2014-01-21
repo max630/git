@@ -1,5 +1,79 @@
-Version next; changes since v1.8.5.3:
+Version next; changes since v1.9-rc0:
 -------------------------------------
+
+Christian Couder (1):
+      strbuf: remove prefixcmp() and suffixcmp()
+
+Eric Sunshine (1):
+      name-hash: retire unused index_name_exists()
+
+Jeff King (7):
+      pack-objects: split add_object_entry
+      repack: stop using magic number for ARRAY_SIZE(exts)
+      repack: turn exts array into array-of-struct
+      repack: handle optional files created by pack-objects
+      t: add basic bitmap functionality tests
+      t/perf: add tests for pack bitmaps
+      do not discard revindex when re-preparing packfiles
+
+Jens Lehmann (1):
+      submodule: don't access the .gitmodules cache entry after removing it
+
+Jonathan Nieder (2):
+      Add test-hashmap to .gitignore
+      Drop unnecessary #includes from test-hashmap
+
+Junio C Hamano (7):
+      git add <pathspec>... defaults to "-A"
+      git add: -u/-A now affects the entire working tree
+      core.statinfo: remove as promised in Git 2.0
+      push: switch default from "matching" to "simple"
+      diff: remove "diff-files -q" in a version of Git in a distant future
+      push: switch default from "matching" to "simple"
+      commit-tree: add and document --no-gpg-sign
+
+Karsten Blees (14):
+      add a hashtable implementation that supports O(1) removal
+      buitin/describe.c: use new hash map implementation
+      diffcore-rename.c: move code around to prepare for the next patch
+      diffcore-rename.c: simplify finding exact renames
+      diffcore-rename.c: use new hash map implementation
+      name-hash.c: use new hash map implementation for directories
+      name-hash.c: remove unreferenced directory entries
+      name-hash.c: use new hash map implementation for cache entries
+      name-hash.c: remove cache entries instead of marking them CE_UNHASHED
+      remove old hash.[ch] implementation
+      fix 'git update-index --verbose --again' output
+      builtin/update-index.c: cleanup update_one
+      read-cache.c: fix memory leaks caused by removed cache entries
+      hashmap.h: Use 'unsigned int' for hash-codes everywhere
+
+Nguyễn Thái Ngọc Duy (1):
+      count-objects: recognize .bitmap in garbage-checking
+
+Nicolas Vigier (2):
+      Add the commit.gpgsign option to sign all commits
+      test the commit.gpgsign config option
+
+Vicent Marti (14):
+      revindex: export new APIs
+      pack-objects: refactor the packing list
+      pack-objects: factor out name_hash
+      revision: allow setting custom limiter function
+      sha1_file: export `git_open_noatime`
+      compat: add endianness helpers
+      ewah: compressed bitmap implementation
+      documentation: add documentation for the bitmap format
+      pack-bitmap: add support for bitmap indexes
+      pack-objects: use bitmaps when packing objects
+      rev-list: add bitmap mode to speed up object lists
+      pack-objects: implement bitmap writing
+      repack: consider bitmaps when performing repacks
+      pack-bitmap: implement optional name_hash cache
+
+
+Version v1.9-rc0; changes since v1.8.5.3:
+-----------------------------------------
 
 Anders Kaseorg (1):
       submodule foreach: skip eval for more than one argument
@@ -17,12 +91,11 @@ Brodie Rao (1):
 Carlos Martín Nieto (1):
       send-pack: don't send a thin pack to a server which doesn't support it
 
-Christian Couder (16):
+Christian Couder (15):
       environment: normalize use of prefixcmp() by removing " != 0"
       builtin/remote: remove postfixcmp() and use suffixcmp() instead
       strbuf: introduce starts_with() and ends_with()
       replace {pre,suf}fixcmp() with {starts,ends}_with()
-      strbuf: remove prefixcmp() and suffixcmp()
       rename READ_SHA1_FILE_REPLACE flag to LOOKUP_REPLACE_OBJECT
       replace_object: don't check read_replace_refs twice
       sha1_file.c: add lookup_replace_object_extended() to pass flags
@@ -37,9 +110,6 @@ Christian Couder (16):
 
 Crestez Dan Leonard (1):
       git p4: Use git diff-tree instead of format-patch
-
-Eric Sunshine (1):
-      name-hash: retire unused index_name_exists()
 
 Felipe Contreras (9):
       test-lib.sh: convert $TEST_DIRECTORY to an absolute path
@@ -58,7 +128,7 @@ Francesco Pretto (1):
 Greg Jacobson (1):
       push: enhance unspecified push default warning
 
-Jeff King (30):
+Jeff King (24):
       log_tree_diff: die when we fail to parse a commit
       assume parse_commit checks commit->object.parsed
       assume parse_commit checks for NULL commit
@@ -78,20 +148,13 @@ Jeff King (30):
       do not pretend sha1write returns errors
       sha1_object_info_extended: provide delta base sha1s
       cat-file: provide %(deltabase) batch format
-      pack-objects: split add_object_entry
-      repack: stop using magic number for ARRAY_SIZE(exts)
-      repack: turn exts array into array-of-struct
-      repack: handle optional files created by pack-objects
-      t: add basic bitmap functionality tests
-      t/perf: add tests for pack bitmaps
       use distinct username/password for http auth tests
       t0000: set TEST_OUTPUT_DIRECTORY for sub-tests
       t0000: simplify HARNESS_ACTIVE hack
       t0000: drop "known breakage" test
       t5531: further "matching" fixups
 
-Jens Lehmann (5):
-      submodule: don't access the .gitmodules cache entry after removing it
+Jens Lehmann (4):
       submodule update: remove unnecessary orig_flags variable
       commit -v: strip diffs and submodule shortlogs from the commit message
       mv: better document side effects when moving a submodule
@@ -105,7 +168,7 @@ Johannes Sixt (3):
       git_connect: remove artificial limit of a remote command
       git_connect: factor out discovery of the protocol and its parts
 
-John Keeping (7):
+John Keeping (8):
       repo-config: remove deprecated alias for "git config"
       tar-tree: remove deprecated command
       lost-found: remove deprecated command
@@ -113,6 +176,7 @@ John Keeping (7):
       pull: use merge-base --fork-point when appropriate
       rebase: use reflog to find common base with upstream
       rebase: fix fork-point with zero arguments
+      pull: suppress error when no remoteref is found
 
 John Murphy (1):
       git-gui: corrected setup of git worktree under cygwin.
@@ -120,7 +184,7 @@ John Murphy (1):
 John Szakmeister (1):
       contrib/git-credential-gnome-keyring.c: small stylistic cleanups
 
-Jonathan Nieder (18):
+Jonathan Nieder (16):
       git-remote-mediawiki: do not remove installed files in "clean" target
       git-remote-mediawiki: honor DESTDIR in "make install"
       git-remote-mediawiki build: make 'install' command configurable
@@ -135,17 +199,10 @@ Jonathan Nieder (18):
       test: replace shebangs with descriptions in shell libraries
       remove #!interpreter line from shell libraries
       stop installing git-tar-tree link
-      Add test-hashmap to .gitignore
-      Drop unnecessary #includes from test-hashmap
       pager: set LV=-c alongside LESS=FRSX
       diff test: reading a directory as a file need not error out
 
-Junio C Hamano (26):
-      git add <pathspec>... defaults to "-A"
-      git add: -u/-A now affects the entire working tree
-      core.statinfo: remove as promised in Git 2.0
-      push: switch default from "matching" to "simple"
-      diff: remove "diff-files -q" in a version of Git in a distant future
+Junio C Hamano (20):
       revision: introduce --exclude=<glob> to tame wildcards
       merge-base: use OPT_CMDMODE and clarify the command line parsing
       merge-base: teach "--fork-point" mode
@@ -153,13 +210,11 @@ Junio C Hamano (26):
       rev-list --exclude: export add/clear-ref-exclusion and ref-excluded API
       rev-parse: introduce --exclude=<glob> to tame wildcards
       bundle: use argv-array
-      push: switch default from "matching" to "simple"
       builtin/push.c: use strbuf instead of manual allocation
       push: use remote.$name.push as a refmap
       push: also use "upstream" mapping when pushing a single ref
       Start 1.9 cycle
       Update draft release notes to 1.9
-      commit-tree: add and document --no-gpg-sign
       prune-packed: use strbuf to avoid having to worry about PATH_MAX
       Update draft release notes to 1.9
       get_max_fd_limit(): fall back to OPEN_MAX upon getrlimit/sysconf failure
@@ -167,23 +222,10 @@ Junio C Hamano (26):
       merge-base --octopus: reduce the result from get_octopus_merge_bases()
       Update draft release notes to 1.9
       Update draft release notes to 1.9
+      Git 1.9-rc0
 
-Karsten Blees (15):
-      add a hashtable implementation that supports O(1) removal
-      buitin/describe.c: use new hash map implementation
-      diffcore-rename.c: move code around to prepare for the next patch
-      diffcore-rename.c: simplify finding exact renames
-      diffcore-rename.c: use new hash map implementation
-      name-hash.c: use new hash map implementation for directories
-      name-hash.c: remove unreferenced directory entries
-      name-hash.c: use new hash map implementation for cache entries
-      name-hash.c: remove cache entries instead of marking them CE_UNHASHED
-      remove old hash.[ch] implementation
-      fix 'git update-index --verbose --again' output
-      builtin/update-index.c: cleanup update_one
-      read-cache.c: fix memory leaks caused by removed cache entries
+Karsten Blees (1):
       gitignore.txt: clarify recursive nature of excluded directories
-      hashmap.h: Use 'unsigned int' for hash-codes everywhere
 
 Krzesimir Nowak (4):
       gitweb: Move check-ref-format code into separate function
@@ -229,7 +271,7 @@ Michael Haggerty (26):
       gen_scanf_fmt(): delete function and use snprintf() instead
       shorten_unambiguous_ref(): tighten up pointer arithmetic
 
-Nguyễn Thái Ngọc Duy (39):
+Nguyễn Thái Ngọc Duy (38):
       wt-status: take the alignment burden off translators
       gettext.c: detect the vsnprintf bug at runtime
       clone,fetch: catch non positive --depth option value
@@ -267,14 +309,11 @@ Nguyễn Thái Ngọc Duy (39):
       git-clone.txt: remove shallow clone limitations
       add: don't complain when adding empty project root
       commit.c: make "tree" a const pointer in commit_tree*()
-      count-objects: recognize .bitmap in garbage-checking
       t5537: fix incorrect expectation in test case 10
 
-Nicolas Vigier (4):
+Nicolas Vigier (2):
       Use the word 'stuck' instead of 'sticked'
       rev-parse --parseopt: add the --stuck-long mode
-      Add the commit.gpgsign option to sign all commits
-      test the commit.gpgsign config option
 
 Pat Thoyts (3):
       git-gui: added gui.maxrecentrepo to extend the number of remembered repos
@@ -312,7 +351,8 @@ Richard Hansen (6):
 Roberto Tyley (1):
       docs: add filter-branch notes on The BFG
 
-Roman Kagan (1):
+Roman Kagan (2):
+      git-svn: workaround for a bug in svn serf backend
       git-svn: workaround for a bug in svn serf backend
 
 Samuel Bronson (3):
@@ -364,22 +404,6 @@ Torsten Bögershausen (8):
 
 Vasily Makarov (1):
       get_octopus_merge_bases(): cleanup redundant variable
-
-Vicent Marti (14):
-      revindex: export new APIs
-      pack-objects: refactor the packing list
-      pack-objects: factor out name_hash
-      revision: allow setting custom limiter function
-      sha1_file: export `git_open_noatime`
-      compat: add endianness helpers
-      ewah: compressed bitmap implementation
-      documentation: add documentation for the bitmap format
-      pack-bitmap: add support for bitmap indexes
-      pack-objects: use bitmaps when packing objects
-      rev-list: add bitmap mode to speed up object lists
-      pack-objects: implement bitmap writing
-      repack: consider bitmaps when performing repacks
-      pack-bitmap: implement optional name_hash cache
 
 Zoltan Klinger (1):
       difftool: display the number of files in the diff queue in the prompt

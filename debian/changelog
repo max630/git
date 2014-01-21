@@ -1,3 +1,9 @@
+git (1:2.0~next.20140117-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit 6fd479ea.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 21 Jan 2014 12:49:20 -0800
+
 git (1:2.0~next.20140113-1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit b139ac25.
