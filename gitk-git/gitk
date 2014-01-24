@@ -2,7 +2,7 @@
 # Tcl ignores the next line -*- tcl -*- \
 exec wish "$0" -- "$@"
 
-# Copyright © 2005-2011 Paul Mackerras.  All rights reserved.
+# Copyright © 2005-2014 Paul Mackerras.  All rights reserved.
 # This program is free software; it may be used, copied, modified
 # and distributed under the terms of the GNU General Public Licence,
 # either version 2, or (at your option) any later version.
@@ -2263,9 +2263,35 @@ proc makewindow {} {
 
     # build up the bottom bar of upper window
     ${NS}::label .tf.lbar.flabel -text "[mc "Find"] "
-    ${NS}::button .tf.lbar.fnext -text [mc "next"] -command {dofind 1 1}
-    ${NS}::button .tf.lbar.fprev -text [mc "prev"] -command {dofind -1 1}
+
+    set bm_down_data {
+	#define down_width 16
+	#define down_height 16
+	static unsigned char down_bits[] = {
+	0x80, 0x01, 0x80, 0x01, 0x80, 0x01, 0x80, 0x01,
+	0x80, 0x01, 0x80, 0x01, 0x80, 0x01, 0x80, 0x01,
+	0x87, 0xe1, 0x8e, 0x71, 0x9c, 0x39, 0xb8, 0x1d,
+	0xf0, 0x0f, 0xe0, 0x07, 0xc0, 0x03, 0x80, 0x01};
+    }
+    image create bitmap bm-down -data $bm_down_data -foreground $uifgcolor
+    ${NS}::button .tf.lbar.fnext -width 26 -command {dofind 1 1}
+    .tf.lbar.fnext configure -image bm-down
+
+    set bm_up_data {
+	#define up_width 16
+	#define up_height 16
+	static unsigned char up_bits[] = {
+	0x80, 0x01, 0xc0, 0x03, 0xe0, 0x07, 0xf0, 0x0f,
+	0xb8, 0x1d, 0x9c, 0x39, 0x8e, 0x71, 0x87, 0xe1,
+	0x80, 0x01, 0x80, 0x01, 0x80, 0x01, 0x80, 0x01,
+	0x80, 0x01, 0x80, 0x01, 0x80, 0x01, 0x80, 0x01};
+    }
+    image create bitmap bm-up -data $bm_up_data -foreground $uifgcolor
+    ${NS}::button .tf.lbar.fprev -width 26 -command {dofind -1 1}
+    .tf.lbar.fprev configure -image bm-up
+
     ${NS}::label .tf.lbar.flab2 -text " [mc "commit"] "
+
     pack .tf.lbar.flabel .tf.lbar.fnext .tf.lbar.fprev .tf.lbar.flab2 \
 	-side left -fill y
     set gdttype [mc "containing:"]
@@ -2403,7 +2429,7 @@ proc makewindow {} {
     $ctext tag conf msep -font textfontbold
     $ctext tag conf found -back $foundbgcolor
     $ctext tag conf currentsearchhit -back $currentsearchhitbgcolor
-    $ctext tag conf wwrap -wrap word
+    $ctext tag conf wwrap -wrap word -lmargin2 1c
     $ctext tag conf bold -font textfontbold
 
     .pwbottom add .bleft
@@ -2622,9 +2648,9 @@ proc makewindow {} {
     global diff_menu
     set diff_menu .diffctxmenu
     makemenu $diff_menu {
-	{mc "Show origin of selected region" command show_selection_source}
 	{mc "Show origin of this line" command show_line_source}
 	{mc "Run git gui blame on this line" command {external_blame_diff}}
+	{mc "Show origin of selected region" command show_selection_source}
     }
     $diff_menu configure -tearoff 0
 }
@@ -2762,14 +2788,17 @@ proc savestuff {w} {
     global linkfgcolor circleoutlinecolor
     global autoselect autosellen extdifftool perfile_attrs markbgcolor use_ttk
     global hideremotes want_ttk maxrefs
+    global config_file config_file_tmp
 
     if {$stuffsaved} return
     if {![winfo viewable .]} return
     catch {
-	if {[file exists ~/.gitk-new]} {file delete -force ~/.gitk-new}
-	set f [open "~/.gitk-new" w]
+	if {[file exists $config_file_tmp]} {
+	    file delete -force $config_file_tmp
+	}
+	set f [open $config_file_tmp w]
 	if {$::tcl_platform(platform) eq {windows}} {
-	    file attributes "~/.gitk-new" -hidden true
+	    file attributes $config_file_tmp -hidden true
 	}
 	puts $f [list set mainfont $mainfont]
 	puts $f [list set textfont $textfont]
@@ -2846,7 +2875,7 @@ proc savestuff {w} {
 	}
 	puts $f "}"
 	close $f
-	file rename -force "~/.gitk-new" "~/.gitk"
+	file rename -force $config_file_tmp $config_file
     }
     set stuffsaved 1
 }
@@ -2948,7 +2977,7 @@ proc about {} {
     message $w.m -text [mc "
 Gitk - a commit viewer for git
 
-Copyright \u00a9 2005-2011 Paul Mackerras
+Copyright \u00a9 2005-2014 Paul Mackerras
 
 Use and redistribute under the terms of the GNU General Public License"] \
 	    -justify center -aspect 400 -border 2 -bg white -relief groove
@@ -3436,6 +3465,7 @@ proc pop_diff_menu {w X Y x y} {
     global ctext diff_menu flist_menu_file
     global diff_menu_txtpos diff_menu_line
     global diff_menu_filebase
+    global selection_source_data
 
     set diff_menu_txtpos [split [$w index "@$x,$y"] "."]
     set diff_menu_line [lindex $diff_menu_txtpos 0]
@@ -3448,6 +3478,12 @@ proc pop_diff_menu {w X Y x y} {
     if {$f eq {}} return
     set flist_menu_file [lindex $f 0]
     set diff_menu_filebase [lindex $f 1]
+    prepare_show_selection_source
+    if {$selection_source_data ne {}} {
+	$diff_menu entryconf 2 -state normal
+    } else {
+	$diff_menu entryconf 2 -state disabled
+    }
     tk_popup $diff_menu $X $Y
 }
 
@@ -3562,7 +3598,7 @@ proc external_diff {} {
     }
 }
 
-proc resolve_hunk_lines {base start_diffline} {
+proc resolve_hunk_lines {base start_diffline end_diffline} {
     global ctext
 
     # Find and parse the hunk header
@@ -3570,8 +3606,8 @@ proc resolve_hunk_lines {base start_diffline} {
     if {$s_lix eq {}} return
 
     set s_line [$ctext get $s_lix "$s_lix + 1 lines"]
-    if {![regexp {^@@@*(( -\d+(,\d+)?)+) \+(\d+)(,(\d+))? @@} $s_line \
-	    s_line old_specs osz osz1 new_line nsz new_span]} {
+    if {![regexp {^@@@*(( -\d+(,\d+)?)+) \+(\d+)(,\d+)? @@} $s_line \
+	    s_line old_specs osz osz1 new_line nsz]} {
 	return
     }
 
@@ -3591,12 +3627,15 @@ proc resolve_hunk_lines {base start_diffline} {
 
     set commitlines_by_diffline {}
     array unset commit_lines
-    for {set p 1} {$p <= $max_parent} {incr p} {
-	set commit_lines($p) [expr [lindex $base_lines [expr $p - 1]] - 1]
+    for {set p 0} {$p <= $max_parent} {incr p} {
+	set commit_lines($p) [expr [lindex $base_lines $p] - 1]
     }
-    set commit_lines(0) [expr $new_line - 1]
-    for {set diffline [expr $s_lno + 1]} {$commit_lines(0) < $new_line + $new_span - 1} {incr diffline} {
+    for {set diffline [expr $s_lno + 1]} {$diffline <= $end_diffline} {incr diffline} {
 	set chunk [$ctext get $diffline.0 "$diffline.0 + $max_parent chars"]
+	if {$chunk eq {} || [string match "\[\n@\]*" $chunk]} {
+	    # region is larger than hunk
+	    return {}
+	}
 	set is_removed [expr [string first "-" $chunk] >= 0]
 	if {!$is_removed} {
 	    incr commit_lines(0)
@@ -3624,13 +3663,15 @@ proc resolve_hunk_lines {base start_diffline} {
 		}
 	    }
 	}
-	lappend commitlines_by_diffline [list $diffline $commitlines]
+	if {$diffline >= $start_diffline} {
+	    lappend commitlines_by_diffline [list $diffline $commitlines]
+	}
     }
     return $commitlines_by_diffline
 }
 
 proc find_hunk_blamespec {base line} {
-    foreach cl_spec [resolve_hunk_lines $base $line] {
+    foreach cl_spec [resolve_hunk_lines $base $line $line] {
 	if {[lindex $cl_spec 0] == $line} {
 	    set commitlines [lindex $cl_spec 1]
 	    if {[llength $commitlines] > 0} {
@@ -3787,10 +3828,21 @@ proc show_line_source {} {
 }
 
 proc show_selection_source {} {
+    global selection_source_data
+
+    if {$selection_source_data ne {}} {
+	foreach var {id from_index fname lnum lnumber} val $selection_source_data { set $var $val }
+	startblaming $id $from_index $fname $lnum $lnumber
+    }
+}
+
+proc prepare_show_selection_source {} {
     global ctext
+    global selection_source_data
 
     set selection [$ctext tag ranges sel]
     if {[llength $selection] != 2} {
+	set selection_source_data {}
 	return
     }
     set start_line [lindex [split [lindex $selection 0] "."] 0]
@@ -3800,37 +3852,50 @@ proc show_selection_source {} {
     } else {
 	set end_line [lindex $end_index 0]
     }
-    show_region_source $start_line $end_line
+    set selection_source_data [prepare_show_region_source $start_line $end_line]
 }
 
-proc show_region_source {start_line end_line} {
+proc prepare_show_region_source {start_line end_line} {
+    global cmitmode
     global currentid parents curview
     if {$start_line > $end_line} {
 	error_popup "Cannot blame region: $start_line > $end_line"
-	return
+	return {}
     }
     set f [find_ctext_fileinfo $start_line]
+    if {$f eq {}} {
+	return {}
+    }
     set fname [lindex $f 0]
     set filebase [lindex $f 1]
-    set start_lnum {}
-    set end_lnum {}
-    foreach cl_spec [resolve_hunk_lines $filebase $start_line] {
-	set diffline [lindex $cl_spec 0]
-	if {$diffline > $end_line} {
-	    break
-	} elseif {$diffline >= $start_line} {
-	    foreach branch [lindex $cl_spec 1] {
-		if {[lindex $branch 0] == 1} {
-		    if {$start_lnum eq {}} {
-			set start_lnum [lindex $branch 1]
+    if {$cmitmode eq "tree"} {
+	set id $currentid
+	set start_lnum [expr $start_line - $filebase]
+	set end_lnum [expr $end_line - $filebase]
+    } else {
+	set id [lindex $parents($curview,$currentid) 0]
+	set start_lnum {}
+	set end_lnum {}
+	foreach cl_spec [resolve_hunk_lines $filebase $start_line $end_line] {
+	    set diffline [lindex $cl_spec 0]
+	    if {$diffline > $end_line} {
+		break
+	    } elseif {$diffline >= $start_line} {
+		foreach branch [lindex $cl_spec 1] {
+		    if {[lindex $branch 0] == 1} {
+			if {$start_lnum eq {}} {
+			    set start_lnum [lindex $branch 1]
+			}
+			set end_lnum [lindex $branch 1]
 		    }
-		    set end_lnum [lindex $branch 1]
 		}
 	    }
 	}
     }
     if {$start_lnum ne {} && $end_lnum ne {}} {
-	startblaming [lindex $parents($curview,$currentid) 0] {} $fname $start_lnum [expr $end_lnum - $start_lnum + 1]
+	return [list $id {} $fname $start_lnum [expr $end_lnum - $start_lnum + 1]]
+    } else {
+	return {}
     }
 }
 
@@ -3860,7 +3925,7 @@ proc startblaming {id from_index fname line nlines} {
     set i [reg_instance $f]
     set blamestuff($i) {}
     set blameinst $i
-    filerun $f [list read_line_source $f $i]
+    filerun $f [list read_blame_output $f $i]
 }
 
 proc stopblaming {} {
@@ -3873,7 +3938,7 @@ proc stopblaming {} {
     }
 }
 
-proc read_line_source {fd inst} {
+proc read_blame_output {fd inst} {
     global blamestuff curview commfd blameinst nullid nullid2
 
     while {[gets $fd line] >= 0} {
@@ -3891,15 +3956,11 @@ proc read_line_source {fd inst} {
 	return 0
     }
 
-    # TODO: cycle over all lines;
-    # collect info on them
-    # find the latest one
-    # BEGIN
     set fname {}
     set latest_committime {}
     array set current { hash {} lnum {} fname {} committime {} }
     foreach l $blamestuff($inst) {
-	if {[regexp "^(\[a-f0-9\]{40}) (\[0-9\]+) (\[0-9\]+) (\[0-9\]+)?\$" $l all hash new_lnum old_lnum span]} {
+	if {[regexp "^(\[a-f0-9\]{40}) (\[0-9\]+) (\[0-9\]+) (\[0-9\]+)?\$" $l all hash old_lnum new_lnum span]} {
 	    if {$span eq {}} {
 		continue
 	    }
@@ -3935,7 +3996,6 @@ proc read_line_source {fd inst} {
 	}
     }
 
-    # END
     if {$fname ne {}} {
 	# all looks good, select it
 	if {$id eq $nullid} {
@@ -8025,7 +8085,7 @@ proc blobdiffmaybeseehere {ateof} {
     if {$diffseehere >= 0} {
 	mark_ctext_line [lindex [split $diffseehere .] 0]
     }
-    maybe_scroll_ctext ateof
+    maybe_scroll_ctext $ateof
 }
 
 proc getblobdiffline {bdf ids} {
@@ -12161,7 +12221,29 @@ namespace import ::msgcat::mc
 ## And eventually load the actual message catalog
 ::msgcat::mcload $gitk_msgsdir
 
-catch {source ~/.gitk}
+catch {
+    # follow the XDG base directory specification by default. See
+    # http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
+    if {[info exists env(XDG_CONFIG_HOME)] && $env(XDG_CONFIG_HOME) ne ""} {
+	# XDG_CONFIG_HOME environment variable is set
+	set config_file [file join $env(XDG_CONFIG_HOME) git gitk]
+	set config_file_tmp [file join $env(XDG_CONFIG_HOME) git gitk-tmp]
+    } else {
+	# default XDG_CONFIG_HOME
+	set config_file "~/.config/git/gitk"
+	set config_file_tmp "~/.config/git/gitk-tmp"
+    }
+    if {![file exists $config_file]} {
+	# for backward compatibility use the old config file if it exists
+	if {[file exists "~/.gitk"]} {
+	    set config_file "~/.gitk"
+	    set config_file_tmp "~/.gitk-tmp"
+	} elseif {![file exists [file dirname $config_file]]} {
+	    file mkdir [file dirname $config_file]
+	}
+    }
+    source $config_file
+}
 
 parsefont mainfont $mainfont
 eval font create mainfont [fontflags mainfont]
