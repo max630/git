@@ -2,8 +2,15 @@ git (1:2.0~next.20140127-0.1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit 0b1dcb53.
   * debian/diff/0015...0017: remove; applied upstream.
+  * merge branch debian-sid.
 
  -- Jonathan Nieder <jrnieder@gmail.com>  Mon, 27 Jan 2014 14:14:25 -0800
+
+git (1:1.9~rc1-1) unstable; urgency=low
+
+  * new upstream release candidate.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Mon, 27 Jan 2014 14:07:56 -0800
 
 git (1:2.0~next.20140123-1) experimental; urgency=low
 

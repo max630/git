@@ -1,20 +1,5 @@
-Version next; changes since v1.9-rc0:
+Version next; changes since v1.9-rc1:
 -------------------------------------
-
-Alexander Shopov (4):
-      git-gui i18n: Initial glossary in Bulgarian
-      git-gui l10n: Add 29 more terms to glossary
-      git-gui i18n: Added Bulgarian translation
-      gitk: Add Bulgarian translation (304t)
-
-Andy Spencer (1):
-      tree_entry_interesting: match against all pathspecs
-
-Anthony Baire (1):
-      subtree: fix argument validation in add/pull/push
-
-Astril Hayato (1):
-      gitk: Comply with XDG base directory specification
 
 Christian Couder (1):
       strbuf: remove prefixcmp() and suffixcmp()
@@ -26,58 +11,25 @@ David Aguilar (2):
 Eric Sunshine (1):
       name-hash: retire unused index_name_exists()
 
-Erik Faye-Lund (2):
-      prefer xwrite instead of write
-      mingw: remove mingw_write
-
-Jeff King (27):
+Jeff King (9):
       pack-objects: split add_object_entry
       repack: stop using magic number for ARRAY_SIZE(exts)
       repack: turn exts array into array-of-struct
       repack: handle optional files created by pack-objects
       t: add basic bitmap functionality tests
       t/perf: add tests for pack bitmaps
-      fetch-pack: do not filter out one-level refs
-      interpret_branch_name: factor out upstream handling
-      interpret_branch_name: rename "cp" variable to "at"
-      interpret_branch_name: always respect "namelen" parameter
-      interpret_branch_name: avoid @{upstream} past colon
-      interpret_branch_name: find all possible @-marks
       do not discard revindex when re-preparing packfiles
-      diff_filespec: reorder dirty_submodule macro definitions
-      diff_filespec: drop funcname_pattern_ident field
-      diff_filespec: drop xfrm_flags field
-      diff_filespec: reorder is_binary field
-      diff_filespec: use only 2 bits for is_binary flag
-      t/perf: time rev-list with UNINTERESTING commits
-      list-objects: only look at cmdline trees with edge_hint
-      repack: fix typo in max-pack-size option
-      repack: make parsed string options const-correct
-      repack: propagate pack-objects options as strings
-      t7501: fix "empty commit" test with NO_PERL
-      t7700: do not use "touch" unnecessarily
       block-sha1: factor out get_be and put_be wrappers
       read-cache: use get_be32 instead of hand-rolled ntoh_l
 
 Jens Lehmann (1):
       submodule: don't access the .gitmodules cache entry after removing it
 
-Johannes Sixt (1):
-      Makefile: Fix compilation of Windows resource file
-
-John Keeping (3):
-      completion: complete merge-base options
-      completion: handle --[no-]fork-point options to git-rebase
-      Makefile: remove redundant object in git-http{fetch,push}
-
-Jonathan Nieder (5):
+Jonathan Nieder (2):
       Add test-hashmap to .gitignore
       Drop unnecessary #includes from test-hashmap
-      gitignore doc: add global gitignore to synopsis
-      git-gui: chmod +x po2msg, windows/git-gui.sh
-      gitk: chmod +x po2msg.sh
 
-Junio C Hamano (13):
+Junio C Hamano (7):
       git add <pathspec>... defaults to "-A"
       git add: -u/-A now affects the entire working tree
       core.statinfo: remove as promised in Git 2.0
@@ -85,12 +37,6 @@ Junio C Hamano (13):
       diff: remove "diff-files -q" in a version of Git in a distant future
       push: switch default from "matching" to "simple"
       commit-tree: add and document --no-gpg-sign
-      Documentation: exclude irrelevant options from "git pull"
-      Documentation: "git pull" does not have the "-m" option
-      revision: mark contents of an uninteresting tree uninteresting
-      revision: propagate flag bits from tags to pointees
-      Documentation: make it easier to maintain enumerated documents
-      Git 1.9-rc1
 
 Karsten Blees (14):
       add a hashtable implementation that supports O(1) removal
@@ -107,6 +53,94 @@ Karsten Blees (14):
       builtin/update-index.c: cleanup update_one
       read-cache.c: fix memory leaks caused by removed cache entries
       hashmap.h: Use 'unsigned int' for hash-codes everywhere
+
+Nguyễn Thái Ngọc Duy (1):
+      count-objects: recognize .bitmap in garbage-checking
+
+Nicolas Vigier (2):
+      Add the commit.gpgsign option to sign all commits
+      test the commit.gpgsign config option
+
+Vicent Marti (15):
+      revindex: export new APIs
+      pack-objects: refactor the packing list
+      pack-objects: factor out name_hash
+      revision: allow setting custom limiter function
+      sha1_file: export `git_open_noatime`
+      compat: add endianness helpers
+      ewah: compressed bitmap implementation
+      documentation: add documentation for the bitmap format
+      pack-bitmap: add support for bitmap indexes
+      pack-objects: use bitmaps when packing objects
+      rev-list: add bitmap mode to speed up object lists
+      pack-objects: implement bitmap writing
+      repack: consider bitmaps when performing repacks
+      pack-bitmap: implement optional name_hash cache
+      ewah: support platforms that require aligned reads
+
+
+Version v1.9-rc1; changes since v1.9-rc0:
+-----------------------------------------
+
+Alexander Shopov (4):
+      git-gui i18n: Initial glossary in Bulgarian
+      git-gui l10n: Add 29 more terms to glossary
+      git-gui i18n: Added Bulgarian translation
+      gitk: Add Bulgarian translation (304t)
+
+Andy Spencer (1):
+      tree_entry_interesting: match against all pathspecs
+
+Anthony Baire (1):
+      subtree: fix argument validation in add/pull/push
+
+Astril Hayato (1):
+      gitk: Comply with XDG base directory specification
+
+Erik Faye-Lund (2):
+      prefer xwrite instead of write
+      mingw: remove mingw_write
+
+Jeff King (18):
+      fetch-pack: do not filter out one-level refs
+      interpret_branch_name: factor out upstream handling
+      interpret_branch_name: rename "cp" variable to "at"
+      interpret_branch_name: always respect "namelen" parameter
+      interpret_branch_name: avoid @{upstream} past colon
+      interpret_branch_name: find all possible @-marks
+      diff_filespec: reorder dirty_submodule macro definitions
+      diff_filespec: drop funcname_pattern_ident field
+      diff_filespec: drop xfrm_flags field
+      diff_filespec: reorder is_binary field
+      diff_filespec: use only 2 bits for is_binary flag
+      t/perf: time rev-list with UNINTERESTING commits
+      list-objects: only look at cmdline trees with edge_hint
+      repack: fix typo in max-pack-size option
+      repack: make parsed string options const-correct
+      repack: propagate pack-objects options as strings
+      t7501: fix "empty commit" test with NO_PERL
+      t7700: do not use "touch" unnecessarily
+
+Johannes Sixt (1):
+      Makefile: Fix compilation of Windows resource file
+
+John Keeping (3):
+      completion: complete merge-base options
+      completion: handle --[no-]fork-point options to git-rebase
+      Makefile: remove redundant object in git-http{fetch,push}
+
+Jonathan Nieder (3):
+      gitignore doc: add global gitignore to synopsis
+      git-gui: chmod +x po2msg, windows/git-gui.sh
+      gitk: chmod +x po2msg.sh
+
+Junio C Hamano (6):
+      Documentation: exclude irrelevant options from "git pull"
+      Documentation: "git pull" does not have the "-m" option
+      revision: mark contents of an uninteresting tree uninteresting
+      revision: propagate flag bits from tags to pointees
+      Documentation: make it easier to maintain enumerated documents
+      Git 1.9-rc1
 
 Marc Branchaud (1):
       gitk: Replace "next" and "prev" buttons with down and up arrows
@@ -139,13 +173,8 @@ Michael Haggerty (22):
       Add cross-references between docs for for-each-ref and show-ref
       doc: remote author/documentation sections from more pages
 
-Nguyễn Thái Ngọc Duy (2):
-      count-objects: recognize .bitmap in garbage-checking
+Nguyễn Thái Ngọc Duy (1):
       tree-walk.c: ignore trailing slash on submodule in tree_entry_interesting()
-
-Nicolas Vigier (2):
-      Add the commit.gpgsign option to sign all commits
-      test the commit.gpgsign config option
 
 Pat Thoyts (1):
       git-gui 0.19
@@ -177,23 +206,6 @@ Thomas Ackermann (2):
 Thomas Rast (2):
       Documentation/gitk: document -L option
       Documentation: @{-N} can refer to a commit
-
-Vicent Marti (15):
-      revindex: export new APIs
-      pack-objects: refactor the packing list
-      pack-objects: factor out name_hash
-      revision: allow setting custom limiter function
-      sha1_file: export `git_open_noatime`
-      compat: add endianness helpers
-      ewah: compressed bitmap implementation
-      documentation: add documentation for the bitmap format
-      pack-bitmap: add support for bitmap indexes
-      pack-objects: use bitmaps when packing objects
-      rev-list: add bitmap mode to speed up object lists
-      pack-objects: implement bitmap writing
-      repack: consider bitmaps when performing repacks
-      pack-bitmap: implement optional name_hash cache
-      ewah: support platforms that require aligned reads
 
 lin zuojian (1):
       git-svn: memoize _rev_list and rebuild
