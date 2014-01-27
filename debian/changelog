@@ -1,5 +1,7 @@
-git (1:2.0~next.20140117-1.1) experimental; urgency=low
+git (1:2.0~next.20140123-0.1) experimental; urgency=low
 
+  * new snapshot, taken from upstream commit f6678ce9.
+  * update debian/copyright.
   * merge branch debian-sid.
 
  -- Jonathan Nieder <jrnieder@gmail.com>  Mon, 27 Jan 2014 13:08:18 -0800

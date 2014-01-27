@@ -1,29 +1,77 @@
 Version next; changes since v1.9-rc0:
 -------------------------------------
 
+Alexander Shopov (4):
+      git-gui i18n: Initial glossary in Bulgarian
+      git-gui l10n: Add 29 more terms to glossary
+      git-gui i18n: Added Bulgarian translation
+      gitk: Add Bulgarian translation (304t)
+
+Anthony Baire (1):
+      subtree: fix argument validation in add/pull/push
+
+Astril Hayato (1):
+      gitk: Comply with XDG base directory specification
+
 Christian Couder (1):
       strbuf: remove prefixcmp() and suffixcmp()
+
+David Aguilar (2):
+      pull: add pull.ff configuration
+      pull: add --ff-only to the help text
 
 Eric Sunshine (1):
       name-hash: retire unused index_name_exists()
 
-Jeff King (7):
+Erik Faye-Lund (2):
+      prefer xwrite instead of write
+      mingw: remove mingw_write
+
+Jeff King (25):
       pack-objects: split add_object_entry
       repack: stop using magic number for ARRAY_SIZE(exts)
       repack: turn exts array into array-of-struct
       repack: handle optional files created by pack-objects
       t: add basic bitmap functionality tests
       t/perf: add tests for pack bitmaps
+      fetch-pack: do not filter out one-level refs
+      interpret_branch_name: factor out upstream handling
+      interpret_branch_name: rename "cp" variable to "at"
+      interpret_branch_name: always respect "namelen" parameter
+      interpret_branch_name: avoid @{upstream} past colon
+      interpret_branch_name: find all possible @-marks
       do not discard revindex when re-preparing packfiles
+      diff_filespec: reorder dirty_submodule macro definitions
+      diff_filespec: drop funcname_pattern_ident field
+      diff_filespec: drop xfrm_flags field
+      diff_filespec: reorder is_binary field
+      diff_filespec: use only 2 bits for is_binary flag
+      t/perf: time rev-list with UNINTERESTING commits
+      list-objects: only look at cmdline trees with edge_hint
+      repack: fix typo in max-pack-size option
+      repack: make parsed string options const-correct
+      repack: propagate pack-objects options as strings
+      t7501: fix "empty commit" test with NO_PERL
+      t7700: do not use "touch" unnecessarily
 
 Jens Lehmann (1):
       submodule: don't access the .gitmodules cache entry after removing it
 
-Jonathan Nieder (2):
+Johannes Sixt (1):
+      Makefile: Fix compilation of Windows resource file
+
+John Keeping (2):
+      completion: complete merge-base options
+      completion: handle --[no-]fork-point options to git-rebase
+
+Jonathan Nieder (5):
       Add test-hashmap to .gitignore
       Drop unnecessary #includes from test-hashmap
+      gitignore doc: add global gitignore to synopsis
+      git-gui: chmod +x po2msg, windows/git-gui.sh
+      gitk: chmod +x po2msg.sh
 
-Junio C Hamano (7):
+Junio C Hamano (11):
       git add <pathspec>... defaults to "-A"
       git add: -u/-A now affects the entire working tree
       core.statinfo: remove as promised in Git 2.0
@@ -31,6 +79,10 @@ Junio C Hamano (7):
       diff: remove "diff-files -q" in a version of Git in a distant future
       push: switch default from "matching" to "simple"
       commit-tree: add and document --no-gpg-sign
+      Documentation: exclude irrelevant options from "git pull"
+      Documentation: "git pull" does not have the "-m" option
+      revision: mark contents of an uninteresting tree uninteresting
+      revision: propagate flag bits from tags to pointees
 
 Karsten Blees (14):
       add a hashtable implementation that supports O(1) removal
@@ -48,12 +100,70 @@ Karsten Blees (14):
       read-cache.c: fix memory leaks caused by removed cache entries
       hashmap.h: Use 'unsigned int' for hash-codes everywhere
 
-Nguyễn Thái Ngọc Duy (1):
+Marc Branchaud (1):
+      gitk: Replace "next" and "prev" buttons with down and up arrows
+
+Max Kirillov (2):
+      git-gui: fallback right pane to packed widgets with Tk 8.4
+      gitk: Fix mistype
+
+Michael Haggerty (21):
+      safe_create_leading_directories(): fix format of "if" chaining
+      safe_create_leading_directories(): reduce scope of local variable
+      safe_create_leading_directories(): add explicit "slash" pointer
+      safe_create_leading_directories(): rename local variable
+      safe_create_leading_directories(): split on first of multiple slashes
+      safe_create_leading_directories(): always restore slash at end of loop
+      safe_create_leading_directories(): introduce enum for return values
+      cmd_init_db(): when creating directories, handle errors conservatively
+      safe_create_leading_directories(): add new error value SCLD_VANISHED
+      gitattributes: document more clearly where macros are allowed
+      refname_match(): always use the rules in ref_rev_parse_rules
+      lock_ref_sha1_basic(): on SCLD_VANISHED, retry
+      lock_ref_sha1_basic(): if locking fails with ENOENT, retry
+      remove_dir_recurse(): tighten condition for removing unreadable dir
+      remove_dir_recurse(): handle disappearing files and directories
+      rename_ref(): extract function rename_tmp_log()
+      rename_tmp_log(): handle a possible mkdir/rmdir race
+      rename_tmp_log(): limit the number of remote_empty_directories() attempts
+      rename_tmp_log(): on SCLD_VANISHED, retry
+      safe_create_leading_directories(): on Windows, \ can separate path components
+      Add cross-references between docs for for-each-ref and show-ref
+
+Nguyễn Thái Ngọc Duy (2):
       count-objects: recognize .bitmap in garbage-checking
+      tree-walk.c: ignore trailing slash on submodule in tree_entry_interesting()
 
 Nicolas Vigier (2):
       Add the commit.gpgsign option to sign all commits
       test the commit.gpgsign config option
+
+Pat Thoyts (1):
+      git-gui 0.19
+
+Paul Mackerras (2):
+      gitk: Update copyright dates
+      gitk: Indent word-wrapped lines in commit display header
+
+Pete Wyckoff (11):
+      git p4 test: wildcards are supported
+      git p4 test: ensure p4 symlink parsing works
+      git p4: work around p4 bug that causes empty symlinks
+      git p4 test: explicitly check p4 wildcard delete
+      git p4 test: is_cli_file_writeable succeeds
+      git p4 test: run as user "author"
+      git p4 test: do not pollute /tmp
+      git p4: handle files with wildcards when doing RCS scrubbing
+      git p4: fix an error message when "p4 where" fails
+      git p4 test: examine behavior with locked (+l) files
+      git p4 doc: use two-line style for options with multiple spellings
+
+Ruben Kerkhof (1):
+      send-email: /etc/ssl/certs/ directory may not be usable as ca_path
+
+Thomas Rast (2):
+      Documentation/gitk: document -L option
+      Documentation: @{-N} can refer to a commit
 
 Vicent Marti (14):
       revindex: export new APIs
@@ -70,6 +180,9 @@ Vicent Marti (14):
       pack-objects: implement bitmap writing
       repack: consider bitmaps when performing repacks
       pack-bitmap: implement optional name_hash cache
+
+lin zuojian (1):
+      git-svn: memoize _rev_list and rebuild
 
 
 Version v1.9-rc0; changes since v1.8.5.3:
