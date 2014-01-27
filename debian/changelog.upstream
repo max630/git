@@ -7,6 +7,9 @@ Alexander Shopov (4):
       git-gui i18n: Added Bulgarian translation
       gitk: Add Bulgarian translation (304t)
 
+Andy Spencer (1):
+      tree_entry_interesting: match against all pathspecs
+
 Anthony Baire (1):
       subtree: fix argument validation in add/pull/push
 
@@ -27,7 +30,7 @@ Erik Faye-Lund (2):
       prefer xwrite instead of write
       mingw: remove mingw_write
 
-Jeff King (25):
+Jeff King (27):
       pack-objects: split add_object_entry
       repack: stop using magic number for ARRAY_SIZE(exts)
       repack: turn exts array into array-of-struct
@@ -53,6 +56,8 @@ Jeff King (25):
       repack: propagate pack-objects options as strings
       t7501: fix "empty commit" test with NO_PERL
       t7700: do not use "touch" unnecessarily
+      block-sha1: factor out get_be and put_be wrappers
+      read-cache: use get_be32 instead of hand-rolled ntoh_l
 
 Jens Lehmann (1):
       submodule: don't access the .gitmodules cache entry after removing it
@@ -60,9 +65,10 @@ Jens Lehmann (1):
 Johannes Sixt (1):
       Makefile: Fix compilation of Windows resource file
 
-John Keeping (2):
+John Keeping (3):
       completion: complete merge-base options
       completion: handle --[no-]fork-point options to git-rebase
+      Makefile: remove redundant object in git-http{fetch,push}
 
 Jonathan Nieder (5):
       Add test-hashmap to .gitignore
@@ -71,7 +77,7 @@ Jonathan Nieder (5):
       git-gui: chmod +x po2msg, windows/git-gui.sh
       gitk: chmod +x po2msg.sh
 
-Junio C Hamano (11):
+Junio C Hamano (13):
       git add <pathspec>... defaults to "-A"
       git add: -u/-A now affects the entire working tree
       core.statinfo: remove as promised in Git 2.0
@@ -83,6 +89,8 @@ Junio C Hamano (11):
       Documentation: "git pull" does not have the "-m" option
       revision: mark contents of an uninteresting tree uninteresting
       revision: propagate flag bits from tags to pointees
+      Documentation: make it easier to maintain enumerated documents
+      Git 1.9-rc1
 
 Karsten Blees (14):
       add a hashtable implementation that supports O(1) removal
@@ -107,7 +115,7 @@ Max Kirillov (2):
       git-gui: fallback right pane to packed widgets with Tk 8.4
       gitk: Fix mistype
 
-Michael Haggerty (21):
+Michael Haggerty (22):
       safe_create_leading_directories(): fix format of "if" chaining
       safe_create_leading_directories(): reduce scope of local variable
       safe_create_leading_directories(): add explicit "slash" pointer
@@ -129,6 +137,7 @@ Michael Haggerty (21):
       rename_tmp_log(): on SCLD_VANISHED, retry
       safe_create_leading_directories(): on Windows, \ can separate path components
       Add cross-references between docs for for-each-ref and show-ref
+      doc: remote author/documentation sections from more pages
 
 Nguyễn Thái Ngọc Duy (2):
       count-objects: recognize .bitmap in garbage-checking
@@ -161,11 +170,15 @@ Pete Wyckoff (11):
 Ruben Kerkhof (1):
       send-email: /etc/ssl/certs/ directory may not be usable as ca_path
 
+Thomas Ackermann (2):
+      create HTML for http-protocol.txt
+      http-protocol.txt: don't use uppercase for variable names in "The Negotiation Algorithm"
+
 Thomas Rast (2):
       Documentation/gitk: document -L option
       Documentation: @{-N} can refer to a commit
 
-Vicent Marti (14):
+Vicent Marti (15):
       revindex: export new APIs
       pack-objects: refactor the packing list
       pack-objects: factor out name_hash
@@ -180,6 +193,7 @@ Vicent Marti (14):
       pack-objects: implement bitmap writing
       repack: consider bitmaps when performing repacks
       pack-bitmap: implement optional name_hash cache
+      ewah: support platforms that require aligned reads
 
 lin zuojian (1):
       git-svn: memoize _rev_list and rebuild
