@@ -1,0 +1,106 @@
+From 23bc9b6a51bcec36e5cc092606777bd66c3eebea Mon Sep 17 00:00:00 2001
+From: Jeff King <peff@peff.net>
+Date: Thu, 23 Jan 2014 16:23:09 -0500
+Subject: block-sha1: factor out get_be and put_be wrappers
+
+commit 802b123366b5b3b6e18ee9e25a240815d1c97aae upstream.
+
+The BLK_SHA1 code has optimized wrappers for doing endian
+conversions on memory that may not be aligned. Let's pull
+them out so that we can use them elsewhere, especially the
+time-tested list of platforms that prefer each strategy.
+
+Signed-off-by: Jeff King <peff@peff.net>
+Signed-off-by: Junio C Hamano <gitster@pobox.com>
+Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
+---
+ block-sha1/sha1.c | 32 --------------------------------
+ compat/bswap.h    | 32 ++++++++++++++++++++++++++++++++
+ 2 files changed, 32 insertions(+), 32 deletions(-)
+
+diff --git a/block-sha1/sha1.c b/block-sha1/sha1.c
+index e1a1eb6..22b125c 100644
+--- a/block-sha1/sha1.c
++++ b/block-sha1/sha1.c
+@@ -62,38 +62,6 @@
+   #define setW(x, val) (W(x) = (val))
+ #endif
+ 
+-/*
+- * Performance might be improved if the CPU architecture is OK with
+- * unaligned 32-bit loads and a fast ntohl() is available.
+- * Otherwise fall back to byte loads and shifts which is portable,
+- * and is faster on architectures with memory alignment issues.
+- */
+-
+-#if defined(__i386__) || defined(__x86_64__) || \
+-    defined(_M_IX86) || defined(_M_X64) || \
+-    defined(__ppc__) || defined(__ppc64__) || \
+-    defined(__powerpc__) || defined(__powerpc64__) || \
+-    defined(__s390__) || defined(__s390x__)
+-
+-#define get_be32(p)	ntohl(*(unsigned int *)(p))
+-#define put_be32(p, v)	do { *(unsigned int *)(p) = htonl(v); } while (0)
+-
+-#else
+-
+-#define get_be32(p)	( \
+-	(*((unsigned char *)(p) + 0) << 24) | \
+-	(*((unsigned char *)(p) + 1) << 16) | \
+-	(*((unsigned char *)(p) + 2) <<  8) | \
+-	(*((unsigned char *)(p) + 3) <<  0) )
+-#define put_be32(p, v)	do { \
+-	unsigned int __v = (v); \
+-	*((unsigned char *)(p) + 0) = __v >> 24; \
+-	*((unsigned char *)(p) + 1) = __v >> 16; \
+-	*((unsigned char *)(p) + 2) = __v >>  8; \
+-	*((unsigned char *)(p) + 3) = __v >>  0; } while (0)
+-
+-#endif
+-
+ /* This "rolls" over the 512-bit array */
+ #define W(x) (array[(x)&15])
+ 
+diff --git a/compat/bswap.h b/compat/bswap.h
+index c18a78e..7d17953 100644
+--- a/compat/bswap.h
++++ b/compat/bswap.h
+@@ -122,3 +122,35 @@ static inline uint64_t git_bswap64(uint64_t x)
+ #endif
+ 
+ #endif
++
++/*
++ * Performance might be improved if the CPU architecture is OK with
++ * unaligned 32-bit loads and a fast ntohl() is available.
++ * Otherwise fall back to byte loads and shifts which is portable,
++ * and is faster on architectures with memory alignment issues.
++ */
++
++#if defined(__i386__) || defined(__x86_64__) || \
++    defined(_M_IX86) || defined(_M_X64) || \
++    defined(__ppc__) || defined(__ppc64__) || \
++    defined(__powerpc__) || defined(__powerpc64__) || \
++    defined(__s390__) || defined(__s390x__)
++
++#define get_be32(p)	ntohl(*(unsigned int *)(p))
++#define put_be32(p, v)	do { *(unsigned int *)(p) = htonl(v); } while (0)
++
++#else
++
++#define get_be32(p)	( \
++	(*((unsigned char *)(p) + 0) << 24) | \
++	(*((unsigned char *)(p) + 1) << 16) | \
++	(*((unsigned char *)(p) + 2) <<  8) | \
++	(*((unsigned char *)(p) + 3) <<  0) )
++#define put_be32(p, v)	do { \
++	unsigned int __v = (v); \
++	*((unsigned char *)(p) + 0) = __v >> 24; \
++	*((unsigned char *)(p) + 1) = __v >> 16; \
++	*((unsigned char *)(p) + 2) = __v >>  8; \
++	*((unsigned char *)(p) + 3) = __v >>  0; } while (0)
++
++#endif
+-- 
+1.8.5.3
+

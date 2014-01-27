@@ -1,10 +1,15 @@
-git (1:2.0~next.20140123-0.1) experimental; urgency=low
+git (1:2.0~next.20140123-1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit f6678ce9.
   * update debian/copyright.
   * merge branch debian-sid.
+  * debian/diff/0015-block-sha1-factor-out-get_be-and-...diff,
+    ..., 0017-ewah-support-platforms-that-require-aligned-...diff:
+    new from upstream: pack-bitmap: avoid unaligned reads on
+    platforms that care (fixes build/selftest failures on sparc
+    and armel).
 
- -- Jonathan Nieder <jrnieder@gmail.com>  Mon, 27 Jan 2014 13:08:18 -0800
+ -- Jonathan Nieder <jrnieder@gmail.com>  Mon, 27 Jan 2014 13:09:48 -0800
 
 git (1:1.9~rc0-1) unstable; urgency=low
 
