@@ -1,6 +1,22 @@
 Version next; changes since v1.9-rc1:
 -------------------------------------
 
+Adrian Johnson (1):
+      userdiff: update Ada patterns
+
+Alexander Shopov (2):
+      po/TEAMS: Added Bulgarian team
+      l10n: Bulgarian translation of git (222t21f1967u)
+
+Benoit Sigoure (1):
+      git-compat-util.h: #undef (v)snprintf before #define them
+
+Brad King (4):
+      t3030-merge-recursive: Test known breakage with empty work tree
+      read-cache.c: Refactor --ignore-missing implementation
+      read-cache.c: Extend make_cache_entry refresh flag with options
+      merge-recursive.c: Tolerate missing files while refreshing index
+
 Christian Couder (1):
       strbuf: remove prefixcmp() and suffixcmp()
 
@@ -8,10 +24,29 @@ David Aguilar (2):
       pull: add pull.ff configuration
       pull: add --ff-only to the help text
 
+David Kastrup (2):
+      builtin/blame.c: struct blame_entry does not need a prev link
+      Eliminate same_suspect function in builtin/blame.c
+
+David Sharp (1):
+      rev-parse: check i before using argv[i] against argc
+
+Elia Pinto (7):
+      bisect.c: reduce scope of variable
+      builtin/apply.c: reduce scope of variables
+      builtin/blame.c: reduce scope of variables
+      builtin/clean.c: reduce scope of variable
+      builtin/commit.c: reduce scope of variables
+      builtin/fetch.c: reduce scope of variable
+      builtin/gc.c: reduce scope of variables
+
 Eric Sunshine (1):
       name-hash: retire unused index_name_exists()
 
-Jeff King (9):
+Jean-Noel Avila (1):
+      [fr] update french translation 2210/2210
+
+Jeff King (11):
       pack-objects: split add_object_entry
       repack: stop using magic number for ARRAY_SIZE(exts)
       repack: turn exts array into array-of-struct
@@ -21,15 +56,23 @@ Jeff King (9):
       do not discard revindex when re-preparing packfiles
       block-sha1: factor out get_be and put_be wrappers
       read-cache: use get_be32 instead of hand-rolled ntoh_l
+      expand_user_path: do not look at NULL path
+      handle_path_include: don't look at NULL value
 
 Jens Lehmann (1):
       submodule: don't access the .gitmodules cache entry after removing it
 
-Jonathan Nieder (2):
+Jiang Xin (3):
+      l10n: git.pot: v1.9 round 1 (27 new, 11 removed)
+      l10n: zh_CN.po: translate 27 messages (2210t0f0u)
+      l10n: remove 2 blank translations on Danish, Dutch
+
+Jonathan Nieder (3):
       Add test-hashmap to .gitignore
       Drop unnecessary #includes from test-hashmap
+      pager test: make fake pager consume all its input
 
-Junio C Hamano (7):
+Junio C Hamano (13):
       git add <pathspec>... defaults to "-A"
       git add: -u/-A now affects the entire working tree
       core.statinfo: remove as promised in Git 2.0
@@ -37,6 +80,12 @@ Junio C Hamano (7):
       diff: remove "diff-files -q" in a version of Git in a distant future
       push: switch default from "matching" to "simple"
       commit-tree: add and document --no-gpg-sign
+      Git 1.9-rc2
+      combine-diff: simplify intersect_paths() further
+      t3004: add test for ls-files on symlinks via absolute paths
+      Git 1.8.5.4
+      howto/maintain-git.txt: new version numbering scheme
+      Git 1.9.0-rc3
 
 Karsten Blees (14):
       add a hashtable implementation that supports O(1) removal
@@ -54,12 +103,52 @@ Karsten Blees (14):
       read-cache.c: fix memory leaks caused by removed cache entries
       hashmap.h: Use 'unsigned int' for hash-codes everywhere
 
-Nguyễn Thái Ngọc Duy (1):
+Kirill Smelkov (9):
+      diffcore-order: export generic ordering interface
+      diff test: add tests for combine-diff with orderfile
+      combine-diff: optimize combine_diff_path sets intersection
+      combine-diff: combine_diff_path.len is not needed anymore
+      tree-diff: allow diff_tree_sha1 to accept NULL sha1
+      tree-diff: convert diff_root_tree_sha1() to just call diff_tree_sha1 with old=NULL
+      line-log: convert to using diff_tree_sha1()
+      revision: convert to using diff_tree_sha1()
+      Finally switch over tree descriptors to contain a pre-parsed entry
+
+Martin Erik Werner (5):
+      t0060: add test for prefix_path on symlinks via absolute paths
+      t0060: add test for prefix_path when path == work tree
+      t0060: add tests for prefix_path when path begins with work tree
+      setup: add abspath_part_inside_repo() function
+      setup: don't dereference in-tree symlinks for absolute paths
+
+Nguyễn Thái Ngọc Duy (14):
       count-objects: recognize .bitmap in garbage-checking
+      Move diffcore_skip_stat_unmatch core logic out for reuse later
+      diff: do not quit early on stat-dirty files
+      Convert some match_pathspec_depth() to ce_path_match()
+      Convert some match_pathspec_depth() to dir_path_match()
+      Rename match_pathspec_depth() to match_pathspec()
+      dir.c: prepare match_pathspec_item for taking more flags
+      match_pathspec: match pathspec "foo/" against directory "foo"
+      Pass directory indicator to match_pathspec_item()
+      clean: replace match_pathspec() with dir_path_match()
+      clean: use cache_name_is_other()
+      git-tag.txt: <commit> for --contains is optional
+      t7101, t7014: rename test files to indicate what that file is for
+      reset: support "--mixed --intent-to-add" mode
 
 Nicolas Vigier (2):
       Add the commit.gpgsign option to sign all commits
       test the commit.gpgsign config option
+
+Peter Krefting (1):
+      l10n: Update Swedish translation (2210t0f0u)
+
+Torsten Bögershausen (1):
+      repack.c: rename and unlink pack file if it exists
+
+Tran Ngoc Quan (1):
+      l10n: vi.po (2210t): Updated git-core translation
 
 Vicent Marti (15):
       revindex: export new APIs
@@ -77,6 +166,15 @@ Vicent Marti (15):
       repack: consider bitmaps when performing repacks
       pack-bitmap: implement optional name_hash cache
       ewah: support platforms that require aligned reads
+
+W. Trevor King (4):
+      submodule: Make 'checkout' update_module explicit
+      submodule: Document module_clone arguments in comments
+      submodule: Explicit local branch creation in module_clone
+      Documentation: Describe 'submodule update --remote' use case
+
+Øystein Walle (1):
+      Documentation: fix typos in man pages
 
 
 Version v1.9-rc1; changes since v1.9-rc0:
