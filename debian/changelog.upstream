@@ -1,5 +1,5 @@
-Version next; changes since v1.9.0-rc3:
----------------------------------------
+Version next; changes since v1.9.0:
+-----------------------------------
 
 Albert L. Lash, IV (4):
       docs/merge-strategies: remove hyphen from mis-merges
@@ -44,9 +44,6 @@ Elia Pinto (7):
 Eric Sunshine (1):
       name-hash: retire unused index_name_exists()
 
-Jean-Noel Avila (1):
-      l10n: fr: 1.9rc2 2211t
-
 Jeff King (14):
       pack-objects: split add_object_entry
       repack: stop using magic number for ARRAY_SIZE(exts)
@@ -66,16 +63,11 @@ Jeff King (14):
 Jens Lehmann (1):
       submodule: don't access the .gitmodules cache entry after removing it
 
-Jiang Xin (3):
-      l10n: git.pot: v1.9 round 2 (1 new)
-      l10n: zh_CN.po: translate 1 new message (2211t0f0u)
-      l10n: zh_CN.po: Disambiguation for rebase
-
 Jonathan Nieder (2):
       Add test-hashmap to .gitignore
       Drop unnecessary #includes from test-hashmap
 
-Junio C Hamano (11):
+Junio C Hamano (9):
       git add <pathspec>... defaults to "-A"
       git add: -u/-A now affects the entire working tree
       core.statinfo: remove as promised in Git 2.0
@@ -85,8 +77,6 @@ Junio C Hamano (11):
       commit-tree: add and document --no-gpg-sign
       combine-diff: simplify intersect_paths() further
       t3004: add test for ls-files on symlinks via absolute paths
-      Git 1.8.5.5
-      Git 1.9.0
 
 Karsten Blees (14):
       add a hashtable implementation that supports O(1) removal
@@ -122,9 +112,6 @@ Martin Erik Werner (5):
       setup: add abspath_part_inside_repo() function
       setup: don't dereference in-tree symlinks for absolute paths
 
-Michael J Gruber (1):
-      release notes: typo fixes
-
 Nguyễn Thái Ngọc Duy (19):
       count-objects: recognize .bitmap in garbage-checking
       Move diffcore_skip_stat_unmatch core logic out for reuse later
@@ -158,16 +145,6 @@ Nicolas Vigier (10):
       rebase: parse options in stuck-long mode
       rebase: add the --gpg-sign option
 
-Peter Krefting (1):
-      l10n: Update Swedish translation (2211t0f0u)
-
-Ralf Thielow (2):
-      l10n: de.po: translate 28 new messages
-      l10n: de.po: correct message when hiding commits by craft
-
-Tran Ngoc Quan (1):
-      l10n: vi.po (2211t): Updated one new string
-
 Vicent Marti (15):
       revindex: export new APIs
       pack-objects: refactor the packing list
@@ -193,6 +170,35 @@ W. Trevor King (4):
 
 brian m. carlson (1):
       pull: add the --gpg-sign option.
+
+
+Version v1.9.0; changes since v1.9.0-rc3:
+-----------------------------------------
+
+Jean-Noel Avila (1):
+      l10n: fr: 1.9rc2 2211t
+
+Jiang Xin (3):
+      l10n: git.pot: v1.9 round 2 (1 new)
+      l10n: zh_CN.po: translate 1 new message (2211t0f0u)
+      l10n: zh_CN.po: Disambiguation for rebase
+
+Junio C Hamano (2):
+      Git 1.8.5.5
+      Git 1.9.0
+
+Michael J Gruber (1):
+      release notes: typo fixes
+
+Peter Krefting (1):
+      l10n: Update Swedish translation (2211t0f0u)
+
+Ralf Thielow (2):
+      l10n: de.po: translate 28 new messages
+      l10n: de.po: correct message when hiding commits by craft
+
+Tran Ngoc Quan (1):
+      l10n: vi.po (2211t): Updated one new string
 
 
 Version v1.9.0-rc3; changes since v1.9-rc2:
@@ -376,7 +382,7 @@ lin zuojian (1):
       git-svn: memoize _rev_list and rebuild
 
 
-Version v1.9-rc0; changes since v1.8.5.4:
+Version v1.9-rc0; changes since v1.8.5.5:
 -----------------------------------------
 
 Anders Kaseorg (1):
@@ -500,7 +506,7 @@ Jonathan Nieder (16):
       pager: set LV=-c alongside LESS=FRSX
       diff test: reading a directory as a file need not error out
 
-Junio C Hamano (19):
+Junio C Hamano (17):
       revision: introduce --exclude=<glob> to tame wildcards
       merge-base: use OPT_CMDMODE and clarify the command line parsing
       merge-base: teach "--fork-point" mode
@@ -515,8 +521,6 @@ Junio C Hamano (19):
       Update draft release notes to 1.9
       prune-packed: use strbuf to avoid having to worry about PATH_MAX
       Update draft release notes to 1.9
-      merge-base: separate "--independent" codepath into its own helper
-      merge-base --octopus: reduce the result from get_octopus_merge_bases()
       Update draft release notes to 1.9
       Update draft release notes to 1.9
       Git 1.9-rc0
@@ -695,6 +699,34 @@ brian m. carlson (2):
 
 jcb91 (1):
       remote-hg: avoid buggy strftime()
+
+
+Version v1.8.5.5; changes since v1.8.5.4:
+-----------------------------------------
+
+Andy Spencer (1):
+      tree_entry_interesting: match against all pathspecs
+
+Jeff King (9):
+      fetch-pack: do not filter out one-level refs
+      interpret_branch_name: factor out upstream handling
+      interpret_branch_name: rename "cp" variable to "at"
+      interpret_branch_name: always respect "namelen" parameter
+      interpret_branch_name: avoid @{upstream} past colon
+      interpret_branch_name: find all possible @-marks
+      repack: fix typo in max-pack-size option
+      repack: make parsed string options const-correct
+      repack: propagate pack-objects options as strings
+
+Junio C Hamano (5):
+      merge-base: separate "--independent" codepath into its own helper
+      merge-base --octopus: reduce the result from get_octopus_merge_bases()
+      revision: mark contents of an uninteresting tree uninteresting
+      revision: propagate flag bits from tags to pointees
+      Git 1.8.5.5
+
+Ruben Kerkhof (1):
+      send-email: /etc/ssl/certs/ directory may not be usable as ca_path
 
 
 Version v1.8.5.4; changes since v1.8.5.3:
