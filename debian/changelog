@@ -1,23 +1,26 @@
 git (1:2.0~next.20140318-0.1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit 4596e3a5.
-  * update debian/copyright.
-
- -- Jonathan Nieder <jrnieder@gmail.com>  Wed, 19 Mar 2014 16:21:11 -0700
-
-git (1:2.0~next.20140214-2) experimental; urgency=low
-
   * merge branch debian-sid.
+  * update debian/copyright.
 
  -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 25 Feb 2014 21:29:01 -0800
 
-git (1:1.9.0-1.1) unstable; urgency=low
+git (1:1.9.1-1) unstable; urgency=low
 
+  * new upstream point release.
+
+  [ Jonathan Nieder ]
   * git-email: Recommends: libio-socket-ssl-perl (>= 1.951) since
     earlier versions do not use OpenSSL's defaults when ca_path
     and ca_file are unset.
 
- -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 25 Feb 2014 21:16:56 -0800
+  [ Gilles Filippini ]
+  * install git-subtree from contrib (closes: #704652).
+  * debian/diff/0009-contrib-subtree-unset-prefix-before-proceeding.diff:
+    new; unset the 'prefix' environment variable before proceeding.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 18 Mar 2014 15:58:46 -0700
 
 git (1:2.0~next.20140214-1) experimental; urgency=low
 

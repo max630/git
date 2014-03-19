@@ -1,4 +1,4 @@
-Version next; changes since v1.9.0:
+Version next; changes since v1.9.1:
 -----------------------------------
 
 Albert L. Lash, IV (4):
@@ -13,12 +13,6 @@ Andrew Keller (1):
 Benoit Sigoure (1):
       git-compat-util.h: #undef (v)snprintf before #define them
 
-Brad King (4):
-      t3030-merge-recursive: test known breakage with empty work tree
-      read-cache.c: refactor --ignore-missing implementation
-      read-cache.c: extend make_cache_entry refresh flag with options
-      merge-recursive.c: tolerate missing files while refreshing index
-
 Brian Gesiak (2):
       t3200-branch: test setting branch as own upstream
       branch: use skip_prefix() in install_branch_config()
@@ -30,10 +24,9 @@ Chris Packham (2):
 Christian Couder (1):
       strbuf: remove prefixcmp() and suffixcmp()
 
-David Aguilar (3):
+David Aguilar (2):
       pull: add pull.ff configuration
       pull: add --ff-only to the help text
-      difftool: support repositories with .git-files
 
 David Kastrup (6):
       builtin/blame.c: struct blame_entry does not need a prev link
@@ -42,9 +35,6 @@ David Kastrup (6):
       blame.c: prepare_lines should not call xrealloc for every line
       builtin/blame.c::find_copy_in_blob: no need to scan for region end
       skip_prefix(): scan prefix only once
-
-David Sharp (1):
-      rev-parse: check i before using argv[i] against argc
 
 Dmitry S. Dolzhenko (15):
       commit.c: use the generic "sha1_pos" function for lookup
@@ -86,7 +76,7 @@ Jacopo Notarstefano (2):
       git-bisect.sh: fix a few style issues
       branch.c: delete size check of newly tracked branch names
 
-Jeff King (40):
+Jeff King (28):
       pack-objects: split add_object_entry
       repack: stop using magic number for ARRAY_SIZE(exts)
       repack: turn exts array into array-of-struct
@@ -98,20 +88,11 @@ Jeff King (40):
       do not discard revindex when re-preparing packfiles
       block-sha1: factor out get_be and put_be wrappers
       read-cache: use get_be32 instead of hand-rolled ntoh_l
-      expand_user_path: do not look at NULL path
-      handle_path_include: don't look at NULL value
-      tests: auto-set LIB_HTTPD_PORT from test name
       tests: auto-set git-daemon port
       ewah: unconditionally ntohll ewah data
       tests: turn on network daemon tests by default
       http: never use curl_easy_perform
       config: disallow relative include paths from blobs
-      t4212: test bogus timestamps with git-log
-      fsck: report integer overflow in author timestamps
-      date: check date overflow against time_t
-      log: handle integer overflow in timestamps
-      log: do not segfault on gmtime errors
-      remote: handle pushremote config in any order
       shallow: use stat_validity to check for up-to-date file
       shallow: automatically clean up shallow tempfiles
       docs: clarify remote restrictions for git-upload-archive
@@ -121,9 +102,6 @@ Jeff King (40):
       match_explicit: hoist refspec lhs checks into their own function
       match_explicit_lhs: allow a "verify only" mode
       push: detect local refspec errors early
-      show_ident_date: fix tz range check
-      clean: respect pathspecs with "-d"
-      clean: simplify dir/not-dir logic
       cat-file: restore warn_on_object_refname_ambiguity flag
       rev-list: disable object/refname ambiguity check with --stdin
       shallow: verify shallow file after taking lock
@@ -155,7 +133,7 @@ Jonathan Nieder (5):
       wt-status: extract the code to compute width for labels
       wt-status: i18n of section labels
 
-Junio C Hamano (26):
+Junio C Hamano (22):
       git add <pathspec>... defaults to "-A"
       git add: -u/-A now affects the entire working tree
       core.statinfo: remove as promised in Git 2.0
@@ -163,8 +141,6 @@ Junio C Hamano (26):
       diff: remove "diff-files -q" in a version of Git in a distant future
       push: switch default from "matching" to "simple"
       t3004: add test for ls-files on symlinks via absolute paths
-      t0003: do not chdir the whole test process
-      check-attr: move to the top of working tree when in non-bare repository
       open_istream(): do not dereference NULL in the error case
       combine-diff: simplify intersect_paths() further
       commit-tree: add and document --no-gpg-sign
@@ -172,7 +148,6 @@ Junio C Hamano (26):
       request-pull: test updates
       request-pull: resurrect "pretty refname" feature
       stash pop: mention we did not drop the stash upon failing to apply
-      t7800: add a difftool test for .git-files
       *.sh: drop useless use of "env"
       tag: grok "--with" as synonym to "--contains"
       Start preparing for Git 2.0
@@ -180,7 +155,6 @@ Junio C Hamano (26):
       wt-status: lift the artificual "at least 20 columns" floor
       request-pull: documentation updates
       Update draft release notes to Git 2.0
-      Git 1.9.1
       Update draft release notes to Git 2.0
 
 Karsten Blees (14):
@@ -250,21 +224,14 @@ Michael Haggerty (15):
       checkout_entry(): use the strbuf throughout the function
       entry.c: fix possible buffer overflow in remove_subtree()
 
-Nguyễn Thái Ngọc Duy (37):
+Nguyễn Thái Ngọc Duy (20):
       count-objects: recognize .bitmap in garbage-checking
       t7101, t7014: rename test files to indicate what that file is for
       reset: support "--mixed --intent-to-add" mode
-      test: rename http fetch and push test files
-      pack-protocol.txt: clarify 'obj-id' in the last ACK after 'done'
-      protocol-capabilities.txt: refer multi_ack_detailed back to pack-protocol.txt
-      protocol-capabilities.txt: document no-done
-      fetch-pack: fix deepen shallow over smart http with no-done cap
       daemon: move daemonize() to libgit.a
       gc: config option for running --auto in background
       dir: warn about trailing spaces in exclude patterns
       dir: ignore trailing spaces in exclude patterns
-      t5537: move http tests out to t5539
-      reset: optionally setup worktree and refresh index on --mixed
       wt-status.c: make cut_line[] const to shrink .data section a bit
       wt-status.c: move cut-line print code out to wt_status_add_cut_line
       use wildmatch() directly without fnmatch() wrapper
@@ -273,16 +240,6 @@ Nguyễn Thái Ngọc Duy (37):
       actually remove compat fnmatch source code
       sha1_file: fix delta_stack memory leak in unpack_entry
       i18n: mark all progress lines for translation
-      pathspec: convert some match_pathspec_depth() to ce_path_match()
-      pathspec: convert some match_pathspec_depth() to dir_path_match()
-      pathspec: rename match_pathspec_depth() to match_pathspec()
-      dir.c: prepare match_pathspec_item for taking more flags
-      match_pathspec: match pathspec "foo/" against directory "foo"
-      pathspec: pass directory indicator to match_pathspec_item()
-      clean: replace match_pathspec() with dir_path_match()
-      clean: use cache_name_is_other()
-      diff.c: move diffcore_skip_stat_unmatch core logic out for reuse later
-      diff: do not quit early on stat-dirty files
       commit: add --cleanup=scissors
       tag: support --sort=<spec>
       strbuf: style fix -- top opening bracket on a separate line
@@ -321,9 +278,6 @@ Roberto Tyley (1):
 Rohit Mani (1):
       use strchrnul() in place of strchr() and strlen()
 
-Sandy Carter (1):
-      i18n: proposed command missing leading dash
-
 Scott J. Goldman (1):
       add uploadarchive.allowUnreachable option
 
@@ -349,9 +303,6 @@ Thomas Gummerer (3):
       introduce GIT_INDEX_VERSION environment variable
       test-lib: allow setting the index format version
       read-cache: add index.version config variable
-
-Thomas Rast (1):
-      diff: do not reuse_worktree_file for submodules
 
 Vicent Marti (15):
       revindex: export new APIs
@@ -379,6 +330,67 @@ W. Trevor King (4):
 brian m. carlson (2):
       pull: add the --gpg-sign option.
       mv: prevent mismatched data when ignoring errors.
+
+
+Version v1.9.1; changes since v1.9.0:
+-------------------------------------
+
+Brad King (4):
+      t3030-merge-recursive: test known breakage with empty work tree
+      read-cache.c: refactor --ignore-missing implementation
+      read-cache.c: extend make_cache_entry refresh flag with options
+      merge-recursive.c: tolerate missing files while refreshing index
+
+David Aguilar (1):
+      difftool: support repositories with .git-files
+
+David Sharp (1):
+      rev-parse: check i before using argv[i] against argc
+
+Jeff King (12):
+      expand_user_path: do not look at NULL path
+      handle_path_include: don't look at NULL value
+      tests: auto-set LIB_HTTPD_PORT from test name
+      t4212: test bogus timestamps with git-log
+      fsck: report integer overflow in author timestamps
+      date: check date overflow against time_t
+      log: handle integer overflow in timestamps
+      log: do not segfault on gmtime errors
+      remote: handle pushremote config in any order
+      show_ident_date: fix tz range check
+      clean: respect pathspecs with "-d"
+      clean: simplify dir/not-dir logic
+
+Junio C Hamano (4):
+      t0003: do not chdir the whole test process
+      check-attr: move to the top of working tree when in non-bare repository
+      t7800: add a difftool test for .git-files
+      Git 1.9.1
+
+Nguyễn Thái Ngọc Duy (17):
+      test: rename http fetch and push test files
+      pack-protocol.txt: clarify 'obj-id' in the last ACK after 'done'
+      protocol-capabilities.txt: refer multi_ack_detailed back to pack-protocol.txt
+      protocol-capabilities.txt: document no-done
+      fetch-pack: fix deepen shallow over smart http with no-done cap
+      t5537: move http tests out to t5539
+      reset: optionally setup worktree and refresh index on --mixed
+      pathspec: convert some match_pathspec_depth() to ce_path_match()
+      pathspec: convert some match_pathspec_depth() to dir_path_match()
+      pathspec: rename match_pathspec_depth() to match_pathspec()
+      dir.c: prepare match_pathspec_item for taking more flags
+      match_pathspec: match pathspec "foo/" against directory "foo"
+      pathspec: pass directory indicator to match_pathspec_item()
+      clean: replace match_pathspec() with dir_path_match()
+      clean: use cache_name_is_other()
+      diff.c: move diffcore_skip_stat_unmatch core logic out for reuse later
+      diff: do not quit early on stat-dirty files
+
+Sandy Carter (1):
+      i18n: proposed command missing leading dash
+
+Thomas Rast (1):
+      diff: do not reuse_worktree_file for submodules
 
 
 Version v1.9.0; changes since v1.9.0-rc3:
