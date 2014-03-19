@@ -1,9 +1,12 @@
-From d452f0b68fa3a7ce28f4ca0dad38025b63da8498 Mon Sep 17 00:00:00 2001
+From ccf2d32815152699c069604c0bfb23c0cd8318e1 Mon Sep 17 00:00:00 2001
 From: Jens Lehmann <Jens.Lehmann@web.de>
 Date: Fri, 5 Apr 2013 18:35:27 +0200
 Subject: submodule: teach unpack_trees() to update submodules
 
 commit de40c413f0e600668db1ccbf5bdf34694c29843f upstream.
+
+[jn: s/path/path.buf/ to adjust to f63272a3 (checkout_entry(): use the
+ strbuf throughout the function, 2014-03-13)]
 
 Signed-off-by: Jens Lehmann <Jens.Lehmann@web.de>
 Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
@@ -18,19 +21,19 @@ Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
  5 files changed, 157 insertions(+), 17 deletions(-)
 
 diff --git a/entry.c b/entry.c
-index d1bf6ec..61a2767 100644
+index cfb265d..31b16a9 100644
 --- a/entry.c
 +++ b/entry.c
-@@ -265,7 +265,7 @@ int checkout_entry(struct cache_entry *ce,
+@@ -261,7 +261,7 @@ int checkout_entry(struct cache_entry *ce,
  
- 	if (!check_path(path, len, &st, state->base_dir_len)) {
+ 	if (!check_path(path.buf, path.len, &st, state->base_dir_len)) {
  		unsigned changed = ce_match_stat(ce, &st, CE_MATCH_IGNORE_VALID|CE_MATCH_IGNORE_SKIP_WORKTREE);
 -		if (!changed)
 +		if (!changed && (!S_ISDIR(st.st_mode) || !S_ISGITLINK(ce->ce_mode)))
  			return 0;
  		if (!state->force) {
  			if (!state->quiet)
-@@ -280,9 +280,18 @@ int checkout_entry(struct cache_entry *ce,
+@@ -278,9 +278,18 @@ int checkout_entry(struct cache_entry *ce,
  		 * just do the right thing)
  		 */
  		if (S_ISDIR(st.st_mode)) {
@@ -40,17 +43,17 @@ index d1bf6ec..61a2767 100644
 +				if (submodule_needs_update(ce->name)) {
 +					if (is_submodule_populated(ce->name)) {
 +						if (update_submodule(ce->name, ce->sha1, state->force))
-+							return error("cannot checkout submodule %s", path);
++							return error("cannot checkout submodule %s", path.buf);
 +					} else {
-+						if (populate_submodule(path, ce->sha1, state->force))
-+							return error("cannot populate submodule %s", path);
++						if (populate_submodule(path.buf, ce->sha1, state->force))
++							return error("cannot populate submodule %s", path.buf);
 +					}
 +				}
  				return 0;
 +			}
  			if (!state->force)
- 				return error("%s is a directory", path);
- 			remove_subtree(path);
+ 				return error("%s is a directory", path.buf);
+ 			remove_subtree(&path);
 diff --git a/submodule.c b/submodule.c
 index 6e67510..f376e68 100644
 --- a/submodule.c
@@ -187,7 +190,7 @@ index 3657ca8..b42ae91 100644
  		    const unsigned char a[20], const unsigned char b[20], int search);
  int find_unpushed_submodules(unsigned char new_sha1[20], const char *remotes_name,
 diff --git a/unpack-trees.c b/unpack-trees.c
-index b61487a..9f9b776 100644
+index 756b586..0d5a351 100644
 --- a/unpack-trees.c
 +++ b/unpack-trees.c
 @@ -27,6 +27,9 @@ static const char *unpack_plumbing_errors[NB_UNPACK_TREES_ERROR_TYPES] = {
@@ -307,5 +310,5 @@ index 36a73a6..bee8740 100644
  	ERROR_WOULD_LOSE_UNTRACKED_REMOVED,
  	ERROR_BIND_OVERLAP,
 -- 
-1.8.5.2
+1.9.0.279.gdc9e3eb
 

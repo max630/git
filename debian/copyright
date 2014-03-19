@@ -1,6 +1,6 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Contact: git@vger.kernel.org
-Source: https://git.kernel.org/cgit/git/git.git/snapshot/dc9e3eb9.tar.xz
+Source: https://git.kernel.org/cgit/git/git.git/snapshot/4596e3a5.tar.xz
 
 Files: *
 Copyright: © 2005-2014, Linus Torvalds and others.
@@ -123,11 +123,6 @@ License: GPL-2+
 Files: t/test-lib.sh
 Copyright: © 2005, Junio C Hamano
 License: GPL-2+
-
-Files: compat/fnmatch/*
-Copyright: © 1991-1999, Free Software Foundation, Inc.
-License: LGPL-2+
-Comment: This file is part of the GNU C Library.
 
 Files: compat/inet_ntop.c compat/inet_pton.c
 Copyright: © 1996-2001, Internet Software Consortium.

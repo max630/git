@@ -7,30 +7,61 @@ Albert L. Lash, IV (4):
       docs/git-clone: clarify use of --no-hardlinks option
       docs/git-blame: explain more clearly the example pickaxe use
 
+Andrew Keller (1):
+      gitweb: Avoid overflowing page body frame with large images
+
 Benoit Sigoure (1):
       git-compat-util.h: #undef (v)snprintf before #define them
 
 Brad King (4):
-      t3030-merge-recursive: Test known breakage with empty work tree
-      read-cache.c: Refactor --ignore-missing implementation
-      read-cache.c: Extend make_cache_entry refresh flag with options
-      merge-recursive.c: Tolerate missing files while refreshing index
+      t3030-merge-recursive: test known breakage with empty work tree
+      read-cache.c: refactor --ignore-missing implementation
+      read-cache.c: extend make_cache_entry refresh flag with options
+      merge-recursive.c: tolerate missing files while refreshing index
+
+Brian Gesiak (2):
+      t3200-branch: test setting branch as own upstream
+      branch: use skip_prefix() in install_branch_config()
+
+Chris Packham (2):
+      Documentation/git-am: Document supported --patch-format options
+      Documentation/git-am: typofix
 
 Christian Couder (1):
       strbuf: remove prefixcmp() and suffixcmp()
 
-David Aguilar (2):
+David Aguilar (3):
       pull: add pull.ff configuration
       pull: add --ff-only to the help text
+      difftool: support repositories with .git-files
 
-David Kastrup (4):
+David Kastrup (6):
       builtin/blame.c: struct blame_entry does not need a prev link
-      Eliminate same_suspect function in builtin/blame.c
+      builtin/blame.c: eliminate same_suspect()
       builtin/blame.c::prepare_lines: fix allocation size of sb->lineno
       blame.c: prepare_lines should not call xrealloc for every line
+      builtin/blame.c::find_copy_in_blob: no need to scan for region end
+      skip_prefix(): scan prefix only once
 
 David Sharp (1):
       rev-parse: check i before using argv[i] against argc
+
+Dmitry S. Dolzhenko (15):
+      commit.c: use the generic "sha1_pos" function for lookup
+      builtin/pack-objects.c: use ALLOC_GROW() in check_pbase_path()
+      bundle.c: use ALLOC_GROW() in add_to_ref_list()
+      cache-tree.c: use ALLOC_GROW() in find_subtree()
+      commit.c: use ALLOC_GROW() in register_commit_graft()
+      diff.c: use ALLOC_GROW()
+      diffcore-rename.c: use ALLOC_GROW()
+      patch-ids.c: use ALLOC_GROW() in add_commit()
+      replace_object.c: use ALLOC_GROW() in register_replace_object()
+      reflog-walk.c: use ALLOC_GROW()
+      dir.c: use ALLOC_GROW() in create_simplify()
+      attr.c: use ALLOC_GROW() in handle_attr_line()
+      builtin/mktree.c: use ALLOC_GROW() in append_to_tree()
+      read-cache.c: use ALLOC_GROW() in add_index_entry()
+      sha1_file.c: use ALLOC_GROW() in pretend_sha1_file()
 
 Elia Pinto (7):
       bisect.c: reduce scope of variable
@@ -41,16 +72,29 @@ Elia Pinto (7):
       builtin/fetch.c: reduce scope of variable
       builtin/gc.c: reduce scope of variables
 
-Eric Sunshine (1):
+Eric Sunshine (2):
       name-hash: retire unused index_name_exists()
+      sh-i18n--envsubst: retire unused string_list_member()
 
-Jeff King (14):
+Felipe Contreras (4):
+      transport-helper: mismerge fix
+      transport-helper: don't update refs in dry-run
+      transport-helper: add 'force' to 'export' helpers
+      transport-helper: check for 'forced update' message
+
+Jacopo Notarstefano (2):
+      git-bisect.sh: fix a few style issues
+      branch.c: delete size check of newly tracked branch names
+
+Jeff King (40):
       pack-objects: split add_object_entry
       repack: stop using magic number for ARRAY_SIZE(exts)
       repack: turn exts array into array-of-struct
       repack: handle optional files created by pack-objects
       t: add basic bitmap functionality tests
       t/perf: add tests for pack bitmaps
+      cat-file: refactor error handling of batch_objects
+      cat-file: fix a minor memory leak in batch_objects
       do not discard revindex when re-preparing packfiles
       block-sha1: factor out get_be and put_be wrappers
       read-cache: use get_be32 instead of hand-rolled ntoh_l
@@ -59,24 +103,85 @@ Jeff King (14):
       tests: auto-set LIB_HTTPD_PORT from test name
       tests: auto-set git-daemon port
       ewah: unconditionally ntohll ewah data
+      tests: turn on network daemon tests by default
+      http: never use curl_easy_perform
+      config: disallow relative include paths from blobs
+      t4212: test bogus timestamps with git-log
+      fsck: report integer overflow in author timestamps
+      date: check date overflow against time_t
+      log: handle integer overflow in timestamps
+      log: do not segfault on gmtime errors
+      remote: handle pushremote config in any order
+      shallow: use stat_validity to check for up-to-date file
+      shallow: automatically clean up shallow tempfiles
+      docs: clarify remote restrictions for git-upload-archive
+      CodingGuidelines: mention C whitespace rules
+      repack: add `repack.packKeptObjects` config var
+      docs: mark info/grafts as outdated
+      match_explicit: hoist refspec lhs checks into their own function
+      match_explicit_lhs: allow a "verify only" mode
+      push: detect local refspec errors early
+      show_ident_date: fix tz range check
+      clean: respect pathspecs with "-d"
+      clean: simplify dir/not-dir logic
+      cat-file: restore warn_on_object_refname_ambiguity flag
+      rev-list: disable object/refname ambiguity check with --stdin
+      shallow: verify shallow file after taking lock
 
-Jens Lehmann (1):
+Jens Lehmann (2):
       submodule: don't access the .gitmodules cache entry after removing it
+      submodule update: consistently document the '--checkout' option
 
-Jonathan Nieder (2):
-      Add test-hashmap to .gitignore
-      Drop unnecessary #includes from test-hashmap
+Johan Herland (1):
+      notes: disallow reusing non-blob as a note object
 
-Junio C Hamano (9):
+Johannes Sixt (1):
+      t0008: skip trailing space test on Windows
+
+John Keeping (5):
+      notes-utils: handle boolean notes.rewritemode correctly
+      utf8: fix iconv error detection
+      utf8: use correct type for values in interval table
+      builtin/mv: don't use memory after free
+      builtin/mv: fix out of bounds write
+
+John Marshall (1):
+      stash doc: mention short form -k in save description
+
+Jonathan Nieder (5):
+      am doc: add a pointer to relevant hooks
+      .gitignore: test-hashmap is a generated file
+      test-hashmap.c: drop unnecessary #includes
+      wt-status: extract the code to compute width for labels
+      wt-status: i18n of section labels
+
+Junio C Hamano (26):
       git add <pathspec>... defaults to "-A"
       git add: -u/-A now affects the entire working tree
       core.statinfo: remove as promised in Git 2.0
       push: switch default from "matching" to "simple"
       diff: remove "diff-files -q" in a version of Git in a distant future
       push: switch default from "matching" to "simple"
-      commit-tree: add and document --no-gpg-sign
-      combine-diff: simplify intersect_paths() further
       t3004: add test for ls-files on symlinks via absolute paths
+      t0003: do not chdir the whole test process
+      check-attr: move to the top of working tree when in non-bare repository
+      open_istream(): do not dereference NULL in the error case
+      combine-diff: simplify intersect_paths() further
+      commit-tree: add and document --no-gpg-sign
+      request-pull: pick up tag message as before
+      request-pull: test updates
+      request-pull: resurrect "pretty refname" feature
+      stash pop: mention we did not drop the stash upon failing to apply
+      t7800: add a difftool test for .git-files
+      *.sh: drop useless use of "env"
+      tag: grok "--with" as synonym to "--contains"
+      Start preparing for Git 2.0
+      wt-status: make full label string to be subject to l10n
+      wt-status: lift the artificual "at least 20 columns" floor
+      request-pull: documentation updates
+      Update draft release notes to Git 2.0
+      Git 1.9.1
+      Update draft release notes to Git 2.0
 
 Karsten Blees (14):
       add a hashtable implementation that supports O(1) removal
@@ -92,18 +197,31 @@ Karsten Blees (14):
       fix 'git update-index --verbose --again' output
       builtin/update-index.c: cleanup update_one
       read-cache.c: fix memory leaks caused by removed cache entries
-      hashmap.h: Use 'unsigned int' for hash-codes everywhere
+      hashmap.h: use 'unsigned int' for hash-codes everywhere
 
-Kirill Smelkov (9):
-      diffcore-order: export generic ordering interface
-      diff test: add tests for combine-diff with orderfile
-      combine-diff: optimize combine_diff_path sets intersection
-      combine-diff: combine_diff_path.len is not needed anymore
+Kirill A. Shutemov (3):
+      builtin/config.c: rename check_blob_write() -> check_write()
+      config: change git_config_with_options() interface
+      config: teach "git config --file -" to read from the standard input
+
+Kirill Smelkov (10):
       tree-diff: allow diff_tree_sha1 to accept NULL sha1
       tree-diff: convert diff_root_tree_sha1() to just call diff_tree_sha1 with old=NULL
       line-log: convert to using diff_tree_sha1()
       revision: convert to using diff_tree_sha1()
-      Finally switch over tree descriptors to contain a pre-parsed entry
+      tree-walk: finally switch over tree descriptors to contain a pre-parsed entry
+      diffcore-order: export generic ordering interface
+      diff test: add tests for combine-diff with orderfile
+      combine-diff: optimize combine_diff_path sets intersection
+      combine-diff: combine_diff_path.len is not needed anymore
+      tests: add checking that combine-diff emits only correct paths
+
+Lars Gullik Bjønnes (1):
+      git-contacts: do not fail parsing of good diffs
+
+Linus Torvalds (2):
+      request-pull: more strictly match local/remote branches
+      request-pull: allow "local:remote" to specify names on both ends
 
 Martin Erik Werner (5):
       t0060: add test for prefix_path on symlinks via absolute paths
@@ -112,18 +230,28 @@ Martin Erik Werner (5):
       setup: add abspath_part_inside_repo() function
       setup: don't dereference in-tree symlinks for absolute paths
 
-Nguyễn Thái Ngọc Duy (19):
+Max Horn (1):
+      transport-helper.c: do not overwrite forced bit
+
+Michael Haggerty (15):
+      rename read_replace_refs to check_replace_refs
+      replace_object: use struct members instead of an array
+      find_pack_entry(): document last_found_pack
+      sha1_file_name(): declare to return a const string
+      sha1_file.c: document a bunch of functions defined in the file
+      Add docstrings for lookup_replace_object() and do_lookup_replace_object()
+      Document some functions defined in object.c
+      cache_tree_find(): remove redundant checks
+      cache_tree_find(): find the end of path component using strchrnul()
+      cache_tree_find(): fix comment formatting
+      cache_tree_find(): remove redundant check
+      cache_tree_find(): remove early return
+      cache_tree_find(): use path variable when passing over slashes
+      checkout_entry(): use the strbuf throughout the function
+      entry.c: fix possible buffer overflow in remove_subtree()
+
+Nguyễn Thái Ngọc Duy (37):
       count-objects: recognize .bitmap in garbage-checking
-      Move diffcore_skip_stat_unmatch core logic out for reuse later
-      diff: do not quit early on stat-dirty files
-      Convert some match_pathspec_depth() to ce_path_match()
-      Convert some match_pathspec_depth() to dir_path_match()
-      Rename match_pathspec_depth() to match_pathspec()
-      dir.c: prepare match_pathspec_item for taking more flags
-      match_pathspec: match pathspec "foo/" against directory "foo"
-      Pass directory indicator to match_pathspec_item()
-      clean: replace match_pathspec() with dir_path_match()
-      clean: use cache_name_is_other()
       t7101, t7014: rename test files to indicate what that file is for
       reset: support "--mixed --intent-to-add" mode
       test: rename http fetch and push test files
@@ -131,11 +259,37 @@ Nguyễn Thái Ngọc Duy (19):
       protocol-capabilities.txt: refer multi_ack_detailed back to pack-protocol.txt
       protocol-capabilities.txt: document no-done
       fetch-pack: fix deepen shallow over smart http with no-done cap
+      daemon: move daemonize() to libgit.a
+      gc: config option for running --auto in background
+      dir: warn about trailing spaces in exclude patterns
+      dir: ignore trailing spaces in exclude patterns
       t5537: move http tests out to t5539
+      reset: optionally setup worktree and refresh index on --mixed
+      wt-status.c: make cut_line[] const to shrink .data section a bit
+      wt-status.c: move cut-line print code out to wt_status_add_cut_line
+      use wildmatch() directly without fnmatch() wrapper
+      Revert "test-wildmatch: add "perf" command to compare wildmatch and fnmatch"
+      stop using fnmatch (either native or compat)
+      actually remove compat fnmatch source code
+      sha1_file: fix delta_stack memory leak in unpack_entry
+      i18n: mark all progress lines for translation
+      pathspec: convert some match_pathspec_depth() to ce_path_match()
+      pathspec: convert some match_pathspec_depth() to dir_path_match()
+      pathspec: rename match_pathspec_depth() to match_pathspec()
+      dir.c: prepare match_pathspec_item for taking more flags
+      match_pathspec: match pathspec "foo/" against directory "foo"
+      pathspec: pass directory indicator to match_pathspec_item()
+      clean: replace match_pathspec() with dir_path_match()
+      clean: use cache_name_is_other()
+      diff.c: move diffcore_skip_stat_unmatch core logic out for reuse later
+      diff: do not quit early on stat-dirty files
+      commit: add --cleanup=scissors
+      tag: support --sort=<spec>
+      strbuf: style fix -- top opening bracket on a separate line
+      upload-pack: send shallow info over stdin to pack-objects
+      connect.c: SP after "}", not TAB
 
 Nicolas Vigier (10):
-      Add the commit.gpgsign option to sign all commits
-      test the commit.gpgsign config option
       cherry-pick, revert: add the --gpg-sign option
       git-sh-setup.sh: add variable to use the stuck-long mode
       am: parse options in stuck-long mode
@@ -144,6 +298,60 @@ Nicolas Vigier (10):
       rebase: don't try to match -M option
       rebase: parse options in stuck-long mode
       rebase: add the --gpg-sign option
+      commit-tree: add the commit.gpgsign option to sign all commits
+      test the commit.gpgsign config option
+
+Ralf Thielow (1):
+      help.c: rename function "pretty_print_string_list"
+
+René Scharfe (2):
+      t7810: add missing variables to tests in loop
+      grep: support -h (no header) with --count
+
+Richard Hansen (2):
+      test-hg.sh: tests are now expected to pass
+      remote-bzr: support the new 'force' option
+
+Richard Lowe (1):
+      diffcore.h: be explicit about the signedness of is_binary
+
+Roberto Tyley (1):
+      Documentation: fix documentation AsciiDoc links for external urls
+
+Rohit Mani (1):
+      use strchrnul() in place of strchr() and strlen()
+
+Sandy Carter (1):
+      i18n: proposed command missing leading dash
+
+Scott J. Goldman (1):
+      add uploadarchive.allowUnreachable option
+
+Simon Ruderich (2):
+      git-config: document interactive.singlekey requires Term::ReadKey
+      git-add--interactive: warn if module for interactive.singlekey is missing
+
+Sun He (3):
+      write_pack_file: use correct variable in diagnostic
+      finish_tmp_packfile():use strbuf for pathname construction
+      Use hashcpy() when copying object names
+
+Sup Yut Sum (1):
+      completion: teach --recurse-submodules to fetch, pull and push
+
+Tanay Abhra (1):
+      commit.c: use skip_prefix() instead of starts_with()
+
+Tay Ray Chuan (1):
+      demonstrate git-commit --dry-run exit code behaviour
+
+Thomas Gummerer (3):
+      introduce GIT_INDEX_VERSION environment variable
+      test-lib: allow setting the index format version
+      read-cache: add index.version config variable
+
+Thomas Rast (1):
+      diff: do not reuse_worktree_file for submodules
 
 Vicent Marti (15):
       revindex: export new APIs
@@ -163,13 +371,14 @@ Vicent Marti (15):
       ewah: support platforms that require aligned reads
 
 W. Trevor King (4):
-      submodule: Make 'checkout' update_module explicit
-      submodule: Document module_clone arguments in comments
-      submodule: Explicit local branch creation in module_clone
-      Documentation: Describe 'submodule update --remote' use case
+      submodule: make 'checkout' update_module mode more explicit
+      submodule: document module_clone arguments in comments
+      submodule: explicit local branch creation in module_clone
+      Documentation: describe 'submodule update --remote' use case
 
-brian m. carlson (1):
+brian m. carlson (2):
       pull: add the --gpg-sign option.
+      mv: prevent mismatched data when ignoring errors.
 
 
 Version v1.9.0; changes since v1.9.0-rc3:
