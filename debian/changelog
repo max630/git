@@ -1,3 +1,11 @@
+git (1:1.9.2-1) unstable; urgency=low
+
+  * new upstream point release.
+    * wt-status: subject full label string to l10n (thx Raphaël
+      Hertzog; closes: #725777).
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Wed, 09 Apr 2014 15:15:18 -0700
+
 git (1:1.9.1-1) unstable; urgency=low
 
   * new upstream point release.

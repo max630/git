@@ -1,3 +1,74 @@
+Version v1.9.2; changes since v1.9.1:
+-------------------------------------
+
+Aman Gupta (1):
+      update-ref: fail create operation over stdin if ref already exists
+
+Benoit Pierre (7):
+      merge hook tests: fix missing '&&' in test
+      merge hook tests: use 'test_must_fail' instead of '!'
+      test patch hunk editing with "commit -p -m"
+      commit: fix patch hunk editing with "commit -p -m"
+      merge: fix GIT_EDITOR override for commit hook
+      merge hook tests: fix and update tests
+      run-command: mark run_hook_with_custom_index as deprecated
+
+Carlos Martín Nieto (2):
+      fetch: add a failing test for prunning with overlapping refspecs
+      fetch: handle overlaping refspecs on --prune
+
+Jeff King (6):
+      shallow: use stat_validity to check for up-to-date file
+      shallow: automatically clean up shallow tempfiles
+      t/lib-terminal: make TTY a lazy prerequisite
+      shallow: verify shallow file after taking lock
+      date: recognize bogus FreeBSD gmtime output
+      t4212: loosen far-in-future test for AIX
+
+John Keeping (1):
+      builtin/mv: fix out of bounds write
+
+Jonathan Nieder (2):
+      wt-status: extract the code to compute width for labels
+      wt-status: i18n of section labels
+
+Junio C Hamano (8):
+      stash pop: mention we did not drop the stash upon failing to apply
+      wt-status: make full label string to be subject to l10n
+      wt-status: lift the artificual "at least 20 columns" floor
+      index-pack: report error using the correct variable
+      diff-no-index: correctly diagnose error return from diff_opt_parse()
+      Start preparing for 1.9.1
+      Update draft release notes to 1.9.2
+      Git 1.9.2
+
+Justin Lebar (4):
+      Documentation: fix misuses of "nor"
+      contrib: fix misuses of "nor"
+      comments: fix misuses of "nor"
+      code and test: fix misuses of "nor"
+
+Matthieu Moy (1):
+      status: disable translation when --porcelain is used
+
+Michael Haggerty (2):
+      checkout_entry(): use the strbuf throughout the function
+      entry.c: fix possible buffer overflow in remove_subtree()
+
+Ramkumar Ramachandra (1):
+      Documentation/merge-strategies: avoid hyphenated commands
+
+Thomas Ackermann (1):
+      doc/http-backend: missing accent grave in literal mark-up
+
+Uwe Storbeck (2):
+      rebase -i: do not "echo" random user-supplied strings
+      test-lib.sh: do not "echo" caller-supplied strings
+
+brian m. carlson (1):
+      mv: prevent mismatched data when ignoring errors.
+
+
 Version v1.9.1; changes since v1.9.0:
 -------------------------------------
 
