@@ -133,7 +133,7 @@ Jacopo Notarstefano (2):
       git-bisect.sh: fix a few style issues
       branch.c: delete size check of newly tracked branch names
 
-Jeff King (47):
+Jeff King (48):
       pack-objects: split add_object_entry
       repack: stop using magic number for ARRAY_SIZE(exts)
       repack: turn exts array into array-of-struct
@@ -181,6 +181,7 @@ Jeff King (47):
       t0001: drop subshells just for "cd"
       date: recognize bogus FreeBSD gmtime output
       t4212: loosen far-in-future test for AIX
+      pack-objects: do not reuse packfiles without --delta-base-offset
 
 Jens Lehmann (2):
       submodule: don't access the .gitmodules cache entry after removing it
@@ -219,7 +220,7 @@ Jonathan Nieder (5):
       wt-status: extract the code to compute width for labels
       wt-status: i18n of section labels
 
-Junio C Hamano (39):
+Junio C Hamano (42):
       git add <pathspec>... defaults to "-A"
       git add: -u/-A now affects the entire working tree
       core.statinfo: remove as promised in Git 2.0
@@ -259,6 +260,15 @@ Junio C Hamano (39):
       Revert part of 384364b (Start preparing for Git 2.0, 2014-03-07)
       Start preparing for 1.9.1
       Update draft release notes to 2.0
+      Update draft release notes to 1.9.2
+      Update draft release notes to 2.0
+      Git 1.9.2
+
+Justin Lebar (4):
+      Documentation: fix misuses of "nor"
+      contrib: fix misuses of "nor"
+      comments: fix misuses of "nor"
+      code and test: fix misuses of "nor"
 
 Karsten Blees (14):
       add a hashtable implementation that supports O(1) removal
@@ -281,7 +291,7 @@ Kirill A. Shutemov (3):
       config: change git_config_with_options() interface
       config: teach "git config --file -" to read from the standard input
 
-Kirill Smelkov (26):
+Kirill Smelkov (30):
       tree-diff: allow diff_tree_sha1 to accept NULL sha1
       tree-diff: convert diff_root_tree_sha1() to just call diff_tree_sha1 with old=NULL
       line-log: convert to using diff_tree_sha1()
@@ -308,6 +318,10 @@ Kirill Smelkov (26):
       tree-diff: rework diff_tree interface to be sha1 based
       tree-diff: no need to call "full" diff_tree_sha1 from show_path()
       tree-diff: reuse base str(buf) memory on sub-tree recursion
+      Portable alloca for Git
+      tree-diff: rework diff_tree() to generate diffs for multiparent cases as well
+      combine-diff: speed it up, by using multiparent diff tree-walker directly
+      mingw: activate alloca
 
 Lars Gullik Bjønnes (1):
       git-contacts: do not fail parsing of good diffs
@@ -353,6 +367,11 @@ Michael Haggerty (15):
       cache_tree_find(): use path variable when passing over slashes
       checkout_entry(): use the strbuf throughout the function
       entry.c: fix possible buffer overflow in remove_subtree()
+
+Michael S. Tsirkin (3):
+      patch-id: make it stable against hunk reordering
+      patch-id: document new behaviour
+      patch-id-test: test --stable and --unstable flags
 
 Nguyễn Thái Ngọc Duy (24):
       count-objects: recognize .bitmap in garbage-checking
@@ -450,6 +469,9 @@ Tanay Abhra (1):
 Tay Ray Chuan (1):
       demonstrate git-commit --dry-run exit code behaviour
 
+Thomas Ackermann (1):
+      doc/http-backend: missing accent grave in literal mark-up
+
 Thomas Gummerer (3):
       introduce GIT_INDEX_VERSION environment variable
       test-lib: allow setting the index format version
@@ -459,7 +481,7 @@ Uwe Storbeck (2):
       rebase -i: do not "echo" random user-supplied strings
       test-lib.sh: do not "echo" caller-supplied strings
 
-Vicent Marti (15):
+Vicent Marti (16):
       revindex: export new APIs
       pack-objects: refactor the packing list
       pack-objects: factor out name_hash
@@ -475,6 +497,10 @@ Vicent Marti (15):
       repack: consider bitmaps when performing repacks
       pack-bitmap: implement optional name_hash cache
       ewah: support platforms that require aligned reads
+      add `ignore_missing_links` mode to revwalk
+
+Vlad Dogaru (1):
+      git-p4: explicitly specify that HEAD is a revision
 
 W. Trevor King (6):
       submodule: make 'checkout' update_module mode more explicit
