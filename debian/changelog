@@ -1,8 +1,8 @@
-git (1:2.0~next.20140415-0.1) experimental; urgency=low
+git (1:2.0~next.20140415-1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit eaba9156.
 
- -- Jonathan Nieder <jrnieder@gmail.com>  Thu, 10 Apr 2014 11:24:22 -0700
+ -- Jonathan Nieder <jrnieder@gmail.com>  Wed, 16 Apr 2014 15:08:36 -0700
 
 git (1:1.9.2-1) unstable; urgency=low
 
