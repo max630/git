@@ -1,6 +1,6 @@
-git (1:2.0~next.20140409-0.1) experimental; urgency=low
+git (1:2.0~next.20140415-0.1) experimental; urgency=low
 
-  * new snapshot, taken from upstream commit 5ae4ba53.
+  * new snapshot, taken from upstream commit eaba9156.
 
  -- Jonathan Nieder <jrnieder@gmail.com>  Thu, 10 Apr 2014 11:24:22 -0700
 

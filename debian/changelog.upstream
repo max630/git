@@ -284,6 +284,10 @@ Kirill Smelkov (30):
       combine-diff: speed it up, by using multiparent diff tree-walker directly
       mingw: activate alloca
 
+Kyle J. McKay (2):
+      test: fix t7001 cp to use POSIX options
+      test: fix t5560 on FreeBSD
+
 Lars Gullik Bjønnes (1):
       git-contacts: do not fail parsing of good diffs
 
@@ -309,7 +313,7 @@ Max Horn (2):
       transport-helper.c: do not overwrite forced bit
       remote-hg: do not fail on invalid bookmarks
 
-Michael Haggerty (13):
+Michael Haggerty (14):
       rename read_replace_refs to check_replace_refs
       replace_object: use struct members instead of an array
       find_pack_entry(): document last_found_pack
@@ -323,6 +327,7 @@ Michael Haggerty (13):
       cache_tree_find(): remove redundant check
       cache_tree_find(): remove early return
       cache_tree_find(): use path variable when passing over slashes
+      git-multimail: update to version 1.0.0
 
 Michael S. Tsirkin (3):
       patch-id: make it stable against hunk reordering
@@ -426,6 +431,9 @@ Thomas Gummerer (3):
       introduce GIT_INDEX_VERSION environment variable
       test-lib: allow setting the index format version
       read-cache: add index.version config variable
+
+Torsten Bögershausen (1):
+      utf8.c: partially update to version 6.3
 
 Vicent Marti (16):
       revindex: export new APIs
