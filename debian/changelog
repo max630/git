@@ -1,9 +1,9 @@
-git (1:2.0.0~rc0+next.20140421-0.1) experimental; urgency=low
+git (1:2.0.0~rc0+next.20140421-1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit acc62aa9.
   * merge branch debian-sid.
 
- -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 22 Apr 2014 11:21:19 -0700
+ -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 22 Apr 2014 11:37:12 -0700
 
 git (1:2.0.0~rc0-1) unstable; urgency=low
 
