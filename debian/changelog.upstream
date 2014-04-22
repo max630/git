@@ -1,5 +1,130 @@
-Version next; changes since v1.9.2:
------------------------------------
+Version next; changes since v2.0.0-rc0:
+---------------------------------------
+
+Andreas Schwab (1):
+      grep: add grep.fullName config variable
+
+Dave Borowitz (2):
+      Makefile: use curl-config to determine curl flags
+      Makefile: allow static linking against libcurl
+
+Elia Pinto (14):
+      howto-index.sh: use the $( ... ) construct for command substitution
+      install-webdoc.sh: use the $( ... ) construct for command substitution
+      git-checkout.sh: use the $( ... ) construct for command substitution
+      git-clone.sh: use the $( ... ) construct for command substitution
+      git-commit.sh: use the $( ... ) construct for command substitution
+      git-fetch.sh: use the $( ... ) construct for command substitution
+      git-ls-remote.sh: use the $( ... ) construct for command substitution
+      git-merge.sh: use the $( ... ) construct for command substitution
+      git-repack.sh: use the $( ... ) construct for command substitution
+      git-resolve.sh: use the $( ... ) construct for command substitution
+      git-revert.sh: use the $( ... ) construct for command substitution
+      git-tag.sh: use the $( ... ) construct for command substitution
+      t9360-mw-to-git-clone.sh: use the $( ... ) construct for command substitution
+      t9362-mw-to-git-utf8.sh: use the $( ... ) construct for command substitution
+
+Erik Faye-Lund (1):
+      send-email: recognize absolute path on Windows
+
+Felipe Contreras (6):
+      transport-helper: remove barely used xchgline()
+      remote-helpers: make recvline return an error
+      transport-helper: propagate recvline() error pushing
+      transport-helper: trivial cleanup
+      transport-helper: fix sync issue on crashes
+      t5801 (remote-helpers): cleanup environment sets
+
+Jiang Xin (3):
+      i18n: fix uncatchable comments for translators in date.c
+      i18n: remove obsolete comments for translators in diffstat generation
+      i18n: only extract comments marked with "TRANSLATORS:"
+
+Johan Herland (1):
+      Git 2.0: git svn: Set default --prefix='origin/' if --prefix is not given
+
+Junio C Hamano (3):
+      apply --ignore-space-change: lines with and without leading whitespaces do not match
+      i18n: mention "TRANSLATORS:" marker in Documentation/CodingGuidelines
+      Update draft release notes to 2.0
+
+Kirill Smelkov (20):
+      combine-diff: move show_log_first logic/action out of paths scanning
+      combine-diff: move changed-paths scanning logic into its own function
+      tree-diff: no need to manually verify that there is no mode change for a path
+      tree-diff: no need to pass match to skip_uninteresting()
+      tree-diff: show_tree() is not needed
+      tree-diff: consolidate code for emitting diffs and recursion in one place
+      tree-diff: don't assume compare_tree_entry() returns -1,0,1
+      tree-diff: move all action-taking code out of compare_tree_entry()
+      tree-diff: rename compare_tree_entry -> tree_entry_pathcmp
+      tree-diff: show_path prototype is not needed anymore
+      tree-diff: simplify tree_entry_pathcmp
+      tree-diff: remove special-case diff-emitting code for empty-tree cases
+      tree-diff: diff_tree() should now be static
+      tree-diff: rework diff_tree interface to be sha1 based
+      tree-diff: no need to call "full" diff_tree_sha1 from show_path()
+      tree-diff: reuse base str(buf) memory on sub-tree recursion
+      Portable alloca for Git
+      tree-diff: rework diff_tree() to generate diffs for multiparent cases as well
+      combine-diff: speed it up, by using multiparent diff tree-walker directly
+      mingw: activate alloca
+
+Kyle J. McKay (2):
+      rebase: avoid non-function use of "return" on FreeBSD
+      Revert "rebase: fix run_specific_rebase's use of "return" on FreeBSD"
+
+Michael Haggerty (27):
+      t1400: fix name and expected result of one test
+      t1400: provide more usual input to the command
+      parse_arg(): really test that argument is properly terminated
+      t1400: add some more tests involving quoted arguments
+      refs.h: rename the action_on_err constants
+      update_refs(): fix constness
+      update-ref --stdin: read the whole input at once
+      parse_cmd_verify(): copy old_sha1 instead of evaluating <oldvalue> twice
+      update-ref.c: extract a new function, parse_refname()
+      update-ref --stdin: improve error messages for invalid values
+      update-ref --stdin: make error messages more consistent
+      update-ref --stdin: simplify error messages for missing oldvalues
+      t1400: test that stdin -z update treats empty <newvalue> as zeros
+      update-ref.c: extract a new function, parse_next_sha1()
+      update-ref --stdin -z: deprecate interpreting the empty string as zeros
+      t1400: test one mistake at a time
+      update-ref --stdin: improve the error message for unexpected EOF
+      update-ref --stdin: harmonize error messages
+      refs: add a concept of a reference transaction
+      update-ref --stdin: reimplement using reference transactions
+      refs: remove API function update_refs()
+      struct ref_update: rename field "ref_name" to "refname"
+      struct ref_update: store refname as a FLEX_ARRAY
+      ref_transaction_commit(): simplify code using temporary variables
+      struct ref_update: add a lock field
+      struct ref_update: add a type field
+      ref_transaction_commit(): work with transaction->updates in place
+
+Michael S. Tsirkin (3):
+      patch-id: make it stable against hunk reordering
+      patch-id: document new behaviour
+      patch-id-test: test --stable and --unstable flags
+
+Nguyễn Thái Ngọc Duy (1):
+      index-pack: work around thread-unsafe pread()
+
+RomanBelinsky (1):
+      SVN.pm::parse_svn_date: allow timestamps with a single-digit hour
+
+Ronnie Sahlberg (2):
+      sequencer.c: check for lock failure and bail early in fast_forward_to
+      commit.c: check for lock error and return early
+
+Yiannis Marangos (2):
+      wrapper.c: add xpread() similar to xread()
+      read-cache.c: verify index file before we opportunistically update it
+
+
+Version v2.0.0-rc0; changes since v1.9.2:
+-----------------------------------------
 
 Adam (1):
       branch.c: install_branch_config: simplify if chain
@@ -9,9 +134,6 @@ Albert L. Lash, IV (4):
       docs/git-remote: capitalize first word of initial blurb
       docs/git-clone: clarify use of --no-hardlinks option
       docs/git-blame: explain more clearly the example pickaxe use
-
-Andreas Schwab (1):
-      grep: add grep.fullName config variable
 
 Andrew Keller (1):
       gitweb: Avoid overflowing page body frame with large images
@@ -44,10 +166,6 @@ Chris Packham (2):
 
 Christian Couder (1):
       strbuf: remove prefixcmp() and suffixcmp()
-
-Dave Borowitz (2):
-      Makefile: use curl-config to determine curl flags
-      Makefile: allow static linking against libcurl
 
 David Aguilar (2):
       pull: add pull.ff configuration
@@ -87,7 +205,7 @@ Dmitry S. Dolzhenko (15):
       read-cache.c: use ALLOC_GROW() in add_index_entry()
       sha1_file.c: use ALLOC_GROW() in pretend_sha1_file()
 
-Elia Pinto (23):
+Elia Pinto (9):
       bisect.c: reduce scope of variable
       builtin/apply.c: reduce scope of variables
       builtin/blame.c: reduce scope of variables
@@ -97,32 +215,15 @@ Elia Pinto (23):
       builtin/gc.c: reduce scope of variables
       check-builtins.sh: use the $(...) construct for command substitution
       git-am.sh: use the $(...) construct for command substitution
-      howto-index.sh: use the $( ... ) construct for command substitution
-      install-webdoc.sh: use the $( ... ) construct for command substitution
-      git-checkout.sh: use the $( ... ) construct for command substitution
-      git-clone.sh: use the $( ... ) construct for command substitution
-      git-commit.sh: use the $( ... ) construct for command substitution
-      git-fetch.sh: use the $( ... ) construct for command substitution
-      git-ls-remote.sh: use the $( ... ) construct for command substitution
-      git-merge.sh: use the $( ... ) construct for command substitution
-      git-repack.sh: use the $( ... ) construct for command substitution
-      git-resolve.sh: use the $( ... ) construct for command substitution
-      git-revert.sh: use the $( ... ) construct for command substitution
-      git-tag.sh: use the $( ... ) construct for command substitution
-      t9360-mw-to-git-clone.sh: use the $( ... ) construct for command substitution
-      t9362-mw-to-git-utf8.sh: use the $( ... ) construct for command substitution
 
 Eric Sunshine (2):
       name-hash: retire unused index_name_exists()
       sh-i18n--envsubst: retire unused string_list_member()
 
-Erik Faye-Lund (1):
-      send-email: recognize absolute path on Windows
-
 Fabian Ruch (1):
       add: use struct argv_array in run_add_interactive()
 
-Felipe Contreras (16):
+Felipe Contreras (10):
       transport-helper: mismerge fix
       transport-helper: don't update refs in dry-run
       transport-helper: add 'force' to 'export' helpers
@@ -133,12 +234,6 @@ Felipe Contreras (16):
       completion: fix completing args of aliased "push", "fetch", etc.
       remote-bzr: trivial test fix
       prompt: fix missing file errors in zsh
-      transport-helper: remove barely used xchgline()
-      remote-helpers: make recvline return an error
-      transport-helper: propagate recvline() error pushing
-      transport-helper: trivial cleanup
-      transport-helper: fix sync issue on crashes
-      t5801 (remote-helpers): cleanup environment sets
 
 Hiroyuki Sano (1):
       fsck: use bitwise-or assignment operator to set flag
@@ -199,14 +294,8 @@ Jens Lehmann (2):
       submodule: don't access the .gitmodules cache entry after removing it
       submodule update: consistently document the '--checkout' option
 
-Jiang Xin (3):
-      i18n: fix uncatchable comments for translators in date.c
-      i18n: remove obsolete comments for translators in diffstat generation
-      i18n: only extract comments marked with "TRANSLATORS:"
-
-Johan Herland (2):
+Johan Herland (1):
       notes: disallow reusing non-blob as a note object
-      Git 2.0: git svn: Set default --prefix='origin/' if --prefix is not given
 
 Johannes Sixt (11):
       t0008: skip trailing space test on Windows
@@ -235,7 +324,7 @@ Jonathan Nieder (3):
       .gitignore: test-hashmap is a generated file
       test-hashmap.c: drop unnecessary #includes
 
-Junio C Hamano (38):
+Junio C Hamano (35):
       git add <pathspec>... defaults to "-A"
       git add: -u/-A now affects the entire working tree
       core.statinfo: remove as promised in Git 2.0
@@ -261,7 +350,6 @@ Junio C Hamano (38):
       update-index: teach --cacheinfo a new syntax "mode,sha1,path"
       parse-options: make sure argh string does not have SP or _
       Update draft release notes to 2.0
-      apply --ignore-space-change: lines with and without leading whitespaces do not match
       Update draft release notes to 2.0
       parse-options: add cast to correct pointer type to OPT_SET_PTR
       Update draft release notes to 2.0
@@ -271,9 +359,7 @@ Junio C Hamano (38):
       Update draft release notes to 2.0
       Update draft release notes to 2.0
       Update draft release notes for 2.0
-      i18n: mention "TRANSLATORS:" marker in Documentation/CodingGuidelines
       Git 2.0-rc0
-      Update draft release notes to 2.0
 
 Karsten Blees (14):
       add a hashtable implementation that supports O(1) removal
@@ -296,7 +382,7 @@ Kirill A. Shutemov (3):
       config: change git_config_with_options() interface
       config: teach "git config --file -" to read from the standard input
 
-Kirill Smelkov (30):
+Kirill Smelkov (10):
       tree-diff: allow diff_tree_sha1 to accept NULL sha1
       tree-diff: convert diff_root_tree_sha1() to just call diff_tree_sha1 with old=NULL
       line-log: convert to using diff_tree_sha1()
@@ -307,32 +393,10 @@ Kirill Smelkov (30):
       combine-diff: optimize combine_diff_path sets intersection
       combine-diff: combine_diff_path.len is not needed anymore
       tests: add checking that combine-diff emits only correct paths
-      combine-diff: move show_log_first logic/action out of paths scanning
-      combine-diff: move changed-paths scanning logic into its own function
-      tree-diff: no need to manually verify that there is no mode change for a path
-      tree-diff: no need to pass match to skip_uninteresting()
-      tree-diff: show_tree() is not needed
-      tree-diff: consolidate code for emitting diffs and recursion in one place
-      tree-diff: don't assume compare_tree_entry() returns -1,0,1
-      tree-diff: move all action-taking code out of compare_tree_entry()
-      tree-diff: rename compare_tree_entry -> tree_entry_pathcmp
-      tree-diff: show_path prototype is not needed anymore
-      tree-diff: simplify tree_entry_pathcmp
-      tree-diff: remove special-case diff-emitting code for empty-tree cases
-      tree-diff: diff_tree() should now be static
-      tree-diff: rework diff_tree interface to be sha1 based
-      tree-diff: no need to call "full" diff_tree_sha1 from show_path()
-      tree-diff: reuse base str(buf) memory on sub-tree recursion
-      Portable alloca for Git
-      tree-diff: rework diff_tree() to generate diffs for multiparent cases as well
-      combine-diff: speed it up, by using multiparent diff tree-walker directly
-      mingw: activate alloca
 
-Kyle J. McKay (4):
+Kyle J. McKay (2):
       test: fix t7001 cp to use POSIX options
       test: fix t5560 on FreeBSD
-      rebase: avoid non-function use of "return" on FreeBSD
-      Revert "rebase: fix run_specific_rebase's use of "return" on FreeBSD"
 
 Lars Gullik Bjønnes (1):
       git-contacts: do not fail parsing of good diffs
@@ -359,7 +423,7 @@ Max Horn (2):
       transport-helper.c: do not overwrite forced bit
       remote-hg: do not fail on invalid bookmarks
 
-Michael Haggerty (41):
+Michael Haggerty (14):
       rename read_replace_refs to check_replace_refs
       replace_object: use struct members instead of an array
       find_pack_entry(): document last_found_pack
@@ -374,40 +438,8 @@ Michael Haggerty (41):
       cache_tree_find(): remove early return
       cache_tree_find(): use path variable when passing over slashes
       git-multimail: update to version 1.0.0
-      t1400: fix name and expected result of one test
-      t1400: provide more usual input to the command
-      parse_arg(): really test that argument is properly terminated
-      t1400: add some more tests involving quoted arguments
-      refs.h: rename the action_on_err constants
-      update_refs(): fix constness
-      update-ref --stdin: read the whole input at once
-      parse_cmd_verify(): copy old_sha1 instead of evaluating <oldvalue> twice
-      update-ref.c: extract a new function, parse_refname()
-      update-ref --stdin: improve error messages for invalid values
-      update-ref --stdin: make error messages more consistent
-      update-ref --stdin: simplify error messages for missing oldvalues
-      t1400: test that stdin -z update treats empty <newvalue> as zeros
-      update-ref.c: extract a new function, parse_next_sha1()
-      update-ref --stdin -z: deprecate interpreting the empty string as zeros
-      t1400: test one mistake at a time
-      update-ref --stdin: improve the error message for unexpected EOF
-      update-ref --stdin: harmonize error messages
-      refs: add a concept of a reference transaction
-      update-ref --stdin: reimplement using reference transactions
-      refs: remove API function update_refs()
-      struct ref_update: rename field "ref_name" to "refname"
-      struct ref_update: store refname as a FLEX_ARRAY
-      ref_transaction_commit(): simplify code using temporary variables
-      struct ref_update: add a lock field
-      struct ref_update: add a type field
-      ref_transaction_commit(): work with transaction->updates in place
 
-Michael S. Tsirkin (3):
-      patch-id: make it stable against hunk reordering
-      patch-id: document new behaviour
-      patch-id-test: test --stable and --unstable flags
-
-Nguyễn Thái Ngọc Duy (25):
+Nguyễn Thái Ngọc Duy (24):
       count-objects: recognize .bitmap in garbage-checking
       t7101, t7014: rename test files to indicate what that file is for
       reset: support "--mixed --intent-to-add" mode
@@ -432,7 +464,6 @@ Nguyễn Thái Ngọc Duy (25):
       log: add --show-linear-break to help see non-linear history
       gc --aggressive: make --depth configurable
       environment.c: fix constness for odb_pack_keep()
-      index-pack: work around thread-unsafe pread()
 
 Nicolas Vigier (10):
       cherry-pick, revert: add the --gpg-sign option
@@ -476,13 +507,6 @@ Roberto Tyley (1):
 
 Rohit Mani (1):
       use strchrnul() in place of strchr() and strlen()
-
-RomanBelinsky (1):
-      SVN.pm::parse_svn_date: allow timestamps with a single-digit hour
-
-Ronnie Sahlberg (2):
-      sequencer.c: check for lock failure and bail early in fast_forward_to
-      commit.c: check for lock error and return early
 
 Scott J. Goldman (1):
       add uploadarchive.allowUnreachable option
@@ -544,10 +568,6 @@ W. Trevor King (6):
       Documentation: describe 'submodule update --remote' use case
       doc: submodule.* config are keyed by submodule names
       doc: submodule.*.branch config is keyed by name
-
-Yiannis Marangos (2):
-      wrapper.c: add xpread() similar to xread()
-      read-cache.c: verify index file before we opportunistically update it
 
 Yuxuan Shui (2):
       fsck.c:fsck_ident(): ident points at a const string
