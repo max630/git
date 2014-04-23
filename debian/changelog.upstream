@@ -27,13 +27,16 @@ Elia Pinto (14):
 Erik Faye-Lund (1):
       send-email: recognize absolute path on Windows
 
-Felipe Contreras (6):
+Felipe Contreras (9):
       transport-helper: remove barely used xchgline()
       remote-helpers: make recvline return an error
       transport-helper: propagate recvline() error pushing
       transport-helper: trivial cleanup
       transport-helper: fix sync issue on crashes
       t5801 (remote-helpers): cleanup environment sets
+      mergetools: add vimdiff3 mode
+      mergetool: run prompt only if guessed tool
+      merge: enable defaulttoupstream by default
 
 Jiang Xin (3):
       i18n: fix uncatchable comments for translators in date.c
