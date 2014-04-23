@@ -1,8 +1,16 @@
 git (1:2.0.0~rc0+next.20140422-0.1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit 4f984835.
+  * merge branch debian-sid.
 
  -- Jonathan Nieder <jrnieder@gmail.com>  Wed, 23 Apr 2014 11:16:45 -0700
+
+git (1:2.0.0~rc0-2) unstable; urgency=low
+
+  [ Anders Kaseorg ]
+  * add source-highlight build dependency (closes: #745591).
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Wed, 23 Apr 2014 11:09:25 -0700
 
 git (1:2.0.0~rc0+next.20140421-1) experimental; urgency=low
 
