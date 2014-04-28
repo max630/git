@@ -1,3 +1,53 @@
+Version v2.0.0-rc1; changes since v2.0.0-rc0:
+---------------------------------------------
+
+Dave Borowitz (2):
+      Makefile: use curl-config to determine curl flags
+      Makefile: allow static linking against libcurl
+
+Elia Pinto (14):
+      howto-index.sh: use the $( ... ) construct for command substitution
+      install-webdoc.sh: use the $( ... ) construct for command substitution
+      git-checkout.sh: use the $( ... ) construct for command substitution
+      git-clone.sh: use the $( ... ) construct for command substitution
+      git-commit.sh: use the $( ... ) construct for command substitution
+      git-fetch.sh: use the $( ... ) construct for command substitution
+      git-ls-remote.sh: use the $( ... ) construct for command substitution
+      git-merge.sh: use the $( ... ) construct for command substitution
+      git-repack.sh: use the $( ... ) construct for command substitution
+      git-resolve.sh: use the $( ... ) construct for command substitution
+      git-revert.sh: use the $( ... ) construct for command substitution
+      git-tag.sh: use the $( ... ) construct for command substitution
+      t9360-mw-to-git-clone.sh: use the $( ... ) construct for command substitution
+      t9362-mw-to-git-utf8.sh: use the $( ... ) construct for command substitution
+
+Felipe Contreras (6):
+      transport-helper: remove barely used xchgline()
+      remote-helpers: make recvline return an error
+      transport-helper: propagate recvline() error pushing
+      transport-helper: trivial cleanup
+      transport-helper: fix sync issue on crashes
+      t5801 (remote-helpers): cleanup environment sets
+
+Jiang Xin (3):
+      i18n: fix uncatchable comments for translators in date.c
+      i18n: remove obsolete comments for translators in diffstat generation
+      i18n: only extract comments marked with "TRANSLATORS:"
+
+Johan Herland (1):
+      Git 2.0: git svn: Set default --prefix='origin/' if --prefix is not given
+
+Junio C Hamano (3):
+      i18n: mention "TRANSLATORS:" marker in Documentation/CodingGuidelines
+      Update draft release notes to 2.0
+      Git 2.0-rc1
+
+Kyle J. McKay (3):
+      rebase: avoid non-function use of "return" on FreeBSD
+      Revert "rebase: fix run_specific_rebase's use of "return" on FreeBSD"
+      ewah_bitmap.c: do not assume size_t and eword_t are the same size
+
+
 Version v2.0.0-rc0; changes since v1.9.2:
 -----------------------------------------
 
