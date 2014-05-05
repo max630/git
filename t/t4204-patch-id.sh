@@ -5,84 +5,45 @@ test_description='git patch-id'
 . ./test-lib.sh
 
 test_expect_success 'setup' '
-	cat > a <<-\EOF &&
-		a
-		a
-		a
-		a
-		a
-		a
-		a
-		a
-		EOF
-	(cat a; echo b) > ab &&
-	(echo d; cat a; echo b) > dab &&
-	cp a foo &&
-	cp a bar &&
+	as="a a a a a a a a" && # eight a
+	test_write_lines $as >foo &&
+	test_write_lines $as >bar &&
 	git add foo bar &&
 	git commit -a -m initial &&
-	cp ab foo &&
-	cp ab bar &&
+	test_write_lines $as b >foo &&
+	test_write_lines $as b >bar &&
 	git commit -a -m first &&
 	git checkout -b same master &&
 	git commit --amend -m same-msg &&
 	git checkout -b notsame master &&
-	echo c > foo &&
-	echo c > bar &&
+	echo c >foo &&
+	echo c >bar &&
 	git commit --amend -a -m notsame-msg &&
-	git checkout -b split master &&
-	cp dab foo &&
-	cp dab bar &&
-	git commit -a -m split &&
-	git checkout -b merged master &&
-	git checkout split -- foo bar &&
-	git commit --amend -a -m merged &&
-	cat > bar-then-foo <<-\EOF &&
-		bar
-		foo
-		EOF
-	cat > foo-then-bar <<-\EOF
-		foo
-		bar
-		EOF
+	test_write_lines bar foo >bar-then-foo &&
+	test_write_lines foo bar >foo-then-bar
 '
 
 test_expect_success 'patch-id output is well-formed' '
-	git log -p -1 | git patch-id > output &&
+	git log -p -1 | git patch-id >output &&
 	grep "^[a-f0-9]\{40\} $(git rev-parse HEAD)$" output
 '
 
+#calculate patch id. Make sure output is not empty.
 calc_patch_id () {
-	git patch-id |
-		sed "s# .*##" > patch-id_"$1"
+	name="$1"
+	shift
+	git patch-id "$@" |
+	sed "s/ .*//" >patch-id_"$name" &&
+	test_line_count -gt 0 patch-id_"$name"
 }
 
-calc_patch_id_unstable () {
-	git patch-id --unstable |
-		sed "s# .*##" > patch-id_"$1"
+get_top_diff () {
+	git log -p -1 "$@" -O bar-then-foo --
 }
-
-calc_patch_id_stable () {
-	git patch-id --stable |
-		sed "s# .*##" > patch-id_"$1"
-}
-
 
 get_patch_id () {
-	git log -p -1 "$1" -O bar-then-foo -- | git patch-id |
-		sed "s# .*##" > patch-id_"$1"
+	get_top_diff "$1" | calc_patch_id "$@"
 }
-
-get_patch_id_stable () {
-	git log -p -1 "$1" -O bar-then-foo | git patch-id --stable |
-		sed "s# .*##" > patch-id_"$1"
-}
-
-get_patch_id_unstable () {
-	git log -p -1 "$1" -O bar-then-foo | git patch-id --unstable |
-		sed "s# .*##" > patch-id_"$1"
-}
-
 
 test_expect_success 'patch-id detects equality' '
 	get_patch_id master &&
@@ -108,53 +69,71 @@ test_expect_success 'patch-id supports git-format-patch output' '
 test_expect_success 'whitespace is irrelevant in footer' '
 	get_patch_id master &&
 	git checkout same &&
-	git format-patch -1 --stdout | sed "s/ \$//" |
-		calc_patch_id same &&
+	git format-patch -1 --stdout | sed "s/ \$//" | calc_patch_id same &&
 	test_cmp patch-id_master patch-id_same
 '
 
-test_expect_success 'file order is irrelevant by default' '
-	get_patch_id master &&
+cmp_patch_id () {
+	if
+		test "$1" = "relevant"
+	then
+		! test_cmp patch-id_"$2" patch-id_"$3"
+	else
+		test_cmp patch-id_"$2" patch-id_"$3"
+	fi
+}
+
+test_patch_id_file_order () {
+	relevant="$1"
+	shift
+	name="order-${1}-$relevant"
+	shift
+	get_top_diff "master" | calc_patch_id "$name" "$@" &&
 	git checkout same &&
 	git format-patch -1 --stdout -O foo-then-bar |
-		calc_patch_id same &&
-	test_cmp patch-id_master patch-id_same
-'
+		calc_patch_id "ordered-$name" "$@" &&
+	cmp_patch_id $relevant "$name" "ordered-$name"
 
+}
+
+# combined test for options: add more tests here to make them
+# run with all options
+test_patch_id () {
+	test_patch_id_file_order "$@"
+}
+
+# small tests with detailed diagnostic for basic options.
 test_expect_success 'file order is irrelevant with --stable' '
-	get_patch_id_stable master &&
-	git checkout same &&
-	git format-patch -1 --stdout -O foo-then-bar |
-		calc_patch_id_stable same &&
-	test_cmp patch-id_master patch-id_same
+	test_patch_id_file_order irrelevant --stable --stable
 '
 
 test_expect_success 'file order is relevant with --unstable' '
-	get_patch_id_unstable master &&
-	git checkout same &&
-	git format-patch -1 --stdout -O foo-then-bar | calc_patch_id_unstable notsame &&
-	! test_cmp patch-id_master patch-id_notsame
+	test_patch_id_file_order relevant --unstable --unstable
 '
 
-test_expect_success 'splitting patch does not affect id by default' '
-	get_patch_id merged &&
-	(git log -p -1 -O foo-then-bar split~1; git diff split~1..split) |
-		calc_patch_id split &&
-	test_cmp patch-id_merged patch-id_split
+#Now test various option combinations.
+test_expect_success 'default is stable' '
+	test_patch_id irrelevant default
 '
 
-test_expect_success 'splitting patch does not affect id with --stable' '
-	get_patch_id_stable merged &&
-	(git log -p -1 -O foo-then-bar split~1; git diff split~1..split) |
-		calc_patch_id_stable split &&
-	test_cmp patch-id_merged patch-id_split
+test_expect_success 'patchid.stable = true is stable' '
+	test_config patchid.stable true &&
+	test_patch_id irrelevant patchid.stable=true
 '
 
-test_expect_success 'splitting patch affects id with --unstable' '
-	get_patch_id_unstable merged &&
-	(git log -p -1 -O foo-then-bar split~1; git diff split~1..split) |
-		calc_patch_id_unstable split &&
-	! test_cmp patch-id_merged patch-id_split
+test_expect_success 'patchid.stable = false is unstable' '
+	test_config patchid.stable false &&
+	test_patch_id relevant patchid.stable=false
+'
+
+test_expect_success '--unstable overrides patchid.stable = true' '
+	test_config patchid.stable true &&
+	test_patch_id relevant patchid.stable=true--unstable --unstable
+'
+
+test_expect_success '--stable overrides patchid.stable = false' '
+	test_config patchid.stable false &&
+	test_patch_id irrelevant patchid.stable=false--stable --stable
 '
 
 test_expect_success 'patch-id supports git-format-patch MIME output' '

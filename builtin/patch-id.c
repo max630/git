@@ -72,9 +72,9 @@ static void flush_one_hunk(unsigned char *result, git_SHA_CTX *ctx)
 static int get_one_patchid(unsigned char *next_sha1, unsigned char *result,
 			   struct strbuf *line_buf, int stable)
 {
-	int patchlen = 0, found_next = 0, hunks = 0;
+	int patchlen = 0, found_next = 0;
 	int before = -1, after = -1;
-	git_SHA_CTX ctx, header_ctx;
+	git_SHA_CTX ctx;
 
 	git_SHA1_Init(&ctx);
 	hashclr(result);
@@ -116,19 +116,7 @@ static int get_one_patchid(unsigned char *next_sha1, unsigned char *result,
 		if (before == 0 && after == 0) {
 			if (!memcmp(line, "@@ -", 4)) {
 				/* Parse next hunk, but ignore line numbers.  */
-				if (stable) {
-					/* Hash the file-level headers together with each hunk. */
-					if (hunks) {
-						flush_one_hunk(result, &ctx);
-						/* Prepend saved header ctx for next hunk.  */
-						memcpy(&ctx, &header_ctx, sizeof(ctx));
-					} else {
-						/* Save header ctx for next hunk.  */
-						memcpy(&header_ctx, &ctx, sizeof(ctx));
-					}
-				}
 				scan_hunk_header(line, &before, &after);
-				hunks++;
 				continue;
 			}
 
@@ -137,10 +125,9 @@ static int get_one_patchid(unsigned char *next_sha1, unsigned char *result,
 				break;
 
 			/* Else we're parsing another header.  */
-			if (stable && hunks)
+			if (stable)
 				flush_one_hunk(result, &ctx);
 			before = after = -1;
-			hunks = 0;
 		}
 
 		/* If we get here, we're inside a hunk.  */
@@ -180,16 +167,33 @@ static void generate_id_list(int stable)
 
 static const char patch_id_usage[] = "git patch-id [--stable | --unstable] < patch";
 
+static int git_patch_id_config(const char *var, const char *value, void *cb)
+{
+	int *stable = cb;
+
+	if (!strcmp(var, "patchid.stable")) {
+		*stable = git_config_bool(var, value);
+		return 0;
+	}
+
+	return git_default_config(var, value, cb);
+}
+
 int cmd_patch_id(int argc, const char **argv, const char *prefix)
 {
-	int stable;
+	int stable = -1;
+
+	git_config(git_patch_id_config, &stable);
+
+	/* If nothing is set, default to stable. */
+	if (stable < 0)
+		stable = 1;
+
 	if (argc == 2 && !strcmp(argv[1], "--stable"))
 		stable = 1;
 	else if (argc == 2 && !strcmp(argv[1], "--unstable"))
 		stable = 0;
-	else if (argc == 1)
-		stable = 1;
-	else
+	else if (argc != 1)
 		usage(patch_id_usage);
 
 	generate_id_list(stable);
