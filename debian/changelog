@@ -1,3 +1,13 @@
+git (1:2.0.0~rc0+next.20140422-1.1) experimental; urgency=low
+
+  * debian/rules: remove NO_PYTHON=1 now that the git_remote_helpers
+    library has been removed.
+  * debian/control: Build-Depends: python.
+  * debian/rules: remove git-p4 command from the git package.  It
+    depends on Perforce, which is not part of Debian.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Mon, 05 May 2014 12:33:11 -0700
+
 git (1:2.0.0~rc0+next.20140422-1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit 4f984835.
