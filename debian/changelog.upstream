@@ -4,9 +4,10 @@ Version next; changes since v2.0.0-rc0:
 Andreas Schwab (1):
       grep: add grep.fullName config variable
 
-Dave Borowitz (2):
+Dave Borowitz (3):
       Makefile: use curl-config to determine curl flags
       Makefile: allow static linking against libcurl
+      Makefile: default to -lcurl when no CURL_CONFIG or CURLDIR
 
 Elia Pinto (14):
       howto-index.sh: use the $( ... ) construct for command substitution
@@ -27,29 +28,64 @@ Elia Pinto (14):
 Erik Faye-Lund (1):
       send-email: recognize absolute path on Windows
 
-Felipe Contreras (9):
+Felipe Contreras (20):
       transport-helper: remove barely used xchgline()
       remote-helpers: make recvline return an error
       transport-helper: propagate recvline() error pushing
       transport-helper: trivial cleanup
       transport-helper: fix sync issue on crashes
       t5801 (remote-helpers): cleanup environment sets
+      fast-export: improve argument parsing
+      fast-export: add new --refspec option
+      transport-helper: add support for old:new refspec
+      transport-helper: add support to push symbolic refs
+      fast-import: add support to delete refs
+      fast-export: add support to delete refs
+      transport-helper: add support to delete branches
+      transport-helper: remove unnecessary strbuf resets
+      remote-helpers: squelch python import exceptions
+      remote-helpers: move out of contrib
+      remote-helpers: move tests out of contrib
       mergetools: add vimdiff3 mode
       mergetool: run prompt only if guessed tool
       merge: enable defaulttoupstream by default
 
-Jiang Xin (3):
+Jean-Jacques Lafay (1):
+      git tag --contains: avoid stack overflow
+
+Jean-Noel Avila (1):
+      l10n: fr translation for v2.0.0rc0 (2228t)
+
+Jeff King (6):
+      run_external_diff: use an argv_array for the command line
+      run_external_diff: use an argv_array for the environment
+      run_external_diff: clean up error handling
+      run_external_diff: drop fflush(NULL)
+      run_external_diff: hoist common bits out of conditional
+      run_external_diff: refactor cmdline setup logic
+
+Jiang Xin (7):
       i18n: fix uncatchable comments for translators in date.c
       i18n: remove obsolete comments for translators in diffstat generation
       i18n: only extract comments marked with "TRANSLATORS:"
+      l10n: git.pot: v2.0.0 round 1 (45 new, 28 removed)
+      l10n: zh_CN.po: translate 46 new messages (2229t0f0u)
+      blame: fix broken time_buf paddings in relative timestamp
+      blame: dynamic blame_date_width for different locales
 
 Johan Herland (1):
       Git 2.0: git svn: Set default --prefix='origin/' if --prefix is not given
 
-Junio C Hamano (3):
+Junio C Hamano (9):
       apply --ignore-space-change: lines with and without leading whitespaces do not match
       i18n: mention "TRANSLATORS:" marker in Documentation/CodingGuidelines
       Update draft release notes to 2.0
+      send-email: windows drive prefix (e.g. C:) appears only at the beginning
+      mergetool: document the default for --[no-]prompt
+      Git 2.0-rc1
+      Revert "Merge branch 'mt/patch-id-stable' into next"
+      Revert the whole "ask curl-config" topic for now
+      Git 2.0-rc2
 
 Kirill Smelkov (20):
       combine-diff: move show_log_first logic/action out of paths scanning
@@ -73,9 +109,24 @@ Kirill Smelkov (20):
       combine-diff: speed it up, by using multiparent diff tree-walker directly
       mingw: activate alloca
 
-Kyle J. McKay (2):
+Kyle J. McKay (4):
       rebase: avoid non-function use of "return" on FreeBSD
       Revert "rebase: fix run_specific_rebase's use of "return" on FreeBSD"
+      ewah_bitmap.c: do not assume size_t and eword_t are the same size
+      t9117: use --prefix "" instead of --prefix=""
+
+Luis R. Rodriguez (1):
+      git.c: treat RUN_SETUP_GENTLY and RUN_SETUP as mutually exclusive
+
+Martin Erik Werner (1):
+      setup: fix windows path buffer over-stepping
+
+Matthieu Moy (2):
+      git-remote-mediawiki: allow stop/start-ing the test server
+      git-remote-mediawiki: fix encoding issue for UTF-8 media files
+
+Max Kirillov (1):
+      Documentation: git-gui: describe gui.displayuntracked
 
 Michael Haggerty (27):
       t1400: fix name and expected result of one test
@@ -106,13 +157,29 @@ Michael Haggerty (27):
       struct ref_update: add a type field
       ref_transaction_commit(): work with transaction->updates in place
 
-Michael S. Tsirkin (3):
+Michael S. Tsirkin (8):
       patch-id: make it stable against hunk reordering
       patch-id: document new behaviour
       patch-id-test: test --stable and --unstable flags
+      patch-id: make it stable against hunk reordering
+      test: add test_write_lines helper
+      patch-id-test: test stable and unstable behaviour
+      patch-id: change default to stable
+      t4204-patch-id.sh: default is now stable
 
 Nguyễn Thái Ngọc Duy (1):
       index-pack: work around thread-unsafe pread()
+
+Peter Krefting (1):
+      l10n: Update Swedish translation (2228t0f0u)
+
+Ralf Thielow (3):
+      l10n: de.po: correct translation of "completed" after resolving deltas
+      l10n: de.po: translate 45 new messages
+      l10n: de.po: improve hint for autocorrected command execution
+
+Richard Hansen (1):
+      git-prompt.sh: don't put unsanitized branch names in $PS1
 
 RomanBelinsky (1):
       SVN.pm::parse_svn_date: allow timestamps with a single-digit hour
@@ -120,6 +187,9 @@ RomanBelinsky (1):
 Ronnie Sahlberg (2):
       sequencer.c: check for lock failure and bail early in fast_forward_to
       commit.c: check for lock error and return early
+
+Tran Ngoc Quan (1):
+      l10n: vi.po (2228t): Update and minor fix
 
 Yiannis Marangos (2):
       wrapper.c: add xpread() similar to xread()
