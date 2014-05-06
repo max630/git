@@ -1,6 +1,7 @@
-git (1:2.0.0~rc0+next.20140502-0.1) experimental; urgency=low
+git (1:2.0.0~rc2+next.20140502-0.1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit cfa251bb.
+  * merge branch debian-sid.
   * debian/rules:
     * remove NO_PYTHON=1 now that the git_remote_helpers
       library has been removed.
@@ -10,6 +11,12 @@ git (1:2.0.0~rc0+next.20140502-0.1) experimental; urgency=low
   * debian/control: Build-Depends: python.
 
  -- Jonathan Nieder <jrnieder@gmail.com>  Mon, 05 May 2014 12:33:11 -0700
+
+git (1:2.0.0~rc2-1) unstable; urgency=low
+
+  * new upstream release candidate.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Mon, 05 May 2014 17:25:50 -0700
 
 git (1:2.0.0~rc0+next.20140422-1) experimental; urgency=low
 
