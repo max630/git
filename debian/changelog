@@ -1,4 +1,4 @@
-git (1:2.0.0~rc2+next.20140502-0.1) experimental; urgency=low
+git (1:2.0.0~rc2+next.20140502-1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit cfa251bb.
   * merge branch debian-sid.
@@ -8,9 +8,9 @@ git (1:2.0.0~rc2+next.20140502-0.1) experimental; urgency=low
     * remove git-p4 command from the git package.  It depends on
       Perforce, which is not part of Debian.
     * adjust for remote-bzr and remote-hg promotion from contrib.
-  * debian/control: Build-Depends: python.
+  * debian/control: Build-Depends: python, locales-all.
 
- -- Jonathan Nieder <jrnieder@gmail.com>  Mon, 05 May 2014 12:33:11 -0700
+ -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 06 May 2014 11:11:19 -0700
 
 git (1:2.0.0~rc2-1) unstable; urgency=low
 
