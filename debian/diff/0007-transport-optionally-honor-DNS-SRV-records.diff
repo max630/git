@@ -1,4 +1,4 @@
-From 13ef0e26e4f41ed2401fa1c18b58031972364d6a Mon Sep 17 00:00:00 2001
+From 5d1fbf54f3a1b172f9178056771343b44bdb86f3 Mon Sep 17 00:00:00 2001
 From: Jonathan Nieder <jrnieder@gmail.com>
 Date: Mon, 6 Jun 2011 04:46:20 -0500
 Subject: transport: optionally honor DNS SRV records
@@ -61,10 +61,10 @@ Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
  create mode 100644 srv.h
 
 diff --git a/Makefile b/Makefile
-index 030c5fb..62130b0 100644
+index d5559ea..71bd9d3 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -171,6 +171,10 @@ all::
+@@ -162,6 +162,10 @@ all::
  # Notably on Solaris hstrerror resides in libresolv and on Solaris 7
  # inet_ntop and inet_pton additionally reside there.
  #
@@ -75,7 +75,7 @@ index 030c5fb..62130b0 100644
  # Define NO_MMAP if you want to avoid mmap.
  #
  # Define NO_SYS_POLL_H if you don't have sys/poll.h.
-@@ -728,6 +732,7 @@ LIB_H += sha1-lookup.h
+@@ -719,6 +723,7 @@ LIB_H += sha1-lookup.h
  LIB_H += shortlog.h
  LIB_H += sideband.h
  LIB_H += sigchain.h
@@ -83,7 +83,7 @@ index 030c5fb..62130b0 100644
  LIB_H += strbuf.h
  LIB_H += streaming.h
  LIB_H += string-list.h
-@@ -1241,6 +1246,11 @@ endif
+@@ -1220,6 +1225,11 @@ endif
  ifdef NEEDS_NSL
  	EXTLIBS += -lnsl
  endif

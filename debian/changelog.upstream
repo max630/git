@@ -1,3 +1,47 @@
+Version v2.0.0-rc2; changes since v2.0.0-rc1:
+---------------------------------------------
+
+Dave Borowitz (1):
+      Makefile: default to -lcurl when no CURL_CONFIG or CURLDIR
+
+Jean-Noel Avila (1):
+      l10n: fr translation for v2.0.0rc0 (2228t)
+
+Jeff King (1):
+      run_external_diff: use an argv_array for the command line
+
+Jiang Xin (2):
+      l10n: git.pot: v2.0.0 round 1 (45 new, 28 removed)
+      l10n: zh_CN.po: translate 46 new messages (2229t0f0u)
+
+Junio C Hamano (2):
+      Revert the whole "ask curl-config" topic for now
+      Git 2.0-rc2
+
+Kyle J. McKay (1):
+      t9117: use --prefix "" instead of --prefix=""
+
+Martin Erik Werner (1):
+      setup: fix windows path buffer over-stepping
+
+Max Kirillov (1):
+      Documentation: git-gui: describe gui.displayuntracked
+
+Peter Krefting (1):
+      l10n: Update Swedish translation (2228t0f0u)
+
+Ralf Thielow (3):
+      l10n: de.po: correct translation of "completed" after resolving deltas
+      l10n: de.po: translate 45 new messages
+      l10n: de.po: improve hint for autocorrected command execution
+
+Richard Hansen (1):
+      git-prompt.sh: don't put unsanitized branch names in $PS1
+
+Tran Ngoc Quan (1):
+      l10n: vi.po (2228t): Update and minor fix
+
+
 Version v2.0.0-rc1; changes since v2.0.0-rc0:
 ---------------------------------------------
 
