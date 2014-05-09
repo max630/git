@@ -207,8 +207,10 @@ install-indep: build-arch-stamp build-indep-stamp
 	PATH=$$PATH:$(CURDIR) DESTDIR='$(GIT)'-man $(MAKE) -C contrib/subtree install-doc $(OPTS)
 	install -m 0644 '$(TMP)'/usr/share/man/man3/Git* \
 	  '$(GIT)'-man/usr/share/man/man3/
-	# don't include arch, cvs, svn, email, gui, and gitk man pages
-	for i in git-archimport git-cvs git-svn git-send-email gitk \
+	# don't include arch, bzr, cvs, hg, p4, svn, email, gui, and
+	# gitk man pages
+	for i in git-archimport git-cvs git-p4 git-svn git-send-email gitk \
+	 git-remote-bzr git-remote-hg \
 	 git-gui git-citool; do \
 	  rm -f '$(GIT)'-man/usr/share/man/man1/$$i*; \
 	done
@@ -217,6 +219,8 @@ install-indep: build-arch-stamp build-indep-stamp
 	gzip -9 '$(GIT)'-man/usr/share/man/man?/*.[0-9]*
 	# git-doc
 	rm -rf '$(GIT)'-doc
+	# don't include git-p4 man page
+	rm -f '$(TMP)'/html/git-p4.*
 	install -d -m0755 '$(GIT)'-doc/usr/share/doc/git
 	ln -s ../git-doc '$(GIT)'-doc/usr/share/doc/git/html
 	# git-cvs, git-svn

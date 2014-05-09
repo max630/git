@@ -1,3 +1,11 @@
+git (1:2.0.0~rc2+next.20140502-1.1) experimental; urgency=low
+
+  * debian/rules: remove git-p4 manpage from the git-man and
+    git-doc packages.  If a separate git-p4 package is created,
+    it should not have to conflict with git-man or git-doc.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Fri, 09 May 2014 10:45:28 -0700
+
 git (1:2.0.0~rc2+next.20140502-1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit cfa251bb.
