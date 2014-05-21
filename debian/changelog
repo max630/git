@@ -1,4 +1,4 @@
-git (1:2.0.0~rc4+next.20140520-0.1) experimental; urgency=low
+git (1:2.0.0~rc4+next.20140520-1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit 63647d4f.
   * merge branch debian-sid.
@@ -10,7 +10,7 @@ git (1:2.0.0~rc4+next.20140520-0.1) experimental; urgency=low
   * debian/control: no longer Build-Depends: bzr, python-bzrlib,
     locales-all.
 
- -- Jonathan Nieder <jrnieder@gmail.com>  Fri, 09 May 2014 10:45:28 -0700
+ -- Jonathan Nieder <jrnieder@gmail.com>  Wed, 21 May 2014 11:37:23 -0700
 
 git (1:2.0.0~rc4-1) unstable; urgency=low
 
