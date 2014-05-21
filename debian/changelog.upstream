@@ -1,3 +1,58 @@
+Version v2.0.0-rc4; changes since v2.0.0-rc3:
+---------------------------------------------
+
+Alexander Shopov (1):
+      l10n: Updated Bulgarian translation of git (1307t0f921u)
+
+Anders Kaseorg (1):
+      Documentation/technical/api-hashmap: remove source highlighting
+
+Felipe Contreras (2):
+      contrib: completion: fix 'eread()' namespace
+      contrib: remote-helpers: add move warnings (v2.0)
+
+Grégoire Paris (1):
+      fr: a lot of good fixups
+
+Jason St. John (1):
+      RelNotes/2.0.0.txt: Fix several grammar issues, notably a lack of hyphens, double quotes, or articles
+
+Jens Lehmann (1):
+      git-gui: tolerate major version changes when comparing the git version
+
+Junio C Hamano (5):
+      request-pull: resurrect for-linus -> tags/for-linus DWIM
+      Revert "Merge branch 'fc/transport-helper-sync-error-fix'"
+      remote-helpers: point at their upstream repositories
+      Revert "Merge branch 'jc/graduate-remote-hg-bzr' (early part)"
+      Git 2.0-rc4
+
+Richard Hansen (1):
+      git-prompt.sh: don't assume the shell expands the value of PS1
+
+
+Version v2.0.0-rc3; changes since v2.0.0-rc2:
+---------------------------------------------
+
+Jonathan Nieder (1):
+      shell doc: remove stray "+" in example
+
+Junio C Hamano (4):
+      Update draft release notes for 2.0
+      Start preparing for 1.9.3
+      Git 1.9.3
+      Git 2.0-rc3
+
+Peter Krefting (1):
+      l10n: Fix a couple of typos in the Swedish translation
+
+Tolga Ceylan (1):
+      git-p4: format-patch to diff-tree change breaks binary patches
+
+Øyvind A. Holm (1):
+      RelNotes/2.0.0: Grammar and typo fixes
+
+
 Version v2.0.0-rc2; changes since v2.0.0-rc1:
 ---------------------------------------------
 
@@ -92,7 +147,7 @@ Kyle J. McKay (3):
       ewah_bitmap.c: do not assume size_t and eword_t are the same size
 
 
-Version v2.0.0-rc0; changes since v1.9.2:
+Version v2.0.0-rc0; changes since v1.9.3:
 -----------------------------------------
 
 Adam (1):
@@ -363,10 +418,6 @@ Kirill Smelkov (10):
       combine-diff: combine_diff_path.len is not needed anymore
       tests: add checking that combine-diff emits only correct paths
 
-Kyle J. McKay (2):
-      test: fix t7001 cp to use POSIX options
-      test: fix t5560 on FreeBSD
-
 Lars Gullik Bjønnes (1):
       git-contacts: do not fail parsing of good diffs
 
@@ -506,9 +557,6 @@ Thomas Gummerer (3):
       test-lib: allow setting the index format version
       read-cache: add index.version config variable
 
-Torsten Bögershausen (1):
-      utf8.c: partially update to version 6.3
-
 Vicent Marti (16):
       revindex: export new APIs
       pack-objects: refactor the packing list
@@ -550,6 +598,32 @@ dequis (1):
 
 Дилян Палаузов (1):
       Makefile: describe CHARSET_LIB better
+
+
+Version v1.9.3; changes since v1.9.2:
+-------------------------------------
+
+Jonathan Nieder (1):
+      shell doc: remove stray "+" in example
+
+Junio C Hamano (2):
+      Start preparing for 1.9.3
+      Git 1.9.3
+
+Kyle J. McKay (4):
+      test: fix t7001 cp to use POSIX options
+      test: fix t5560 on FreeBSD
+      rebase: avoid non-function use of "return" on FreeBSD
+      Revert "rebase: fix run_specific_rebase's use of "return" on FreeBSD"
+
+Richard Hansen (1):
+      git-prompt.sh: don't put unsanitized branch names in $PS1
+
+Tolga Ceylan (1):
+      git-p4: format-patch to diff-tree change breaks binary patches
+
+Torsten Bögershausen (1):
+      utf8.c: partially update to version 6.3
 
 
 Version v1.9.2; changes since v1.9.1:
