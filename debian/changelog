@@ -1,6 +1,8 @@
 git (1:2.0.0~rc4-0.1) unstable; urgency=low
 
   * new upstream release candidate.
+  * remove source-highlight build dependency since the markup
+    requiring it was removed upstream (thx Anders Kaseorg).
   * remove git-bzr package to make room for a package built from
     https://github.com/felipec/git-remote-bzr.
     * debian/control: remove references to git-bzr package.
