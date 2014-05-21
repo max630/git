@@ -1,11 +1,5 @@
-Version next; changes since v2.0.0-rc2:
+Version next; changes since v2.0.0-rc4:
 ---------------------------------------
-
-Alexander Shopov (1):
-      l10n: Updated Bulgarian translation of git (1307t0f921u)
-
-Anders Kaseorg (1):
-      Documentation/technical/api-hashmap: remove source highlighting
 
 Andreas Schwab (1):
       grep: add grep.fullName config variable
@@ -86,7 +80,7 @@ Eric Wong (1):
 Erik Faye-Lund (1):
       send-email: recognize absolute path on Windows
 
-Felipe Contreras (19):
+Felipe Contreras (17):
       fast-export: improve argument parsing
       fast-export: add new --refspec option
       transport-helper: add support for old:new refspec
@@ -103,12 +97,7 @@ Felipe Contreras (19):
       merge: enable defaulttoupstream by default
       rerere: fix for merge.conflictstyle
       silence a bunch of format-zero-length warnings
-      contrib: completion: fix 'eread()' namespace
       contrib: remote-helpers: add move warnings (v2.0)
-      contrib: remote-helpers: add move warnings (v2.0)
-
-Grégoire Paris (1):
-      fr: a lot of good fixups
 
 James Denholm (6):
       contrib/subtree/Makefile: scrap unused $(gitdir)
@@ -117,9 +106,6 @@ James Denholm (6):
       contrib/subtree/Makefile: clean up rules to generate documentation
       contrib/subtree/Makefile: clean up rule for "clean"
       contrib/subtree: allow adding an annotated tag
-
-Jason St. John (1):
-      RelNotes/2.0.0.txt: Fix several grammar issues, notably a lack of hyphens, double quotes, or articles
 
 Jean-Jacques Lafay (1):
       git tag --contains: avoid stack overflow
@@ -145,21 +131,19 @@ Jeff King (19):
       grep: use run-command's "dir" option for --open-files-in-pager
       index-pack: distinguish missing objects from type errors
 
-Jens Lehmann (2):
+Jens Lehmann (1):
       git-gui: use vcompare when comparing the git version
-      git-gui: tolerate major version changes when comparing the git version
 
 Jiang Xin (2):
       blame: fix broken time_buf paddings in relative timestamp
       blame: dynamic blame_date_width for different locales
 
-Jonathan Nieder (4):
+Jonathan Nieder (3):
       test doc: test_write_lines does not split its arguments
-      shell doc: remove stray "+" in example
       contrib: remove vim support instructions
       contrib: remove git-diffall
 
-Junio C Hamano (29):
+Junio C Hamano (20):
       apply --ignore-space-change: lines with and without leading whitespaces do not match
       send-email: windows drive prefix (e.g. C:) appears only at the beginning
       mergetool: document the default for --[no-]prompt
@@ -173,20 +157,11 @@ Junio C Hamano (29):
       CodingGuidelines: do not call the conditional statement "if()"
       CodingGuidelines: on comparison
       CodingGuidelines: on splitting a long line
-      Update draft release notes for 2.0
-      Start preparing for 1.9.3
-      Git 1.9.3
-      Git 2.0-rc3
-      Revert "Merge branch 'fc/transport-helper-sync-error-fix'"
-      request-pull: resurrect for-linus -> tags/for-linus DWIM
-      remote-helpers: point at their upstream repositories
       Revert "Merge branch 'fc/transport-helper-sync-error-fix'"
       remote-helpers: point at their upstream repositories
       remote-helpers: give short instructions to download the latest
       Revert "Merge branch 'jl/vcompare-makes-2.0-satisify-1.7-or-later' into next"
       Revert "Merge branch 'jc/graduate-remote-hg-bzr' into next"
-      Revert "Merge branch 'jc/graduate-remote-hg-bzr' (early part)"
-      Git 2.0-rc4
       Revert "Merge branch 'fc/remote-helpers-hg-bzr-graduation' into next"
       Revert "Merge branch 'fc/remote-helper-fixes' into next"
 
@@ -270,12 +245,6 @@ Michael S. Tsirkin (10):
 Nguyễn Thái Ngọc Duy (1):
       index-pack: work around thread-unsafe pread()
 
-Peter Krefting (1):
-      l10n: Fix a couple of typos in the Swedish translation
-
-Richard Hansen (1):
-      git-prompt.sh: don't assume the shell expands the value of PS1
-
 RomanBelinsky (1):
       SVN.pm::parse_svn_date: allow timestamps with a single-digit hour
 
@@ -294,9 +263,6 @@ Theodore Leblond (1):
 Thorsten Glaser (1):
       builtin/tag.c: show tag name to hint in the message editor
 
-Tolga Ceylan (1):
-      git-p4: format-patch to diff-tree change breaks binary patches
-
 Torsten Bögershausen (2):
       utf8.c: use a table for double_width
       utf8: make it easier to auto-update git_wcwidth()
@@ -313,6 +279,58 @@ Yiannis Marangos (2):
 
 brian m. carlson (1):
       blame: correctly handle files regardless of autocrlf
+
+
+Version v2.0.0-rc4; changes since v2.0.0-rc3:
+---------------------------------------------
+
+Alexander Shopov (1):
+      l10n: Updated Bulgarian translation of git (1307t0f921u)
+
+Anders Kaseorg (1):
+      Documentation/technical/api-hashmap: remove source highlighting
+
+Felipe Contreras (2):
+      contrib: completion: fix 'eread()' namespace
+      contrib: remote-helpers: add move warnings (v2.0)
+
+Grégoire Paris (1):
+      fr: a lot of good fixups
+
+Jason St. John (1):
+      RelNotes/2.0.0.txt: Fix several grammar issues, notably a lack of hyphens, double quotes, or articles
+
+Jens Lehmann (1):
+      git-gui: tolerate major version changes when comparing the git version
+
+Junio C Hamano (5):
+      request-pull: resurrect for-linus -> tags/for-linus DWIM
+      Revert "Merge branch 'fc/transport-helper-sync-error-fix'"
+      remote-helpers: point at their upstream repositories
+      Revert "Merge branch 'jc/graduate-remote-hg-bzr' (early part)"
+      Git 2.0-rc4
+
+Richard Hansen (1):
+      git-prompt.sh: don't assume the shell expands the value of PS1
+
+
+Version v2.0.0-rc3; changes since v2.0.0-rc2:
+---------------------------------------------
+
+Jonathan Nieder (1):
+      shell doc: remove stray "+" in example
+
+Junio C Hamano (4):
+      Update draft release notes for 2.0
+      Start preparing for 1.9.3
+      Git 1.9.3
+      Git 2.0-rc3
+
+Peter Krefting (1):
+      l10n: Fix a couple of typos in the Swedish translation
+
+Tolga Ceylan (1):
+      git-p4: format-patch to diff-tree change breaks binary patches
 
 Øyvind A. Holm (1):
       RelNotes/2.0.0: Grammar and typo fixes
@@ -412,7 +430,7 @@ Kyle J. McKay (3):
       ewah_bitmap.c: do not assume size_t and eword_t are the same size
 
 
-Version v2.0.0-rc0; changes since v1.9.2:
+Version v2.0.0-rc0; changes since v1.9.3:
 -----------------------------------------
 
 Adam (1):
@@ -683,10 +701,6 @@ Kirill Smelkov (10):
       combine-diff: combine_diff_path.len is not needed anymore
       tests: add checking that combine-diff emits only correct paths
 
-Kyle J. McKay (2):
-      test: fix t7001 cp to use POSIX options
-      test: fix t5560 on FreeBSD
-
 Lars Gullik Bjønnes (1):
       git-contacts: do not fail parsing of good diffs
 
@@ -826,9 +840,6 @@ Thomas Gummerer (3):
       test-lib: allow setting the index format version
       read-cache: add index.version config variable
 
-Torsten Bögershausen (1):
-      utf8.c: partially update to version 6.3
-
 Vicent Marti (16):
       revindex: export new APIs
       pack-objects: refactor the packing list
@@ -870,6 +881,32 @@ dequis (1):
 
 Дилян Палаузов (1):
       Makefile: describe CHARSET_LIB better
+
+
+Version v1.9.3; changes since v1.9.2:
+-------------------------------------
+
+Jonathan Nieder (1):
+      shell doc: remove stray "+" in example
+
+Junio C Hamano (2):
+      Start preparing for 1.9.3
+      Git 1.9.3
+
+Kyle J. McKay (4):
+      test: fix t7001 cp to use POSIX options
+      test: fix t5560 on FreeBSD
+      rebase: avoid non-function use of "return" on FreeBSD
+      Revert "rebase: fix run_specific_rebase's use of "return" on FreeBSD"
+
+Richard Hansen (1):
+      git-prompt.sh: don't put unsanitized branch names in $PS1
+
+Tolga Ceylan (1):
+      git-p4: format-patch to diff-tree change breaks binary patches
+
+Torsten Bögershausen (1):
+      utf8.c: partially update to version 6.3
 
 
 Version v1.9.2; changes since v1.9.1:

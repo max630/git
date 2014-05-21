@@ -1,4 +1,4 @@
-git (1:2.0.0~rc2+next.20140520-0.1) experimental; urgency=low
+git (1:2.0.0~rc4+next.20140520-0.1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit 63647d4f.
   * merge branch debian-sid.
@@ -12,18 +12,23 @@ git (1:2.0.0~rc2+next.20140520-0.1) experimental; urgency=low
 
  -- Jonathan Nieder <jrnieder@gmail.com>  Fri, 09 May 2014 10:45:28 -0700
 
-git (1:2.0.0~rc2-1.1) unstable; urgency=low
+git (1:2.0.0~rc4-1) unstable; urgency=low
 
+  * new upstream release candidate.
+  * remove source-highlight build dependency since the markup
+    requiring it was removed upstream (thx Anders Kaserog;
+    LP: #1316810).
   * remove git-bzr package to make room for a package built from
     https://github.com/felipec/git-remote-bzr.
     * debian/control: remove references to git-bzr package.
+    * debian/control: remove Build-Depends: bzr, python-bzrlib.
     * debian/rules: remove rules to build, install, and clean
       git-remote-bzr.
     * debian/git-doc.docs: do not install git-remote-bzr.html.
     * debian/git-remote-bzr.txt, debian/git-bzr.postinst,
       debian/git-bzr.prerm, debian/git-bzr.README.Debian: remove.
 
- -- Jonathan Nieder <jrnieder@gmail.com>  Wed, 21 May 2014 08:50:24 -0700
+ -- Jonathan Nieder <jrnieder@gmail.com>  Wed, 21 May 2014 11:34:56 -0700
 
 git (1:2.0.0~rc2+next.20140502-1) experimental; urgency=low
 
