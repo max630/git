@@ -482,8 +482,6 @@ SCRIPT_PERL += git-send-email.perl
 SCRIPT_PERL += git-svn.perl
 
 SCRIPT_PYTHON += git-p4.py
-SCRIPT_PYTHON += git-remote-hg.py
-SCRIPT_PYTHON += git-remote-bzr.py
 
 NO_INSTALL += git-remote-testgit
 
@@ -731,6 +729,7 @@ LIB_H += transport.h
 LIB_H += tree-walk.h
 LIB_H += tree.h
 LIB_H += unpack-trees.h
+LIB_H += unicode_width.h
 LIB_H += url.h
 LIB_H += urlmatch.h
 LIB_H += userdiff.h
