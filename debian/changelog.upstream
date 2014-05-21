@@ -1,13 +1,92 @@
 Version next; changes since v2.0.0-rc2:
 ---------------------------------------
 
+Alexander Shopov (1):
+      l10n: Updated Bulgarian translation of git (1307t0f921u)
+
+Anders Kaseorg (1):
+      Documentation/technical/api-hashmap: remove source highlighting
+
 Andreas Schwab (1):
       grep: add grep.fullName config variable
+
+Brian Gesiak (2):
+      strbuf: use _rtrim and _ltrim in strbuf_trim
+      api-strbuf.txt: add docs for _trim and _ltrim
+
+Charles Bailey (1):
+      compat/bswap.h: detect endianness on more platforms that don't use BYTE_ORDER
+
+Christian Couder (6):
+      replace: make sure --edit results in a different object
+      replace: refactor checking ref validity
+      replace: die early if replace ref already exists
+      replace: add tests for --edit
+      replace: add --edit to usage string
+      Documentation: replace: describe new --edit option
+
+Dan Albert (1):
+      imap-send: use git-credential
+
+David Kastrup (2):
+      blame: large-scale performance rewrite
+      Bump core.deltaBaseCacheLimit to 96m
+
+David Turner (3):
+      docs: document RUN_SETUP_GENTLY and clarify RUN_SETUP
+      merge-recursive.c: fix case-changing merge bug
+      mv: allow renaming to fix case on case insensitive filesystems
+
+Elia Pinto (41):
+      t9365-continuing-queries.sh: use the $( ... ) construct for command substitution
+      test-gitmw-lib.sh: use the $( ... ) construct for command substitution
+      t7900-subtree.sh: use the $( ... ) construct for command substitution
+      appp.sh: use the $( ... ) construct for command substitution
+      git-pull.sh: use the $( ... ) construct for command substitution
+      git-rebase--merge.sh: use the $( ... ) construct for command substitution
+      git-rebase.sh: use the $( ... ) construct for command substitution
+      git-stash.sh: use the $( ... ) construct for command substitution
+      git-web--browse.sh: use the $( ... ) construct for command substitution
+      lib-credential.sh: use the $( ... ) construct for command substitution
+      lib-cvs.sh: use the $( ... ) construct for command substitution
+      lib-gpg.sh: use the $( ... ) construct for command substitution
+      p5302-pack-index.sh: use the $( ... ) construct for command substitution
+      t0001-init.sh: use the $( ... ) construct for command substitution
+      t0010-racy-git.sh: use the $( ... ) construct for command substitution
+      t0020-crlf.sh: use the $( ... ) construct for command substitution
+      t0025-crlf-auto.sh: use the $( ... ) construct for command substitution
+      t0026-eol-config.sh: use the $( ... ) construct for command substitution
+      t0030-stripspace.sh: use the $( ... ) construct for command substitution
+      t0300-credentials.sh: use the $( ... ) construct for command substitution
+      t1000-read-tree-m-3way.sh: use the $( ... ) construct for command substitution
+      t1001-read-tree-m-2way.sh: use the $( ... ) construct for command substitution
+      t1002-read-tree-m-u-2way.sh: use the $( ... ) construct for command substitution
+      t1003-read-tree-prefix.sh: use the $( ... ) construct for command substitution
+      t1004-read-tree-m-u-wf.sh: use the $( ... ) construct for command substitution
+      t1020-subdirectory.sh: use the $( ... ) construct for command substitution
+      t1050-large.sh: use the $( ... ) construct for command substitution
+      t3905-stash-include-untracked.sh: use the $( ... ) construct for command substitution
+      t3910-mac-os-precompose.sh: use the $( ... ) construct for command substitution
+      t4006-diff-mode.sh: use the $( ... ) construct for command substitution
+      t4010-diff-pathspec.sh: use the $( ... ) construct for command substitution
+      t4012-diff-binary.sh: use the $( ... ) construct for command substitution
+      t4013-diff-various.sh: use the $( ... ) construct for command substitution
+      t4014-format-patch.sh: use the $( ... ) construct for command substitution
+      t4036-format-patch-signer-mime.sh: use the $( ... ) construct for command substitution
+      t4038-diff-combined.sh: use the $( ... ) construct for command substitution
+      t4057-diff-combined-paths.sh: use the $( ... ) construct for command substitution
+      t4116-apply-reverse.sh: use the $( ... ) construct for command substitution
+      t4119-apply-config.sh: use the $( ... ) construct for command substitution
+      t4204-patch-id.sh: use the $( ... ) construct for command substitution
+      t5000-tar-tree.sh: use the $( ... ) construct for command substitution
+
+Eric Wong (1):
+      config: preserve config file permissions on edits
 
 Erik Faye-Lund (1):
       send-email: recognize absolute path on Windows
 
-Felipe Contreras (14):
+Felipe Contreras (19):
       fast-export: improve argument parsing
       fast-export: add new --refspec option
       transport-helper: add support for old:new refspec
@@ -22,26 +101,100 @@ Felipe Contreras (14):
       mergetools: add vimdiff3 mode
       mergetool: run prompt only if guessed tool
       merge: enable defaulttoupstream by default
+      rerere: fix for merge.conflictstyle
+      silence a bunch of format-zero-length warnings
+      contrib: completion: fix 'eread()' namespace
+      contrib: remote-helpers: add move warnings (v2.0)
+      contrib: remote-helpers: add move warnings (v2.0)
+
+Grégoire Paris (1):
+      fr: a lot of good fixups
+
+James Denholm (6):
+      contrib/subtree/Makefile: scrap unused $(gitdir)
+      contrib/subtree/Makefile: use GIT-VERSION-FILE
+      contrib/subtree/Makefile: s/libexecdir/gitexecdir/
+      contrib/subtree/Makefile: clean up rules to generate documentation
+      contrib/subtree/Makefile: clean up rule for "clean"
+      contrib/subtree: allow adding an annotated tag
+
+Jason St. John (1):
+      RelNotes/2.0.0.txt: Fix several grammar issues, notably a lack of hyphens, double quotes, or articles
 
 Jean-Jacques Lafay (1):
       git tag --contains: avoid stack overflow
 
-Jeff King (5):
+Jeff King (19):
       run_external_diff: use an argv_array for the environment
       run_external_diff: clean up error handling
       run_external_diff: drop fflush(NULL)
       run_external_diff: hoist common bits out of conditional
       run_external_diff: refactor cmdline setup logic
+      commit: do not complain of empty messages from -C
+      t3910: show failure of core.precomposeunicode with decomposed filenames
+      replace: refactor command-mode determination
+      replace: use OPT_CMDMODE to handle modes
+      replace: factor object resolution out of replace_object
+      replace: add --edit option
+      commit: use split_ident_line to compare author/committer
+      pretty: make show_ident_date public
+      commit: print "Date" line when the user has set date
+      commit: accept more date formats for "--date"
+      inline constant return from error() function
+      let clang use the constant-return error() macro
+      grep: use run-command's "dir" option for --open-files-in-pager
+      index-pack: distinguish missing objects from type errors
+
+Jens Lehmann (2):
+      git-gui: use vcompare when comparing the git version
+      git-gui: tolerate major version changes when comparing the git version
 
 Jiang Xin (2):
       blame: fix broken time_buf paddings in relative timestamp
       blame: dynamic blame_date_width for different locales
 
-Junio C Hamano (4):
+Jonathan Nieder (4):
+      test doc: test_write_lines does not split its arguments
+      shell doc: remove stray "+" in example
+      contrib: remove vim support instructions
+      contrib: remove git-diffall
+
+Junio C Hamano (29):
       apply --ignore-space-change: lines with and without leading whitespaces do not match
       send-email: windows drive prefix (e.g. C:) appears only at the beginning
       mergetool: document the default for --[no-]prompt
       Revert "Merge branch 'mt/patch-id-stable' into next"
+      compat/bswap.h: restore preference __BIG_ENDIAN over BIG_ENDIAN
+      CodingGuidelines: once it is in, it is not worth the code churn
+      CodingGuidelines: give an example for case/esac statement
+      CodingGuidelines: give an example for redirection
+      CodingGuidelines: give an example for control statements
+      CodingGuidelines: give an example for shell function preamble
+      CodingGuidelines: do not call the conditional statement "if()"
+      CodingGuidelines: on comparison
+      CodingGuidelines: on splitting a long line
+      Update draft release notes for 2.0
+      Start preparing for 1.9.3
+      Git 1.9.3
+      Git 2.0-rc3
+      Revert "Merge branch 'fc/transport-helper-sync-error-fix'"
+      request-pull: resurrect for-linus -> tags/for-linus DWIM
+      remote-helpers: point at their upstream repositories
+      Revert "Merge branch 'fc/transport-helper-sync-error-fix'"
+      remote-helpers: point at their upstream repositories
+      remote-helpers: give short instructions to download the latest
+      Revert "Merge branch 'jl/vcompare-makes-2.0-satisify-1.7-or-later' into next"
+      Revert "Merge branch 'jc/graduate-remote-hg-bzr' into next"
+      Revert "Merge branch 'jc/graduate-remote-hg-bzr' (early part)"
+      Git 2.0-rc4
+      Revert "Merge branch 'fc/remote-helpers-hg-bzr-graduation' into next"
+      Revert "Merge branch 'fc/remote-helper-fixes' into next"
+
+Jörn Engel (1):
+      pager: do allow spawning pager recursively
+
+Karsten Blees (1):
+      MSVC: link dynamically to the CRT
 
 Kirill Smelkov (20):
       combine-diff: move show_log_first logic/action out of paths scanning
@@ -68,9 +221,10 @@ Kirill Smelkov (20):
 Luis R. Rodriguez (1):
       git.c: treat RUN_SETUP_GENTLY and RUN_SETUP as mutually exclusive
 
-Matthieu Moy (2):
+Matthieu Moy (3):
       git-remote-mediawiki: allow stop/start-ing the test server
       git-remote-mediawiki: fix encoding issue for UTF-8 media files
+      pager: remove 'S' from $LESS by default
 
 Michael Haggerty (27):
       t1400: fix name and expected result of one test
@@ -101,10 +255,12 @@ Michael Haggerty (27):
       struct ref_update: add a type field
       ref_transaction_commit(): work with transaction->updates in place
 
-Michael S. Tsirkin (8):
+Michael S. Tsirkin (10):
       patch-id: make it stable against hunk reordering
       patch-id: document new behaviour
       patch-id-test: test --stable and --unstable flags
+      git-send-email: two new options: to-cover, cc-cover
+      test/send-email: to-cover, cc-cover tests
       patch-id: make it stable against hunk reordering
       test: add test_write_lines helper
       patch-id-test: test stable and unstable behaviour
@@ -114,16 +270,52 @@ Michael S. Tsirkin (8):
 Nguyễn Thái Ngọc Duy (1):
       index-pack: work around thread-unsafe pread()
 
+Peter Krefting (1):
+      l10n: Fix a couple of typos in the Swedish translation
+
+Richard Hansen (1):
+      git-prompt.sh: don't assume the shell expands the value of PS1
+
 RomanBelinsky (1):
       SVN.pm::parse_svn_date: allow timestamps with a single-digit hour
 
-Ronnie Sahlberg (2):
+Ronnie Sahlberg (4):
       sequencer.c: check for lock failure and bail early in fast_forward_to
       commit.c: check for lock error and return early
+      refs.c: add new functions reflog_exists and delete_reflog
+      checkout.c: use ref_exists instead of file_exist
+
+Stepan Kasal (1):
+      Revert "submodules: fix ambiguous absolute paths under Windows"
+
+Theodore Leblond (1):
+      compat/poll: sleep 1 millisecond to avoid busy wait
+
+Thorsten Glaser (1):
+      builtin/tag.c: show tag name to hint in the message editor
+
+Tolga Ceylan (1):
+      git-p4: format-patch to diff-tree change breaks binary patches
+
+Torsten Bögershausen (2):
+      utf8.c: use a table for double_width
+      utf8: make it easier to auto-update git_wcwidth()
+
+W. Trevor King (1):
+      Documentation: mention config sources for @{upstream}
+
+William Giokas (1):
+      svn-fe: conform to pep8
 
 Yiannis Marangos (2):
       wrapper.c: add xpread() similar to xread()
       read-cache.c: verify index file before we opportunistically update it
+
+brian m. carlson (1):
+      blame: correctly handle files regardless of autocrlf
+
+Øyvind A. Holm (1):
+      RelNotes/2.0.0: Grammar and typo fixes
 
 
 Version v2.0.0-rc2; changes since v2.0.0-rc1:

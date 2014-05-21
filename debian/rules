@@ -120,7 +120,6 @@ install-arch: deb-checkdir deb-checkuid build-arch-stamp
 	# don't include arch, bzr, cvs, hg, p4, svn, email, gui tools,
 	# and gitk program
 	for i in git-archimport git-cvs git-p4 git-svn git-send-email \
-	 git-remote-bzr git-remote-hg \
 	 git-gui git-citool; do \
 	  rm -f '$(GIT)'/usr/lib/git-core/$$i*; \
 	done
@@ -202,7 +201,6 @@ install-indep: build-arch-stamp build-indep-stamp
 	# don't include arch, bzr, cvs, hg, p4, svn, email, gui, and
 	# gitk man pages
 	for i in git-archimport git-cvs git-p4 git-svn git-send-email gitk \
-	 git-remote-bzr git-remote-hg \
 	 git-gui git-citool; do \
 	  rm -f '$(GIT)'-man/usr/share/man/man1/$$i*; \
 	done
