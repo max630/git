@@ -147,12 +147,6 @@ int git_config_include(const char *var, const char *value, void *data)
 	return ret;
 }
 
-static void lowercase(char *p)
-{
-	for (; *p; p++)
-		*p = tolower(*p);
-}
-
 void git_config_push_parameter(const char *text)
 {
 	struct strbuf env = STRBUF_INIT;
@@ -180,7 +174,7 @@ int git_config_parse_parameter(const char *text,
 		strbuf_list_free(pair);
 		return error("bogus config parameter: %s", text);
 	}
-	lowercase(pair[0]->buf);
+	strbuf_tolower(pair[0]);
 	if (fn(pair[0]->buf, pair[1] ? pair[1]->buf : NULL, data) < 0) {
 		strbuf_list_free(pair);
 		return -1;
@@ -826,9 +820,16 @@ static int git_default_core_config(const char *var, const char *value)
 	if (!strcmp(var, "core.commentchar")) {
 		const char *comment;
 		int ret = git_config_string(&comment, var, value);
-		if (!ret)
+		if (ret)
+			return ret;
+		else if (!strcasecmp(comment, "auto"))
+			auto_comment_line_char = 1;
+		else if (comment[0] && !comment[1]) {
 			comment_line_char = comment[0];
-		return ret;
+			auto_comment_line_char = 0;
+		} else
+			return error("core.commentChar should only be one character");
+		return 0;
 	}
 
 	if (!strcmp(var, "core.askpass"))
