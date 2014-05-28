@@ -1,3 +1,11 @@
+Version v2.0.0; changes since v2.0.0-rc4:
+-----------------------------------------
+
+Junio C Hamano (2):
+      Update draft release notes to 2.0
+      Git 2.0
+
+
 Version v2.0.0-rc4; changes since v2.0.0-rc3:
 ---------------------------------------------
 
