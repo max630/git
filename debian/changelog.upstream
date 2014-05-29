@@ -1,6 +1,13 @@
 Version next; changes since v2.0.0-rc4:
 ---------------------------------------
 
+Alexey Shumkin (5):
+      t4205 (log-pretty-formats): don't hardcode SHA-1 in expected outputs
+      t4041, t4205, t6006, t7102: don't hardcode tested encoding value
+      t4205 (log-pretty-format): use `tformat` rather than `format`
+      t4205, t6006: add tests that fail with i18n.logOutputEncoding set
+      pretty.c: format string with truncate respects logOutputEncoding
+
 Andreas Schwab (1):
       grep: add grep.fullName config variable
 
@@ -8,16 +15,20 @@ Brian Gesiak (2):
       strbuf: use _rtrim and _ltrim in strbuf_trim
       api-strbuf.txt: add docs for _trim and _ltrim
 
+Cezary Zawadka (1):
+      Windows: Allow using UNC path for git repository
+
 Charles Bailey (1):
       compat/bswap.h: detect endianness on more platforms that don't use BYTE_ORDER
 
-Christian Couder (6):
+Christian Couder (7):
       replace: make sure --edit results in a different object
       replace: refactor checking ref validity
       replace: die early if replace ref already exists
       replace: add tests for --edit
       replace: add --edit to usage string
       Documentation: replace: describe new --edit option
+      replace: add --graft option
 
 Dan Albert (1):
       imap-send: use git-credential
@@ -31,7 +42,7 @@ David Turner (3):
       merge-recursive.c: fix case-changing merge bug
       mv: allow renaming to fix case on case insensitive filesystems
 
-Elia Pinto (41):
+Elia Pinto (42):
       t9365-continuing-queries.sh: use the $( ... ) construct for command substitution
       test-gitmw-lib.sh: use the $( ... ) construct for command substitution
       t7900-subtree.sh: use the $( ... ) construct for command substitution
@@ -73,6 +84,7 @@ Elia Pinto (41):
       t4119-apply-config.sh: use the $( ... ) construct for command substitution
       t4204-patch-id.sh: use the $( ... ) construct for command substitution
       t5000-tar-tree.sh: use the $( ... ) construct for command substitution
+      scripts: "export VAR=VALUE" construct is not portable
 
 Eric Wong (1):
       config: preserve config file permissions on edits
@@ -107,10 +119,13 @@ James Denholm (6):
       contrib/subtree/Makefile: clean up rule for "clean"
       contrib/subtree: allow adding an annotated tag
 
+Jason St. John (1):
+      Documentation: use "command-line" when used as a compound adjective, and fix other minor grammatical issues
+
 Jean-Jacques Lafay (1):
       git tag --contains: avoid stack overflow
 
-Jeff King (19):
+Jeff King (32):
       run_external_diff: use an argv_array for the environment
       run_external_diff: clean up error handling
       run_external_diff: drop fflush(NULL)
@@ -129,7 +144,20 @@ Jeff King (19):
       inline constant return from error() function
       let clang use the constant-return error() macro
       grep: use run-command's "dir" option for --open-files-in-pager
+      t/lib-httpd: require SANITY prereq
       index-pack: distinguish missing objects from type errors
+      run_diff_files: do not look at uninitialized stat data
+      run-command: store an optional argv_array
+      run_column_filter: use argv_array
+      git_connect: use argv_array
+      get_helper: use run-command's internal argv_array
+      get_exporter: use argv_array
+      get_importer: use run-command's internal argv_array
+      argv-array: drop "detach" code
+      open_sha1_file: report "most interesting" errno
+      move "--follow needs one pathspec" rule to diff_setup_done
+      daemon/config: factor out duplicate xstrdup_tolower
+      strbuf: add strbuf_tolower function
 
 Jens Lehmann (1):
       git-gui: use vcompare when comparing the git version
@@ -138,12 +166,16 @@ Jiang Xin (2):
       blame: fix broken time_buf paddings in relative timestamp
       blame: dynamic blame_date_width for different locales
 
-Jonathan Nieder (3):
+Johannes Schindelin (1):
+      git grep -O -i: if the pager is 'less', pass the '-I' option
+
+Jonathan Nieder (4):
       test doc: test_write_lines does not split its arguments
       contrib: remove vim support instructions
       contrib: remove git-diffall
+      test-lint: find unportable sed, echo, test, and export usage after &&
 
-Junio C Hamano (20):
+Junio C Hamano (24):
       apply --ignore-space-change: lines with and without leading whitespaces do not match
       send-email: windows drive prefix (e.g. C:) appears only at the beginning
       mergetool: document the default for --[no-]prompt
@@ -162,8 +194,12 @@ Junio C Hamano (20):
       remote-helpers: give short instructions to download the latest
       Revert "Merge branch 'jl/vcompare-makes-2.0-satisify-1.7-or-later' into next"
       Revert "Merge branch 'jc/graduate-remote-hg-bzr' into next"
+      CodingGuidelines: avoid "test <cond> -a/-o <cond>"
       Revert "Merge branch 'fc/remote-helpers-hg-bzr-graduation' into next"
       Revert "Merge branch 'fc/remote-helper-fixes' into next"
+      Update draft release notes to 2.0
+      scripts: more "export VAR=VALUE" fixes
+      Git 2.0
 
 Jörn Engel (1):
       pager: do allow spawning pager recursively
@@ -196,10 +232,17 @@ Kirill Smelkov (20):
 Luis R. Rodriguez (1):
       git.c: treat RUN_SETUP_GENTLY and RUN_SETUP as mutually exclusive
 
-Matthieu Moy (3):
+Matthieu Moy (4):
       git-remote-mediawiki: allow stop/start-ing the test server
       git-remote-mediawiki: fix encoding issue for UTF-8 media files
       pager: remove 'S' from $LESS by default
+      rebase -i: test "Nothing to do" case with autostash
+
+Max Kirillov (1):
+      git-show: fix 'git show -s' to not add extra terminator after merge commit
+
+Maxime Coste (1):
+      git-p4: Do not include diff in spec file when just preparing p4
 
 Michael Haggerty (27):
       t1400: fix name and expected result of one test
@@ -230,7 +273,7 @@ Michael Haggerty (27):
       struct ref_update: add a type field
       ref_transaction_commit(): work with transaction->updates in place
 
-Michael S. Tsirkin (10):
+Michael S. Tsirkin (11):
       patch-id: make it stable against hunk reordering
       patch-id: document new behaviour
       patch-id-test: test --stable and --unstable flags
@@ -241,9 +284,19 @@ Michael S. Tsirkin (10):
       patch-id-test: test stable and unstable behaviour
       patch-id: change default to stable
       t4204-patch-id.sh: default is now stable
+      rebase --keep-empty -i: add test
 
-Nguyễn Thái Ngọc Duy (1):
+Nguyễn Thái Ngọc Duy (3):
       index-pack: work around thread-unsafe pread()
+      config: be strict on core.commentChar
+      commit: allow core.commentChar=auto for character auto selection
+
+Pat Thoyts (2):
+      wincred: add install target
+      wincred: avoid overwriting configured variables
+
+Ramkumar Ramachandra (1):
+      rebase -i: handle "Nothing to do" case with autostash
 
 RomanBelinsky (1):
       SVN.pm::parse_svn_date: allow timestamps with a single-digit hour
@@ -256,6 +309,9 @@ Ronnie Sahlberg (4):
 
 Stepan Kasal (1):
       Revert "submodules: fix ambiguous absolute paths under Windows"
+
+Stephen P. Smith (1):
+      How to keep a project's canonical history correct.
 
 Theodore Leblond (1):
       compat/poll: sleep 1 millisecond to avoid busy wait

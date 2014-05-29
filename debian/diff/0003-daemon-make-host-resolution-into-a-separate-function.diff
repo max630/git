@@ -1,4 +1,4 @@
-From bdd0c506c65dd057f43e0a6687fc6a75b63b3d3e Mon Sep 17 00:00:00 2001
+From 033b08dcf3c9cf7e56a9d5cfc1bd1c00e5326401 Mon Sep 17 00:00:00 2001
 From: Jonathan Nieder <jrnieder@gmail.com>
 Date: Mon, 6 Jun 2011 04:38:45 -0500
 Subject: daemon: make host resolution into a separate function
@@ -23,10 +23,10 @@ Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
  1 file changed, 63 insertions(+), 49 deletions(-)
 
 diff --git a/daemon.c b/daemon.c
-index 7bee953..c86caec 100644
+index f9c63e9..b593126 100644
 --- a/daemon.c
 +++ b/daemon.c
-@@ -510,6 +510,65 @@ static void parse_host_and_port(char *hostport, char **host,
+@@ -502,6 +502,65 @@ static void parse_host_and_port(char *hostport, char **host,
  	}
  }
  
@@ -92,7 +92,7 @@ index 7bee953..c86caec 100644
  /*
   * Read the host as supplied by the client connection.
   */
-@@ -545,56 +604,11 @@ static void parse_host_arg(char *extra_args, int buflen)
+@@ -537,56 +596,11 @@ static void parse_host_arg(char *extra_args, int buflen)
  	}
  
  	/*
@@ -154,5 +154,5 @@ index 7bee953..c86caec 100644
  
  
 -- 
-1.8.5.1
+1.9.1.423.g4596e3a
 
