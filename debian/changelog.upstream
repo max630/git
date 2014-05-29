@@ -1,5 +1,5 @@
-Version next; changes since v2.0.0-rc4:
----------------------------------------
+Version next; changes since v2.0.0:
+-----------------------------------
 
 Alexey Shumkin (5):
       t4205 (log-pretty-formats): don't hardcode SHA-1 in expected outputs
@@ -175,7 +175,7 @@ Jonathan Nieder (4):
       contrib: remove git-diffall
       test-lint: find unportable sed, echo, test, and export usage after &&
 
-Junio C Hamano (24):
+Junio C Hamano (22):
       apply --ignore-space-change: lines with and without leading whitespaces do not match
       send-email: windows drive prefix (e.g. C:) appears only at the beginning
       mergetool: document the default for --[no-]prompt
@@ -197,9 +197,7 @@ Junio C Hamano (24):
       CodingGuidelines: avoid "test <cond> -a/-o <cond>"
       Revert "Merge branch 'fc/remote-helpers-hg-bzr-graduation' into next"
       Revert "Merge branch 'fc/remote-helper-fixes' into next"
-      Update draft release notes to 2.0
       scripts: more "export VAR=VALUE" fixes
-      Git 2.0
 
 Jörn Engel (1):
       pager: do allow spawning pager recursively
@@ -335,6 +333,14 @@ Yiannis Marangos (2):
 
 brian m. carlson (1):
       blame: correctly handle files regardless of autocrlf
+
+
+Version v2.0.0; changes since v2.0.0-rc4:
+-----------------------------------------
+
+Junio C Hamano (2):
+      Update draft release notes to 2.0
+      Git 2.0
 
 
 Version v2.0.0-rc4; changes since v2.0.0-rc3:
