@@ -1,9 +1,9 @@
-git (1:2.0.0+next.20140528-0.1) experimental; urgency=low
+git (1:2.0.0+next.20140528-1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit 53183364.
   * merge branch debian-sid.
 
- -- Jonathan Nieder <jrnieder@gmail.com>  Thu, 29 May 2014 12:54:36 -0700
+ -- Jonathan Nieder <jrnieder@gmail.com>  Thu, 29 May 2014 14:11:19 -0700
 
 git (1:2.0.0-1) unstable; urgency=low
 
