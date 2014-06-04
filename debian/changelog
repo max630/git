@@ -1,3 +1,15 @@
+git (1:2.0.0+next.20140528-1.max~1) UNRELEASED; urgency=low
+
+  * Non-maintainer upload.
+    * Merge blame_region into master
+    * Merge branch 'gui_blame_optparse' into master
+    * Merge branch 'search_wo_sel' into master
+    * Merge branch 'visible_selection2' into master
+    * Merge branch gui_stretch_comment into master
+    * Merge branch 'export/gitk_race' into master
+
+ -- Max Kirillov <max@max630.net>  Thu, 05 Jun 2014 00:30:13 +0300
+
 git (1:2.0.0+next.20140528-1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit 53183364.
