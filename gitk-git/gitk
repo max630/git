@@ -8287,24 +8287,29 @@ proc settabs {{firstab {}}} {
 proc incrsearch {name ix op} {
     global ctext searchstring searchdirn
 
-    if {[catch {$ctext index anchor}]} {
+    if {[catch {set prev_anchor [$ctext index anchor]}]} {
 	# no anchor set, use start of selection, or of visible area
 	set sel [$ctext tag ranges sel]
 	if {$sel ne {}} {
-	    $ctext mark set anchor [lindex $sel 0]
+	    set start [lindex $sel 0]
 	} elseif {$searchdirn eq "-forwards"} {
-	    $ctext mark set anchor @0,0
+	    set start @0,0
 	} else {
-	    $ctext mark set anchor @0,[winfo height $ctext]
+	    set start @0,[winfo height $ctext]
+	}
+    } else {
+	if {$searchdirn eq "-forwards"} {
+	    set start $prev_anchor
+	} else {
+	    set start "$prev_anchor + [string length $searchstring] c"
 	}
     }
     if {$searchstring ne {}} {
-	set here [$ctext search -count mlen $searchdirn -- $searchstring anchor]
+	set here [$ctext search -count mlen $searchdirn -- $searchstring $start]
 	if {$here ne {}} {
 	    $ctext see $here
 	    set mend "$here + $mlen c"
-	    $ctext tag remove sel 1.0 end
-	    $ctext tag add sel $here $mend
+	    $ctext mark set anchor $here
 	    suppress_highlighting_file_for_current_scrollpos
 	    highlightfile_for_scrollpos $here
 	}
@@ -8322,7 +8327,7 @@ proc dosearch {} {
 	set sel [$ctext tag ranges sel]
 	if {$sel ne {}} {
 	    set start "[lindex $sel 0] + 1c"
-	} elseif {[catch {set start [$ctext index anchor]}]} {
+	} elseif {[catch {set start "[$ctext index anchor] + 1c"}]} {
 	    set start "@0,0"
 	}
 	set match [$ctext search -count mlen -- $searchstring $start]
@@ -8335,8 +8340,7 @@ proc dosearch {} {
 	suppress_highlighting_file_for_current_scrollpos
 	highlightfile_for_scrollpos $match
 	set mend "$match + $mlen c"
-	$ctext tag add sel $match $mend
-	$ctext mark unset anchor
+	$ctext mark set anchor $match
 	rehighlight_search_results
     }
 }
@@ -8364,8 +8368,7 @@ proc dosearchback {} {
 	suppress_highlighting_file_for_current_scrollpos
 	highlightfile_for_scrollpos $match
 	set mend "$match + $ml c"
-	$ctext tag add sel $match $mend
-	$ctext mark unset anchor
+        $ctext mark set anchor $match
 	rehighlight_search_results
     }
 }
@@ -8384,14 +8387,15 @@ proc rehighlight_search_results {} {
 proc searchmark {first last} {
     global ctext searchstring
 
-    set sel [$ctext tag ranges sel]
+    #TODO: catch no anchor
+    set anchor [$ctext index anchor]
 
     set mend $first.0
     while {1} {
 	set match [$ctext search -count mlen -- $searchstring $mend $last.end]
 	if {$match eq {}} break
 	set mend "$match + $mlen c"
-	if {$sel ne {} && [$ctext compare $match == [lindex $sel 0]]} {
+	if {$anchor eq $match} {
 	    $ctext tag add currentsearchhit $match $mend
 	} else {
 	    $ctext tag add found $match $mend
