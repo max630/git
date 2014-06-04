@@ -16,6 +16,7 @@
 #include "submodule.h"
 #include "ll-merge.h"
 #include "string-list.h"
+#include "argv-array.h"
 
 #ifdef NO_FAST_WORKING_DIRECTORY
 #define FAST_WORKING_DIRECTORY 0
@@ -1361,11 +1362,7 @@ static struct diffstat_file *diffstat_add(struct diffstat_t *diffstat,
 {
 	struct diffstat_file *x;
 	x = xcalloc(sizeof (*x), 1);
-	if (diffstat->nr == diffstat->alloc) {
-		diffstat->alloc = alloc_nr(diffstat->alloc);
-		diffstat->files = xrealloc(diffstat->files,
-				diffstat->alloc * sizeof(x));
-	}
+	ALLOC_GROW(diffstat->files, diffstat->nr + 1, diffstat->alloc);
 	diffstat->files[diffstat->nr++] = x;
 	if (name_b) {
 		x->from_name = xstrdup(name_a);
@@ -1465,20 +1462,12 @@ int print_stat_summary(FILE *fp, int files, int insertions, int deletions)
 	 * but nothing about added/removed lines? Is this a bug in Git?").
 	 */
 	if (insertions || deletions == 0) {
-		/*
-		 * TRANSLATORS: "+" in (+) is a line addition marker;
-		 * do not translate it.
-		 */
 		strbuf_addf(&sb,
 			    (insertions == 1) ? ", %d insertion(+)" : ", %d insertions(+)",
 			    insertions);
 	}
 
 	if (deletions || insertions == 0) {
-		/*
-		 * TRANSLATORS: "-" in (-) is a line removal marker;
-		 * do not translate it.
-		 */
 		strbuf_addf(&sb,
 			    (deletions == 1) ? ", %d deletion(-)" : ", %d deletions(-)",
 			    deletions);
@@ -2845,8 +2834,9 @@ static struct diff_tempfile *prepare_temp_file(const char *name,
 		remove_tempfile_installed = 1;
 	}
 
-	if (!one->sha1_valid ||
-	    reuse_worktree_file(name, one->sha1, 1)) {
+	if (!S_ISGITLINK(one->mode) &&
+	    (!one->sha1_valid ||
+	     reuse_worktree_file(name, one->sha1, 1))) {
 		struct stat st;
 		if (lstat(name, &st) < 0) {
 			if (errno == ENOENT)
@@ -2890,6 +2880,16 @@ static struct diff_tempfile *prepare_temp_file(const char *name,
 	return temp;
 }
 
+static void add_external_diff_name(struct argv_array *argv,
+				   const char *name,
+				   struct diff_filespec *df)
+{
+	struct diff_tempfile *temp = prepare_temp_file(name, df);
+	argv_array_push(argv, temp->name);
+	argv_array_push(argv, temp->hex);
+	argv_array_push(argv, temp->mode);
+}
+
 /* An external diff command takes:
  *
  * diff-cmd name infile1 infile1-sha1 infile1-mode \
@@ -2905,50 +2905,33 @@ static void run_external_diff(const char *pgm,
 			      int complete_rewrite,
 			      struct diff_options *o)
 {
-	const char *spawn_arg[10];
-	int retval;
-	const char **arg = &spawn_arg[0];
+	struct argv_array argv = ARGV_ARRAY_INIT;
+	struct argv_array env = ARGV_ARRAY_INIT;
 	struct diff_queue_struct *q = &diff_queued_diff;
-	const char *env[3] = { NULL };
-	char env_counter[50];
-	char env_total[50];
+
+	argv_array_push(&argv, pgm);
+	argv_array_push(&argv, name);
 
 	if (one && two) {
-		struct diff_tempfile *temp_one, *temp_two;
-		const char *othername = (other ? other : name);
-		temp_one = prepare_temp_file(name, one);
-		temp_two = prepare_temp_file(othername, two);
-		*arg++ = pgm;
-		*arg++ = name;
-		*arg++ = temp_one->name;
-		*arg++ = temp_one->hex;
-		*arg++ = temp_one->mode;
-		*arg++ = temp_two->name;
-		*arg++ = temp_two->hex;
-		*arg++ = temp_two->mode;
-		if (other) {
-			*arg++ = other;
-			*arg++ = xfrm_msg;
+		add_external_diff_name(&argv, name, one);
+		if (!other)
+			add_external_diff_name(&argv, name, two);
+		else {
+			add_external_diff_name(&argv, other, two);
+			argv_array_push(&argv, other);
+			argv_array_push(&argv, xfrm_msg);
 		}
-	} else {
-		*arg++ = pgm;
-		*arg++ = name;
 	}
-	*arg = NULL;
-	fflush(NULL);
 
-	env[0] = env_counter;
-	snprintf(env_counter, sizeof(env_counter), "GIT_DIFF_PATH_COUNTER=%d",
-		 ++o->diff_path_counter);
-	env[1] = env_total;
-	snprintf(env_total, sizeof(env_total), "GIT_DIFF_PATH_TOTAL=%d", q->nr);
+	argv_array_pushf(&env, "GIT_DIFF_PATH_COUNTER=%d", ++o->diff_path_counter);
+	argv_array_pushf(&env, "GIT_DIFF_PATH_TOTAL=%d", q->nr);
 
-	retval = run_command_v_opt_cd_env(spawn_arg, RUN_USING_SHELL, NULL, env);
+	if (run_command_v_opt_cd_env(argv.argv, RUN_USING_SHELL, NULL, env.argv))
+		die(_("external diff died, stopping at %s"), name);
+
 	remove_tempfile();
-	if (retval) {
-		fprintf(stderr, "external diff died, stopping at %s.\n", name);
-		exit(1);
-	}
+	argv_array_clear(&argv);
+	argv_array_clear(&env);
 }
 
 static int similarity_index(struct diff_filepair *p)
@@ -3216,6 +3199,7 @@ void diff_setup(struct diff_options *options)
 	options->context = diff_context_default;
 	DIFF_OPT_SET(options, RENAME_EMPTY);
 
+	/* pathchange left =NULL by default */
 	options->change = diff_change;
 	options->add_remove = diff_addremove;
 	options->use_color = diff_use_color_default;
@@ -3336,6 +3320,9 @@ void diff_setup_done(struct diff_options *options)
 	}
 
 	options->diff_path_counter = 0;
+
+	if (DIFF_OPT_TST(options, FOLLOW_RENAMES) && options->pathspec.nr != 1)
+		die(_("--follow requires exactly one pathspec"));
 }
 
 static int opt_arg(const char *arg, int arg_short, const char *arg_long, int *val)
@@ -3365,14 +3352,11 @@ static int opt_arg(const char *arg, int arg_short, const char *arg_long, int *va
 	if (c != '-')
 		return 0;
 	arg++;
-	eq = strchr(arg, '=');
-	if (eq)
-		len = eq - arg;
-	else
-		len = strlen(arg);
+	eq = strchrnul(arg, '=');
+	len = eq - arg;
 	if (!len || strncmp(arg, arg_long, len))
 		return 0;
-	if (eq) {
+	if (*eq) {
 		int n;
 		char *end;
 		if (!isdigit(*++eq))
@@ -3933,7 +3917,7 @@ static int diff_scoreopt_parse(const char *opt)
 		}
 	}
 	if (cmd != 'M' && cmd != 'C' && cmd != 'B')
-		return -1; /* that is not a -M, -C nor -B option */
+		return -1; /* that is not a -M, -C, or -B option */
 
 	opt1 = parse_rename_score(&opt);
 	if (cmd != 'B')
@@ -3957,11 +3941,7 @@ struct diff_queue_struct diff_queued_diff;
 
 void diff_q(struct diff_queue_struct *queue, struct diff_filepair *dp)
 {
-	if (queue->alloc <= queue->nr) {
-		queue->alloc = alloc_nr(queue->alloc);
-		queue->queue = xrealloc(queue->queue,
-					sizeof(dp) * queue->alloc);
-	}
+	ALLOC_GROW(queue->queue, queue->nr + 1, queue->alloc);
 	queue->queue[queue->nr++] = dp;
 }
 
@@ -4131,9 +4111,9 @@ void diff_debug_filespec(struct diff_filespec *s, int x, const char *one)
 		DIFF_FILE_VALID(s) ? "valid" : "invalid",
 		s->mode,
 		s->sha1_valid ? sha1_to_hex(s->sha1) : "");
-	fprintf(stderr, "queue[%d] %s size %lu flags %d\n",
+	fprintf(stderr, "queue[%d] %s size %lu\n",
 		x, one ? one : "",
-		s->size, s->xfrm_flags);
+		s->size);
 }
 
 void diff_debug_filepair(const struct diff_filepair *p, int i)
@@ -4689,6 +4669,38 @@ static int diff_filespec_is_identical(struct diff_filespec *one,
 	return !memcmp(one->data, two->data, one->size);
 }
 
+static int diff_filespec_check_stat_unmatch(struct diff_filepair *p)
+{
+	if (p->done_skip_stat_unmatch)
+		return p->skip_stat_unmatch_result;
+
+	p->done_skip_stat_unmatch = 1;
+	p->skip_stat_unmatch_result = 0;
+	/*
+	 * 1. Entries that come from stat info dirtiness
+	 *    always have both sides (iow, not create/delete),
+	 *    one side of the object name is unknown, with
+	 *    the same mode and size.  Keep the ones that
+	 *    do not match these criteria.  They have real
+	 *    differences.
+	 *
+	 * 2. At this point, the file is known to be modified,
+	 *    with the same mode and size, and the object
+	 *    name of one side is unknown.  Need to inspect
+	 *    the identical contents.
+	 */
+	if (!DIFF_FILE_VALID(p->one) || /* (1) */
+	    !DIFF_FILE_VALID(p->two) ||
+	    (p->one->sha1_valid && p->two->sha1_valid) ||
+	    (p->one->mode != p->two->mode) ||
+	    diff_populate_filespec(p->one, 1) ||
+	    diff_populate_filespec(p->two, 1) ||
+	    (p->one->size != p->two->size) ||
+	    !diff_filespec_is_identical(p->one, p->two)) /* (2) */
+		p->skip_stat_unmatch_result = 1;
+	return p->skip_stat_unmatch_result;
+}
+
 static void diffcore_skip_stat_unmatch(struct diff_options *diffopt)
 {
 	int i;
@@ -4699,27 +4711,7 @@ static void diffcore_skip_stat_unmatch(struct diff_options *diffopt)
 	for (i = 0; i < q->nr; i++) {
 		struct diff_filepair *p = q->queue[i];
 
-		/*
-		 * 1. Entries that come from stat info dirtiness
-		 *    always have both sides (iow, not create/delete),
-		 *    one side of the object name is unknown, with
-		 *    the same mode and size.  Keep the ones that
-		 *    do not match these criteria.  They have real
-		 *    differences.
-		 *
-		 * 2. At this point, the file is known to be modified,
-		 *    with the same mode and size, and the object
-		 *    name of one side is unknown.  Need to inspect
-		 *    the identical contents.
-		 */
-		if (!DIFF_FILE_VALID(p->one) || /* (1) */
-		    !DIFF_FILE_VALID(p->two) ||
-		    (p->one->sha1_valid && p->two->sha1_valid) ||
-		    (p->one->mode != p->two->mode) ||
-		    diff_populate_filespec(p->one, 1) ||
-		    diff_populate_filespec(p->two, 1) ||
-		    (p->one->size != p->two->size) ||
-		    !diff_filespec_is_identical(p->one, p->two)) /* (2) */
+		if (diff_filespec_check_stat_unmatch(p))
 			diff_q(&outq, p);
 		else {
 			/*
@@ -4755,6 +4747,7 @@ void diffcore_fix_diff_index(struct diff_options *options)
 
 void diffcore_std(struct diff_options *options)
 {
+	/* NOTE please keep the following in sync with diff_tree_combined() */
 	if (options->skip_stat_unmatch)
 		diffcore_skip_stat_unmatch(options);
 	if (!options->found_follow) {
@@ -4882,6 +4875,7 @@ void diff_change(struct diff_options *options,
 		 unsigned old_dirty_submodule, unsigned new_dirty_submodule)
 {
 	struct diff_filespec *one, *two;
+	struct diff_filepair *p;
 
 	if (S_ISGITLINK(old_mode) && S_ISGITLINK(new_mode) &&
 	    is_submodule_ignored(concatpath, options))
@@ -4908,10 +4902,16 @@ void diff_change(struct diff_options *options,
 	fill_filespec(two, new_sha1, new_sha1_valid, new_mode);
 	one->dirty_submodule = old_dirty_submodule;
 	two->dirty_submodule = new_dirty_submodule;
+	p = diff_queue(&diff_queued_diff, one, two);
 
-	diff_queue(&diff_queued_diff, one, two);
-	if (!DIFF_OPT_TST(options, DIFF_FROM_CONTENTS))
-		DIFF_OPT_SET(options, HAS_CHANGES);
+	if (DIFF_OPT_TST(options, DIFF_FROM_CONTENTS))
+		return;
+
+	if (DIFF_OPT_TST(options, QUICK) && options->skip_stat_unmatch &&
+	    !diff_filespec_check_stat_unmatch(p))
+		return;
+
+	DIFF_OPT_SET(options, HAS_CHANGES);
 }
 
 struct diff_filepair *diff_unmerge(struct diff_options *options, const char *path)

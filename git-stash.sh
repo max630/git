@@ -13,7 +13,7 @@ USAGE="list [<options>]
 
 SUBDIRECTORY_OK=Yes
 OPTIONS_SPEC=
-START_DIR=`pwd`
+START_DIR=$(pwd)
 . git-sh-setup
 . git-sh-i18n
 require_work_tree
@@ -94,7 +94,8 @@ create_stash () {
 		# ease of unpacking later.
 		u_commit=$(
 			untracked_files | (
-				export GIT_INDEX_FILE="$TMPindex"
+				GIT_INDEX_FILE="$TMPindex" &&
+				export GIT_INDEX_FILE &&
 				rm -f "$TMPindex" &&
 				git update-index -z --add --remove --stdin &&
 				u_tree=$(git write-tree) &&
@@ -358,7 +359,7 @@ parse_flags_and_rev()
 	i_tree=
 	u_tree=
 
-	REV=$(git rev-parse --no-flags --symbolic "$@") || exit 1
+	REV=$(git rev-parse --no-flags --symbolic --sq "$@") || exit 1
 
 	FLAGS=
 	for opt
@@ -376,7 +377,7 @@ parse_flags_and_rev()
 		esac
 	done
 
-	set -- $REV
+	eval set -- $REV
 
 	case $# in
 		0)
@@ -391,13 +392,13 @@ parse_flags_and_rev()
 		;;
 	esac
 
-	REV=$(git rev-parse --quiet --symbolic --verify $1 2>/dev/null) || {
+	REV=$(git rev-parse --quiet --symbolic --verify "$1" 2>/dev/null) || {
 		reference="$1"
 		die "$(eval_gettext "\$reference is not valid reference")"
 	}
 
-	i_commit=$(git rev-parse --quiet --verify $REV^2 2>/dev/null) &&
-	set -- $(git rev-parse $REV $REV^1 $REV: $REV^1: $REV^2: 2>/dev/null) &&
+	i_commit=$(git rev-parse --quiet --verify "$REV^2" 2>/dev/null) &&
+	set -- $(git rev-parse "$REV" "$REV^1" "$REV:" "$REV^1:" "$REV^2:" 2>/dev/null) &&
 	s=$1 &&
 	w_commit=$1 &&
 	b_commit=$2 &&
@@ -408,8 +409,8 @@ parse_flags_and_rev()
 	test "$ref_stash" = "$(git rev-parse --symbolic-full-name "${REV%@*}")" &&
 	IS_STASH_REF=t
 
-	u_commit=$(git rev-parse --quiet --verify $REV^3 2>/dev/null) &&
-	u_tree=$(git rev-parse $REV^3: 2>/dev/null)
+	u_commit=$(git rev-parse --quiet --verify "$REV^3" 2>/dev/null) &&
+	u_tree=$(git rev-parse "$REV^3:" 2>/dev/null)
 }
 
 is_stash_like()
@@ -512,8 +513,14 @@ apply_stash () {
 pop_stash() {
 	assert_stash_ref "$@"
 
-	apply_stash "$@" &&
-	drop_stash "$@"
+	if apply_stash "$@"
+	then
+		drop_stash "$@"
+	else
+		status=$?
+		say "The stash is kept in case you need it again."
+		exit $status
+	fi
 }
 
 drop_stash () {

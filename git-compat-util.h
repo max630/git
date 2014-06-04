@@ -116,9 +116,6 @@
 #include <sys/time.h>
 #include <time.h>
 #include <signal.h>
-#ifndef USE_WILDMATCH
-#include <fnmatch.h>
-#endif
 #include <assert.h>
 #include <regex.h>
 #include <utime.h>
@@ -270,6 +267,10 @@ extern char *gitbasename(char *);
 #define has_dos_drive_prefix(path) 0
 #endif
 
+#ifndef offset_1st_component
+#define offset_1st_component(path) (is_dir_sep((path)[0]))
+#endif
+
 #ifndef is_dir_sep
 #define is_dir_sep(c) ((c) == '/')
 #endif
@@ -304,16 +305,7 @@ extern char *gitbasename(char *);
 
 #include "compat/bswap.h"
 
-#ifdef USE_WILDMATCH
 #include "wildmatch.h"
-#define FNM_PATHNAME WM_PATHNAME
-#define FNM_CASEFOLD WM_CASEFOLD
-#define FNM_NOMATCH  WM_NOMATCH
-static inline int fnmatch(const char *pattern, const char *string, int flags)
-{
-	return wildmatch(pattern, string, flags, NULL);
-}
-#endif
 
 /* General helper functions */
 extern void vreportf(const char *prefix, const char *err, va_list params);
@@ -342,8 +334,12 @@ extern void warning(const char *err, ...) __attribute__((format (printf, 1, 2)))
  * trying to help gcc, anyway, it's OK; other compilers will fall back to
  * using the function as usual.
  */
-#if defined(__GNUC__) && ! defined(__clang__)
-#define error(...) (error(__VA_ARGS__), -1)
+#if defined(__GNUC__)
+static inline int const_error(void)
+{
+	return -1;
+}
+#define error(...) (error(__VA_ARGS__), const_error())
 #endif
 
 extern void set_die_routine(NORETURN_PTR void (*routine)(const char *err, va_list params));
@@ -355,8 +351,11 @@ extern int ends_with(const char *str, const char *suffix);
 
 static inline const char *skip_prefix(const char *str, const char *prefix)
 {
-	size_t len = strlen(prefix);
-	return strncmp(str, prefix, len) ? NULL : str + len;
+	do {
+		if (!*prefix)
+			return str;
+	} while (*str++ == *prefix++);
+	return NULL;
 }
 
 #if defined(NO_MMAP) || defined(USE_WIN32_MMAP)
@@ -478,9 +477,15 @@ extern FILE *git_fopen(const char*, const char*);
 #endif
 
 #ifdef SNPRINTF_RETURNS_BOGUS
+#ifdef snprintf
+#undef snprintf
+#endif
 #define snprintf git_snprintf
 extern int git_snprintf(char *str, size_t maxsize,
 			const char *format, ...);
+#ifdef vsnprintf
+#undef vsnprintf
+#endif
 #define vsnprintf git_vsnprintf
 extern int git_vsnprintf(char *str, size_t maxsize,
 			 const char *format, va_list ap);
@@ -524,6 +529,14 @@ extern void release_pack_memory(size_t);
 typedef void (*try_to_free_t)(size_t);
 extern try_to_free_t set_try_to_free_routine(try_to_free_t);
 
+#ifdef HAVE_ALLOCA_H
+# include <alloca.h>
+# define xalloca(size)      (alloca(size))
+# define xalloca_free(p)    do {} while (0)
+#else
+# define xalloca(size)      (xmalloc(size))
+# define xalloca_free(p)    (free(p))
+#endif
 extern char *xstrdup(const char *str);
 extern void *xmalloc(size_t size);
 extern void *xmallocz(size_t size);
@@ -534,12 +547,13 @@ extern void *xcalloc(size_t nmemb, size_t size);
 extern void *xmmap(void *start, size_t length, int prot, int flags, int fd, off_t offset);
 extern ssize_t xread(int fd, void *buf, size_t len);
 extern ssize_t xwrite(int fd, const void *buf, size_t len);
+extern ssize_t xpread(int fd, void *buf, size_t len, off_t offset);
 extern int xdup(int fd);
 extern FILE *xfdopen(int fd, const char *mode);
 extern int xmkstemp(char *template);
 extern int xmkstemp_mode(char *template, int mode);
 extern int odb_mkstemp(char *template, size_t limit, const char *pattern);
-extern int odb_pack_keep(char *name, size_t namesz, unsigned char *sha1);
+extern int odb_pack_keep(char *name, size_t namesz, const unsigned char *sha1);
 
 static inline size_t xsize_t(off_t len)
 {
@@ -718,5 +732,12 @@ void warn_on_inaccessible(const char *path);
 
 /* Get the passwd entry for the UID of the current process. */
 struct passwd *xgetpwuid_self(void);
+
+#ifdef GMTIME_UNRELIABLE_ERRORS
+struct tm *git_gmtime(const time_t *);
+struct tm *git_gmtime_r(const time_t *, struct tm *);
+#define gmtime git_gmtime
+#define gmtime_r git_gmtime_r
+#endif
 
 #endif

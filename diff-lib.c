@@ -11,6 +11,7 @@
 #include "unpack-trees.h"
 #include "refs.h"
 #include "submodule.h"
+#include "dir.h"
 
 /*
  * diff-files
@@ -96,7 +97,6 @@ int run_diff_files(struct rev_info *revs, unsigned int option)
 		diff_unmerged_stage = 2;
 	entries = active_nr;
 	for (i = 0; i < entries; i++) {
-		struct stat st;
 		unsigned int oldmode, newmode;
 		struct cache_entry *ce = active_cache[i];
 		int changed;
@@ -105,7 +105,7 @@ int run_diff_files(struct rev_info *revs, unsigned int option)
 		if (diff_can_quit_early(&revs->diffopt))
 			break;
 
-		if (!ce_path_match(ce, &revs->prune_data))
+		if (!ce_path_match(ce, &revs->prune_data, NULL))
 			continue;
 
 		if (ce_stage(ce)) {
@@ -114,6 +114,7 @@ int run_diff_files(struct rev_info *revs, unsigned int option)
 			unsigned int wt_mode = 0;
 			int num_compare_stages = 0;
 			size_t path_len;
+			struct stat st;
 
 			path_len = ce_namelen(ce);
 
@@ -121,7 +122,6 @@ int run_diff_files(struct rev_info *revs, unsigned int option)
 			dpath->path = (char *) &(dpath->parent[5]);
 
 			dpath->next = NULL;
-			dpath->len = path_len;
 			memcpy(dpath->path, ce->name, path_len);
 			dpath->path[path_len] = '\0';
 			hashclr(dpath->sha1);
@@ -195,26 +195,35 @@ int run_diff_files(struct rev_info *revs, unsigned int option)
 			continue;
 
 		/* If CE_VALID is set, don't look at workdir for file removal */
-		changed = (ce->ce_flags & CE_VALID) ? 0 : check_removed(ce, &st);
-		if (changed) {
-			if (changed < 0) {
-				perror(ce->name);
+		if (ce->ce_flags & CE_VALID) {
+			changed = 0;
+			newmode = ce->ce_mode;
+		} else {
+			struct stat st;
+
+			changed = check_removed(ce, &st);
+			if (changed) {
+				if (changed < 0) {
+					perror(ce->name);
+					continue;
+				}
+				diff_addremove(&revs->diffopt, '-', ce->ce_mode,
+					       ce->sha1, !is_null_sha1(ce->sha1),
+					       ce->name, 0);
 				continue;
 			}
-			diff_addremove(&revs->diffopt, '-', ce->ce_mode,
-				       ce->sha1, !is_null_sha1(ce->sha1),
-				       ce->name, 0);
-			continue;
+
+			changed = match_stat_with_submodule(&revs->diffopt, ce, &st,
+							    ce_option, &dirty_submodule);
+			newmode = ce_mode_from_stat(ce, st.st_mode);
 		}
-		changed = match_stat_with_submodule(&revs->diffopt, ce, &st,
-						    ce_option, &dirty_submodule);
+
 		if (!changed && !dirty_submodule) {
 			ce_mark_uptodate(ce);
 			if (!DIFF_OPT_TST(&revs->diffopt, FIND_COPIES_HARDER))
 				continue;
 		}
 		oldmode = ce->ce_mode;
-		newmode = ce_mode_from_stat(ce, st.st_mode);
 		diff_change(&revs->diffopt, oldmode, newmode,
 			    ce->sha1, (changed ? null_sha1 : ce->sha1),
 			    !is_null_sha1(ce->sha1), (changed ? 0 : !is_null_sha1(ce->sha1)),
@@ -323,7 +332,6 @@ static int show_modified(struct rev_info *revs,
 		p = xmalloc(combine_diff_path_size(2, pathlen));
 		p->path = (char *) &p->parent[2];
 		p->next = NULL;
-		p->len = pathlen;
 		memcpy(p->path, new->name, pathlen);
 		p->path[pathlen] = 0;
 		p->mode = mode;
@@ -435,7 +443,7 @@ static int oneway_diff(const struct cache_entry * const *src,
 	if (tree == o->df_conflict_entry)
 		tree = NULL;
 
-	if (ce_path_match(idx ? idx : tree, &revs->prune_data)) {
+	if (ce_path_match(idx ? idx : tree, &revs->prune_data, NULL)) {
 		do_oneway_diff(o, idx, tree);
 		if (diff_can_quit_early(&revs->diffopt)) {
 			o->exiting_early = 1;

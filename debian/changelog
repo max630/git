@@ -1,3 +1,233 @@
+git (1:2.0.0+next.20140528-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit 53183364.
+  * merge branch debian-sid.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Thu, 29 May 2014 14:11:19 -0700
+
+git (1:2.0.0-1) unstable; urgency=low
+
+  * new upstream release (see RelNotes/2.0.0.txt).
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Wed, 28 May 2014 16:06:41 -0700
+
+git (1:2.0.0~rc4+next.20140520-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit 63647d4f.
+  * merge branch debian-sid.
+  * debian/rules: remove git-p4 manpage from the git-man and
+    git-doc packages.  If a separate git-p4 package is created,
+    it should not have to conflict with git-man or git-doc.
+  * debian/rules: adjust for remote-bzr and remote-hg removal
+    from git.git.
+  * debian/control: no longer Build-Depends: bzr, python-bzrlib,
+    locales-all.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Wed, 21 May 2014 11:37:23 -0700
+
+git (1:2.0.0~rc4-1) unstable; urgency=low
+
+  * new upstream release candidate.
+  * remove source-highlight build dependency since the markup
+    requiring it was removed upstream (thx Anders Kaserog;
+    LP: #1316810).
+  * remove git-bzr package to make room for a package built from
+    https://github.com/felipec/git-remote-bzr.
+    * debian/control: remove references to git-bzr package.
+    * debian/control: remove Build-Depends: bzr, python-bzrlib.
+    * debian/rules: remove rules to build, install, and clean
+      git-remote-bzr.
+    * debian/git-doc.docs: do not install git-remote-bzr.html.
+    * debian/git-remote-bzr.txt, debian/git-bzr.postinst,
+      debian/git-bzr.prerm, debian/git-bzr.README.Debian: remove.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Wed, 21 May 2014 11:34:56 -0700
+
+git (1:2.0.0~rc2+next.20140502-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit cfa251bb.
+  * merge branch debian-sid.
+  * debian/rules:
+    * remove NO_PYTHON=1 now that the git_remote_helpers
+      library has been removed.
+    * remove git-p4 command from the git package.  It depends on
+      Perforce, which is not part of Debian.
+    * adjust for remote-bzr and remote-hg promotion from contrib.
+  * debian/control: Build-Depends: python, locales-all.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 06 May 2014 11:11:19 -0700
+
+git (1:2.0.0~rc2-1) unstable; urgency=low
+
+  * new upstream release candidate.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Mon, 05 May 2014 17:25:50 -0700
+
+git (1:2.0.0~rc0+next.20140422-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit 4f984835.
+  * merge branch debian-sid.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Wed, 23 Apr 2014 11:19:16 -0700
+
+git (1:2.0.0~rc0-2) unstable; urgency=low
+
+  [ Anders Kaseorg ]
+  * add source-highlight build dependency (closes: #745591).
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Wed, 23 Apr 2014 11:09:25 -0700
+
+git (1:2.0.0~rc0+next.20140421-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit acc62aa9.
+  * merge branch debian-sid.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 22 Apr 2014 11:37:12 -0700
+
+git (1:2.0.0~rc0-1) unstable; urgency=low
+
+  * new upstream release candidate.
+  * debian/diff/0009-contrib-subtree-unset-prefix-before-....diff:
+    remove; applied upstream.
+  * update debian/copyright.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Fri, 18 Apr 2014 17:01:04 -0700
+
+git (1:2.0~next.20140415-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit eaba9156.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Wed, 16 Apr 2014 15:08:36 -0700
+
+git (1:1.9.2-1) unstable; urgency=low
+
+  * new upstream point release.
+    * wt-status: subject full label string to l10n (thx Raphaël
+      Hertzog; closes: #725777).
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Wed, 09 Apr 2014 15:15:18 -0700
+
+git (1:2.0~next.20140404-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit 3e70902d.
+  * debian/diff:
+    * 0009-contrib-subtree-unset-prefix-before-proceeding.diff:
+      remove; applied upstream.
+    * 0010...0015: rename to 0009-*, ..., 0014-*.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Mon, 07 Apr 2014 14:52:00 -0700
+
+git (1:2.0~next.20140318-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit 4596e3a5.
+  * merge branch debian-sid.
+  * update debian/copyright.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Wed, 19 Mar 2014 16:31:37 -0700
+
+git (1:1.9.1-1) unstable; urgency=low
+
+  * new upstream point release.
+
+  [ Jonathan Nieder ]
+  * git-email: Recommends: libio-socket-ssl-perl (>= 1.951) since
+    earlier versions do not use OpenSSL's defaults when ca_path
+    and ca_file are unset.
+
+  [ Gilles Filippini ]
+  * install git-subtree from contrib (closes: #704652).
+  * debian/diff/0009-contrib-subtree-unset-prefix-before-proceeding.diff:
+    new; unset the 'prefix' environment variable before proceeding.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 18 Mar 2014 15:58:46 -0700
+
+git (1:2.0~next.20140214-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit dc9e3eb9.
+  * merge branch debian-sid.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 18 Feb 2014 08:40:28 -0800
+
+git (1:1.9.0-1) unstable; urgency=low
+
+  * new upstream release.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 18 Feb 2014 08:31:49 -0800
+
+git (1:2.0~next.20140207-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit 34970086.
+  * merge branch debian-sid.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Fri, 07 Feb 2014 16:21:35 -0800
+
+git (1:1.9.0~rc3-1) unstable; urgency=low
+
+  * new upstream release candidate.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Fri, 07 Feb 2014 15:53:52 -0800
+
+git (1:2.0~next.20140127-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit 0b1dcb53.
+  * debian/diff/0015...0017: remove; applied upstream.
+  * merge branch debian-sid.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 28 Jan 2014 16:29:26 -0800
+
+git (1:1.9~rc1-1) unstable; urgency=low
+
+  * new upstream release candidate.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Mon, 27 Jan 2014 14:07:56 -0800
+
+git (1:2.0~next.20140123-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit f6678ce9.
+  * update debian/copyright.
+  * merge branch debian-sid.
+  * debian/diff/0015-block-sha1-factor-out-get_be-and-...diff,
+    ..., 0017-ewah-support-platforms-that-require-aligned-...diff:
+    new from upstream: pack-bitmap: avoid unaligned reads on
+    platforms that care (fixes build/selftest failures on sparc
+    and armel).
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Mon, 27 Jan 2014 13:09:48 -0800
+
+git (1:1.9~rc0-1) unstable; urgency=low
+
+  * new upstream release candidate.
+  * debian/diff:
+    * 0001-remove-interpreter-line-from-shell-libraries.diff:
+      remove; applied upstream.
+    * 0002...0009: rename to 0001-*, ..., 0008-*.
+    * 0010-git-remote-mediawiki-do-not-remove-installed-...diff:
+      remove; applied upstream.
+  * debian/rules install: no more need to include DESTDIR in
+    mw-to-git INSTLIBDIR.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Mon, 27 Jan 2014 13:05:17 -0800
+
+git (1:2.0~next.20140117-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit 6fd479ea.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 21 Jan 2014 12:49:20 -0800
+
+git (1:2.0~next.20140113-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit b139ac25.
+  * update debian/copyright.
+  * merge branch debian-sid.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Thu, 16 Jan 2014 17:53:34 -0800
+
+git (1:1.8.5.3-1) unstable; urgency=low
+
+  * new upstream point release.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Thu, 16 Jan 2014 16:18:25 -0800
+
 git (1:2.0~next.20140107-1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit 4cdf8d04.

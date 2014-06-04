@@ -158,13 +158,9 @@ static void cmd_log_init_finish(int argc, const char **argv, const char *prefix,
 	if (rev->show_notes)
 		init_display_notes(&rev->notes_opt);
 
-	if (rev->diffopt.pickaxe || rev->diffopt.filter)
+	if (rev->diffopt.pickaxe || rev->diffopt.filter ||
+	    DIFF_OPT_TST(&rev->diffopt, FOLLOW_RENAMES))
 		rev->always_show_header = 0;
-	if (DIFF_OPT_TST(&rev->diffopt, FOLLOW_RENAMES)) {
-		rev->always_show_header = 0;
-		if (rev->diffopt.pathspec.nr != 1)
-			usage("git logs can only follow renames on one pathname at a time");
-	}
 
 	if (source)
 		rev->show_source = 1;
@@ -503,7 +499,7 @@ static void show_rev_tweak_rev(struct rev_info *rev, struct setup_revision_opt *
 		/* There was no "-m" on the command line */
 		rev->ignore_merges = 0;
 		if (!rev->first_parent_only && !rev->combine_merges) {
-			/* No "--first-parent", "-c", nor "--cc" */
+			/* No "--first-parent", "-c", or "--cc" */
 			rev->combine_merges = 1;
 			rev->dense_combined_merges = 1;
 		}

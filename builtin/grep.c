@@ -361,9 +361,7 @@ static void run_pager(struct grep_opt *opt, const char *prefix)
 		argv[i] = path_list->items[i].string;
 	argv[path_list->nr] = NULL;
 
-	if (prefix && chdir(prefix))
-		die(_("Failed to chdir: %s"), prefix);
-	status = run_command_v_opt(argv, RUN_USING_SHELL);
+	status = run_command_v_opt_cd_env(argv, RUN_USING_SHELL, prefix, NULL);
 	if (status)
 		exit(status);
 	free(argv);
@@ -379,7 +377,7 @@ static int grep_cache(struct grep_opt *opt, const struct pathspec *pathspec, int
 		const struct cache_entry *ce = active_cache[nr];
 		if (!S_ISREG(ce->ce_mode))
 			continue;
-		if (!match_pathspec_depth(pathspec, ce->name, ce_namelen(ce), 0, NULL))
+		if (!ce_path_match(ce, pathspec, NULL))
 			continue;
 		/*
 		 * If CE_VALID is on, we assume worktree file and its cache entry
@@ -524,9 +522,7 @@ static int grep_directory(struct grep_opt *opt, const struct pathspec *pathspec,
 
 	fill_directory(&dir, pathspec);
 	for (i = 0; i < dir.nr; i++) {
-		const char *name = dir.entries[i]->name;
-		int namelen = strlen(name);
-		if (!match_pathspec_depth(pathspec, name, namelen, 0, NULL))
+		if (!dir_path_match(dir.entries[i], pathspec, 0, NULL))
 			continue;
 		hit |= grep_file(opt, dir.entries[i]->name);
 		if (hit && opt->status_only)
@@ -875,6 +871,9 @@ int cmd_grep(int argc, const char **argv, const char *prefix)
 
 		if (len > 4 && is_dir_sep(pager[len - 5]))
 			pager += len - 4;
+
+		if (opt.ignore_case && !strcmp("less", pager))
+			string_list_append(&path_list, "-I");
 
 		if (!strcmp("less", pager) || !strcmp("vi", pager)) {
 			struct strbuf buf = STRBUF_INIT;

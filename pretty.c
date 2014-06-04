@@ -393,16 +393,22 @@ static void add_rfc2047(struct strbuf *sb, const char *line, size_t len,
 	strbuf_addstr(sb, "?=");
 }
 
-static const char *show_ident_date(const struct ident_split *ident,
-				   enum date_mode mode)
+const char *show_ident_date(const struct ident_split *ident,
+			    enum date_mode mode)
 {
 	unsigned long date = 0;
-	int tz = 0;
+	long tz = 0;
 
 	if (ident->date_begin && ident->date_end)
 		date = strtoul(ident->date_begin, NULL, 10);
-	if (ident->tz_begin && ident->tz_end)
-		tz = strtol(ident->tz_begin, NULL, 10);
+	if (date_overflows(date))
+		date = 0;
+	else {
+		if (ident->tz_begin && ident->tz_end)
+			tz = strtol(ident->tz_begin, NULL, 10);
+		if (tz >= INT_MAX || tz <= INT_MIN)
+			tz = 0;
+	}
 	return show_date(date, tz, mode);
 }
 
@@ -549,14 +555,13 @@ static char *get_header(const struct commit *commit, const char *msg,
 	const char *line = msg;
 
 	while (line) {
-		const char *eol = strchr(line, '\n'), *next;
+		const char *eol = strchrnul(line, '\n'), *next;
 
 		if (line == eol)
 			return NULL;
-		if (!eol) {
+		if (!*eol) {
 			warning("malformed commit (header is missing newline): %s",
 				sha1_to_hex(commit->object.sha1));
-			eol = line + strlen(line);
 			next = NULL;
 		} else
 			next = eol + 1;
@@ -1501,13 +1506,18 @@ void format_commit_message(const struct commit *commit,
 	context.commit = commit;
 	context.pretty_ctx = pretty_ctx;
 	context.wrap_start = sb->len;
+	/*
+	 * convert a commit message to UTF-8 first
+	 * as far as 'format_commit_item' assumes it in UTF-8
+	 */
 	context.message = logmsg_reencode(commit,
 					  &context.commit_encoding,
-					  output_enc);
+					  utf8);
 
 	strbuf_expand(sb, format, format_commit_item, &context);
 	rewrap_message_tail(sb, &context, 0, 0, 0);
 
+	/* then convert a commit message to an actual output encoding */
 	if (output_enc) {
 		if (same_encoding(utf8, output_enc))
 			output_enc = NULL;

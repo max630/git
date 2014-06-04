@@ -75,6 +75,21 @@ unsigned long git_deflate_bound(git_zstream *, unsigned long);
 #define S_ISGITLINK(m)	(((m) & S_IFMT) == S_IFGITLINK)
 
 /*
+ * Some mode bits are also used internally for computations.
+ *
+ * They *must* not overlap with any valid modes, and they *must* not be emitted
+ * to outside world - i.e. appear on disk or network. In other words, it's just
+ * temporary fields, which we internally use, but they have to stay in-house.
+ *
+ * ( such approach is valid, as standard S_IF* fits into 16 bits, and in Git
+ *   codebase mode is `unsigned int` which is assumed to be at least 32 bits )
+ */
+
+/* used internally in tree-diff */
+#define S_DIFFTREE_IFXMIN_NEQ	0x80000000
+
+
+/*
  * Intensive research over the course of many years has shown that
  * port 9418 is totally unused by anything else. Or
  *
@@ -279,6 +294,7 @@ struct index_state {
 		 initialized : 1;
 	struct hashmap name_hash;
 	struct hashmap dir_hash;
+	unsigned char sha1[20];
 };
 
 extern struct index_state the_index;
@@ -433,6 +449,7 @@ extern int set_git_dir_init(const char *git_dir, const char *real_git_dir, int);
 extern int init_db(const char *template_dir, unsigned int flags);
 
 extern void sanitize_stdfds(void);
+extern int daemonize(void);
 
 #define alloc_nr(x) (((x)+16)*3/2)
 
@@ -484,8 +501,9 @@ extern int remove_file_from_index(struct index_state *, const char *path);
 #define ADD_CACHE_INTENT 16
 extern int add_to_index(struct index_state *, const char *path, struct stat *, int flags);
 extern int add_file_to_index(struct index_state *, const char *path, int flags);
-extern struct cache_entry *make_cache_entry(unsigned int mode, const unsigned char *sha1, const char *path, int stage, int refresh);
+extern struct cache_entry *make_cache_entry(unsigned int mode, const unsigned char *sha1, const char *path, int stage, unsigned int refresh_options);
 extern int ce_same_name(const struct cache_entry *a, const struct cache_entry *b);
+extern void set_object_name_for_intent_to_add_entry(struct cache_entry *ce);
 extern int index_name_is_other(const struct index_state *, const char *, int);
 extern void *read_blob_data_from_index(struct index_state *, const char *, unsigned long *);
 
@@ -495,10 +513,12 @@ extern void *read_blob_data_from_index(struct index_state *, const char *, unsig
 #define CE_MATCH_RACY_IS_DIRTY		02
 /* do stat comparison even if CE_SKIP_WORKTREE is true */
 #define CE_MATCH_IGNORE_SKIP_WORKTREE	04
+/* ignore non-existent files during stat update  */
+#define CE_MATCH_IGNORE_MISSING		0x08
+/* enable stat refresh */
+#define CE_MATCH_REFRESH		0x10
 extern int ie_match_stat(const struct index_state *, const struct cache_entry *, struct stat *, unsigned int);
 extern int ie_modified(const struct index_state *, const struct cache_entry *, struct stat *, unsigned int);
-
-extern int ce_path_match(const struct cache_entry *ce, const struct pathspec *pathspec);
 
 #define HASH_WRITE_OBJECT 1
 #define HASH_FORMAT_CHECK 2
@@ -577,7 +597,17 @@ extern size_t packed_git_limit;
 extern size_t delta_base_cache_limit;
 extern unsigned long big_file_threshold;
 extern unsigned long pack_size_limit_cfg;
-extern int read_replace_refs;
+
+/*
+ * Do replace refs need to be checked this run?  This variable is
+ * initialized to true unless --no-replace-object is used or
+ * $GIT_NO_REPLACE_OBJECTS is set, but is set to false by some
+ * commands that do not want replace references to be active.  As an
+ * optimization it is also set to false if replace references have
+ * been sought but there were none.
+ */
+extern int check_replace_refs;
+
 extern int fsync_object_files;
 extern int core_preload_index;
 extern int core_apply_sparse_checkout;
@@ -588,6 +618,7 @@ extern int precomposed_unicode;
  * that is subject to stripspace.
  */
 extern char comment_line_char;
+extern int auto_comment_line_char;
 
 enum branch_track {
 	BRANCH_TRACK_UNSPECIFIED = -1,
@@ -656,9 +687,28 @@ extern char *git_path(const char *fmt, ...) __attribute__((format (printf, 1, 2)
 extern char *git_path_submodule(const char *path, const char *fmt, ...)
 	__attribute__((format (printf, 2, 3)));
 
-extern char *sha1_file_name(const unsigned char *sha1);
+/*
+ * Return the name of the file in the local object database that would
+ * be used to store a loose object with the specified sha1.  The
+ * return value is a pointer to a statically allocated buffer that is
+ * overwritten each time the function is called.
+ */
+extern const char *sha1_file_name(const unsigned char *sha1);
+
+/*
+ * Return the name of the (local) packfile with the specified sha1 in
+ * its name.  The return value is a pointer to memory that is
+ * overwritten each time this function is called.
+ */
 extern char *sha1_pack_name(const unsigned char *sha1);
+
+/*
+ * Return the name of the (local) pack index file with the specified
+ * sha1 in its name.  The return value is a pointer to memory that is
+ * overwritten each time this function is called.
+ */
 extern char *sha1_pack_index_name(const unsigned char *sha1);
+
 extern const char *find_unique_abbrev(const unsigned char *sha1, int);
 extern const unsigned char null_sha1[20];
 
@@ -734,8 +784,29 @@ enum sharedrepo {
 };
 int git_config_perm(const char *var, const char *value);
 int adjust_shared_perm(const char *path);
-int safe_create_leading_directories(char *path);
-int safe_create_leading_directories_const(const char *path);
+
+/*
+ * Create the directory containing the named path, using care to be
+ * somewhat safe against races.  Return one of the scld_error values
+ * to indicate success/failure.
+ *
+ * SCLD_VANISHED indicates that one of the ancestor directories of the
+ * path existed at one point during the function call and then
+ * suddenly vanished, probably because another process pruned the
+ * directory while we were working.  To be robust against this kind of
+ * race, callers might want to try invoking the function again when it
+ * returns SCLD_VANISHED.
+ */
+enum scld_error {
+	SCLD_OK = 0,
+	SCLD_FAILED = -1,
+	SCLD_PERMS = -2,
+	SCLD_EXISTS = -3,
+	SCLD_VANISHED = -4
+};
+enum scld_error safe_create_leading_directories(char *path);
+enum scld_error safe_create_leading_directories_const(const char *path);
+
 int mkdir_in_gitdir(const char *path);
 extern void home_config_paths(char **global, char **xdg, char *file);
 extern char *expand_user_path(const char *path);
@@ -755,7 +826,6 @@ int normalize_path_copy(char *dst, const char *src);
 int longest_ancestor_length(const char *path, struct string_list *prefixes);
 char *strip_path_suffix(const char *path, const char *suffix);
 int daemon_avoid_alias(const char *path);
-int offset_1st_component(const char *path);
 
 /* object replacement */
 #define LOOKUP_REPLACE_OBJECT 1
@@ -764,13 +834,26 @@ static inline void *read_sha1_file(const unsigned char *sha1, enum object_type *
 {
 	return read_sha1_file_extended(sha1, type, size, LOOKUP_REPLACE_OBJECT);
 }
+
+/*
+ * This internal function is only declared here for the benefit of
+ * lookup_replace_object().  Please do not call it directly.
+ */
 extern const unsigned char *do_lookup_replace_object(const unsigned char *sha1);
+
+/*
+ * If object sha1 should be replaced, return the replacement object's
+ * name (replaced recursively, if necessary).  The return value is
+ * either sha1 or a pointer to a permanently-allocated value.  When
+ * object replacement is suppressed, always return sha1.
+ */
 static inline const unsigned char *lookup_replace_object(const unsigned char *sha1)
 {
-	if (!read_replace_refs)
+	if (!check_replace_refs)
 		return sha1;
 	return do_lookup_replace_object(sha1);
 }
+
 static inline const unsigned char *lookup_replace_object_extended(const unsigned char *sha1, unsigned flag)
 {
 	if (!(flag & LOOKUP_REPLACE_OBJECT))
@@ -784,6 +867,7 @@ extern int hash_sha1_file(const void *buf, unsigned long len, const char *type, 
 extern int write_sha1_file(const void *buf, unsigned long len, const char *type, unsigned char *return_sha1);
 extern int pretend_sha1_file(void *, unsigned long, enum object_type, unsigned char *);
 extern int force_object_loose(const unsigned char *sha1, time_t mtime);
+extern int git_open_noatime(const char *name);
 extern void *map_sha1_file(const unsigned char *sha1, unsigned long *size);
 extern int unpack_sha1_header(git_zstream *stream, unsigned char *map, unsigned long mapsize, void *buffer, unsigned long bufsiz);
 extern int parse_sha1_header(const char *hdr, unsigned long *sizep);
@@ -796,7 +880,19 @@ extern int check_sha1_signature(const unsigned char *sha1, void *buf, unsigned l
 extern int move_temp_to_file(const char *tmpfile, const char *filename);
 
 extern int has_sha1_pack(const unsigned char *sha1);
+
+/*
+ * Return true iff we have an object named sha1, whether local or in
+ * an alternate object database, and whether packed or loose.  This
+ * function does not respect replace references.
+ */
 extern int has_sha1_file(const unsigned char *sha1);
+
+/*
+ * Return true iff an alternate object database has a loose object
+ * with the specified name.  This function does not respect replace
+ * references.
+ */
 extern int has_loose_object_nonlocal(const unsigned char *sha1);
 
 extern int has_pack_index(const unsigned char *sha1);
@@ -891,9 +987,12 @@ extern int dwim_log(const char *str, int len, unsigned char *sha1, char **ref);
 extern int interpret_branch_name(const char *str, int len, struct strbuf *);
 extern int get_sha1_mb(const char *str, unsigned char *sha1);
 
-extern int refname_match(const char *abbrev_name, const char *full_name, const char **rules);
-extern const char *ref_rev_parse_rules[];
-#define ref_fetch_rules ref_rev_parse_rules
+/*
+ * Return true iff abbrev_name is a possible abbreviation for
+ * full_name according to the rules defined by ref_rev_parse_rules in
+ * refs.c.
+ */
+extern int refname_match(const char *abbrev_name, const char *full_name);
 
 extern int create_symref(const char *ref, const char *refs_heads_master, const char *logmsg);
 extern int validate_headref(const char *ref);
@@ -932,6 +1031,7 @@ void datestamp(char *buf, int bufsize);
 unsigned long approxidate_careful(const char *, int *);
 unsigned long approxidate_relative(const char *date, const struct timeval *now);
 enum date_mode parse_date_format(const char *format);
+int date_overflows(unsigned long date);
 
 #define IDENT_STRICT	       1
 #define IDENT_NO_DATE	       2
@@ -960,6 +1060,13 @@ struct ident_split {
  * if the input lacks timestamp and zone
  */
 extern int split_ident_line(struct ident_split *, const char *, int);
+
+/*
+ * Like show_date, but pull the timestamp and tz parameters from
+ * the ident_split. It will also sanity-check the values and produce
+ * a well-known sentinel date if they appear bogus.
+ */
+const char *show_ident_date(const struct ident_split *id, enum date_mode mode);
 
 /*
  * Compare split idents for equality or strict ordering. Note that we
@@ -1056,17 +1163,46 @@ extern struct packed_git *find_sha1_pack(const unsigned char *sha1,
 					 struct packed_git *packs);
 
 extern void pack_report(void);
+
+/*
+ * mmap the index file for the specified packfile (if it is not
+ * already mmapped).  Return 0 on success.
+ */
 extern int open_pack_index(struct packed_git *);
+
+/*
+ * munmap the index file for the specified packfile (if it is
+ * currently mmapped).
+ */
 extern void close_pack_index(struct packed_git *);
+
 extern unsigned char *use_pack(struct packed_git *, struct pack_window **, off_t, unsigned long *);
 extern void close_pack_windows(struct packed_git *);
 extern void unuse_pack(struct pack_window **);
 extern void free_pack_by_name(const char *);
 extern void clear_delta_base_cache(void);
 extern struct packed_git *add_packed_git(const char *, int, int);
-extern const unsigned char *nth_packed_object_sha1(struct packed_git *, uint32_t);
-extern off_t nth_packed_object_offset(const struct packed_git *, uint32_t);
-extern off_t find_pack_entry_one(const unsigned char *, struct packed_git *);
+
+/*
+ * Return the SHA-1 of the nth object within the specified packfile.
+ * Open the index if it is not already open.  The return value points
+ * at the SHA-1 within the mmapped index.  Return NULL if there is an
+ * error.
+ */
+extern const unsigned char *nth_packed_object_sha1(struct packed_git *, uint32_t n);
+
+/*
+ * Return the offset of the nth object within the specified packfile.
+ * The index must already be opened.
+ */
+extern off_t nth_packed_object_offset(const struct packed_git *, uint32_t n);
+
+/*
+ * If the object named sha1 is present in the specified packfile,
+ * return its offset within the packfile; otherwise, return 0.
+ */
+extern off_t find_pack_entry_one(const unsigned char *sha1, struct packed_git *);
+
 extern int is_pack_valid(struct packed_git *);
 extern void *unpack_entry(struct packed_git *, off_t, enum object_type *, unsigned long *);
 extern unsigned long unpack_object_header_buffer(const unsigned char *buf, unsigned long len, enum object_type *type, unsigned long *sizep);
@@ -1119,6 +1255,12 @@ extern int update_server_info(int);
 #define CONFIG_INVALID_PATTERN 6
 #define CONFIG_GENERIC_ERROR 7
 
+struct git_config_source {
+	unsigned int use_stdin:1;
+	const char *file;
+	const char *blob;
+};
+
 typedef int (*config_fn_t)(const char *, const char *, void *);
 extern int git_default_config(const char *, const char *, void *);
 extern int git_config_from_file(config_fn_t fn, const char *, void *);
@@ -1128,8 +1270,7 @@ extern void git_config_push_parameter(const char *text);
 extern int git_config_from_parameters(config_fn_t fn, void *data);
 extern int git_config(config_fn_t fn, void *);
 extern int git_config_with_options(config_fn_t fn, void *,
-				   const char *filename,
-				   const char *blob_ref,
+				   struct git_config_source *config_source,
 				   int respect_includes);
 extern int git_config_early(config_fn_t fn, void *, const char *repo_config);
 extern int git_parse_ulong(const char *, unsigned long *);
@@ -1153,8 +1294,8 @@ extern int check_repository_format_version(const char *var, const char *value, v
 extern int git_env_bool(const char *, int);
 extern int git_config_system(void);
 extern int config_error_nonbool(const char *);
-#if defined(__GNUC__) && ! defined(__clang__)
-#define config_error_nonbool(s) (config_error_nonbool(s), -1)
+#if defined(__GNUC__)
+#define config_error_nonbool(s) (config_error_nonbool(s), const_error())
 #endif
 extern const char *get_log_output_encoding(void);
 extern const char *get_commit_output_encoding(void);
@@ -1204,6 +1345,8 @@ extern void fsync_or_die(int fd, const char *);
 
 extern ssize_t read_in_full(int fd, void *buf, size_t count);
 extern ssize_t write_in_full(int fd, const void *buf, size_t count);
+extern ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset);
+
 static inline ssize_t write_str_in_full(int fd, const char *str)
 {
 	return write_in_full(fd, str, strlen(str));
@@ -1339,5 +1482,7 @@ int stat_validity_check(struct stat_validity *sv, const char *path);
  * conditions continues to be true.
  */
 void stat_validity_update(struct stat_validity *sv, int fd);
+
+int versioncmp(const char *s1, const char *s2);
 
 #endif /* CACHE_H */

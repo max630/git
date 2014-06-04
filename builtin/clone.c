@@ -521,7 +521,7 @@ static void write_followtags(const struct ref *refs, const char *msg)
 		if (!has_sha1_file(ref->old_sha1))
 			continue;
 		update_ref(msg, ref->name, ref->old_sha1,
-			   NULL, 0, DIE_ON_ERR);
+			   NULL, 0, UPDATE_REFS_DIE_ON_ERR);
 	}
 }
 
@@ -589,14 +589,15 @@ static void update_head(const struct ref *our, const struct ref *remote,
 		create_symref("HEAD", our->name, NULL);
 		if (!option_bare) {
 			const char *head = skip_prefix(our->name, "refs/heads/");
-			update_ref(msg, "HEAD", our->old_sha1, NULL, 0, DIE_ON_ERR);
+			update_ref(msg, "HEAD", our->old_sha1, NULL, 0,
+				   UPDATE_REFS_DIE_ON_ERR);
 			install_branch_config(0, head, option_origin, our->name);
 		}
 	} else if (our) {
 		struct commit *c = lookup_commit_reference(our->old_sha1);
 		/* --branch specifies a non-branch (i.e. tags), detach HEAD */
 		update_ref(msg, "HEAD", c->object.sha1,
-			   NULL, REF_NODEREF, DIE_ON_ERR);
+			   NULL, REF_NODEREF, UPDATE_REFS_DIE_ON_ERR);
 	} else if (remote) {
 		/*
 		 * We know remote HEAD points to a non-branch, or
@@ -604,7 +605,7 @@ static void update_head(const struct ref *our, const struct ref *remote,
 		 * Detach HEAD in all these cases.
 		 */
 		update_ref(msg, "HEAD", remote->old_sha1,
-			   NULL, REF_NODEREF, DIE_ON_ERR);
+			   NULL, REF_NODEREF, UPDATE_REFS_DIE_ON_ERR);
 	}
 }
 
@@ -660,8 +661,8 @@ static int checkout(void)
 	    commit_locked_index(lock_file))
 		die(_("unable to write new index file"));
 
-	err |= run_hook(NULL, "post-checkout", sha1_to_hex(null_sha1),
-			sha1_to_hex(sha1), "1", NULL);
+	err |= run_hook_le(NULL, "post-checkout", sha1_to_hex(null_sha1),
+			   sha1_to_hex(sha1), "1", NULL);
 
 	if (!err && option_recursive)
 		err = run_command_v_opt(argv_submodule, RUN_GIT_CMD);

@@ -1283,7 +1283,7 @@ load_config 0
 apply_config
 
 # v1.7.0 introduced --show-toplevel to return the canonical work-tree
-if {[package vsatisfies $_git_version 1.7.0]} {
+if {[package vsatisfies $_git_version 1.7.0-]} {
 	if { [is_Cygwin] } {
 		catch {set _gitworktree [exec cygpath --windows [git rev-parse --show-toplevel]]}
 	} else {
@@ -1539,7 +1539,7 @@ proc rescan_stage2 {fd after} {
 		close $fd
 	}
 
-	if {[package vsatisfies $::_git_version 1.6.3]} {
+	if {[package vsatisfies $::_git_version 1.6.3-]} {
 		set ls_others [list --exclude-standard]
 	} else {
 		set ls_others [list --exclude-per-directory=.gitignore]
@@ -3224,18 +3224,28 @@ unset i
 
 # -- Diff and Commit Area
 #
-${NS}::panedwindow .vpane.lower -orient vertical
-${NS}::frame .vpane.lower.commarea
-${NS}::frame .vpane.lower.diff -relief sunken -borderwidth 1 -height 500
-.vpane.lower add .vpane.lower.diff
-.vpane.lower add .vpane.lower.commarea
-.vpane add .vpane.lower
-if {$use_ttk} {
-	.vpane.lower pane .vpane.lower.diff -weight 1
-	.vpane.lower pane .vpane.lower.commarea -weight 0
+if {$have_tk85} {
+	${NS}::panedwindow .vpane.lower -orient vertical
+	${NS}::frame .vpane.lower.commarea
+	${NS}::frame .vpane.lower.diff -relief sunken -borderwidth 1 -height 500
+	.vpane.lower add .vpane.lower.diff
+	.vpane.lower add .vpane.lower.commarea
+	.vpane add .vpane.lower
+	if {$use_ttk} {
+		.vpane.lower pane .vpane.lower.diff -weight 1
+		.vpane.lower pane .vpane.lower.commarea -weight 0
+	} else {
+		.vpane.lower paneconfigure .vpane.lower.diff -stretch always
+		.vpane.lower paneconfigure .vpane.lower.commarea -stretch never
+	}
 } else {
-	.vpane.lower paneconfigure .vpane.lower.diff -stretch always
-	.vpane.lower paneconfigure .vpane.lower.commarea -stretch never
+	frame .vpane.lower -height 300 -width 400
+	frame .vpane.lower.commarea
+	frame .vpane.lower.diff -relief sunken -borderwidth 1
+	pack .vpane.lower.diff -fill both -expand 1
+	pack .vpane.lower.commarea -side bottom -fill x
+	.vpane add .vpane.lower
+	.vpane paneconfigure .vpane.lower -sticky nsew
 }
 
 # -- Commit Area Buttons

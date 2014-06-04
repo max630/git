@@ -310,8 +310,8 @@ def split_p4_type(p4type):
 #
 # return the raw p4 type of a file (text, text+ko, etc)
 #
-def p4_type(file):
-    results = p4CmdList(["fstat", "-T", "headType", file])
+def p4_type(f):
+    results = p4CmdList(["fstat", "-T", "headType", wildcard_encode(f)])
     return results[0]['headType']
 
 #
@@ -1220,7 +1220,7 @@ class P4Submit(Command, P4UserMap):
             editor = os.environ.get("P4EDITOR")
         else:
             editor = read_pipe("git var GIT_EDITOR").strip()
-        system(editor + " " + template_file)
+        system([editor, template_file])
 
         # If the file was not saved, prompt to see if this patch should
         # be skipped.  But skip this verification step if configured so.
@@ -1237,6 +1237,28 @@ class P4Submit(Command, P4UserMap):
                 return True
             if response == 'n':
                 return False
+
+    def get_diff_description(self, editedFiles):
+        # diff
+        if os.environ.has_key("P4DIFF"):
+            del(os.environ["P4DIFF"])
+        diff = ""
+        for editedFile in editedFiles:
+            diff += p4_read_pipe(['diff', '-du',
+                                  wildcard_encode(editedFile)])
+
+        # new file diff
+        newdiff = ""
+        for newFile in filesToAdd:
+            newdiff += "==== new file ====\n"
+            newdiff += "--- /dev/null\n"
+            newdiff += "+++ %s\n" % newFile
+            f = open(newFile, "r")
+            for line in f.readlines():
+                newdiff += "+" + line
+            f.close()
+
+        return diff + newdiff
 
     def applyCommit(self, id):
         """Apply one commit, return True if it succeeded."""
@@ -1311,7 +1333,7 @@ class P4Submit(Command, P4UserMap):
             else:
                 die("unknown modifier %s for %s" % (modifier, path))
 
-        diffcmd = "git diff-tree -p \"%s\"" % (id)
+        diffcmd = "git diff-tree --full-index -p \"%s\"" % (id)
         patchcmd = diffcmd + " | git apply "
         tryPatchCmd = patchcmd + "--check -"
         applyPatchCmd = patchcmd + "--check --apply -"
@@ -1398,34 +1420,15 @@ class P4Submit(Command, P4UserMap):
             submitTemplate += "######## Variable git-p4.skipUserNameCheck hides this message.\n"
 
         separatorLine = "######## everything below this line is just the diff #######\n"
+        if not self.prepare_p4_only:
+            submitTemplate += separatorLine
+            submitTemplate += self.get_diff_description(editedFiles)
 
-        # diff
-        if os.environ.has_key("P4DIFF"):
-            del(os.environ["P4DIFF"])
-        diff = ""
-        for editedFile in editedFiles:
-            diff += p4_read_pipe(['diff', '-du',
-                                  wildcard_encode(editedFile)])
-
-        # new file diff
-        newdiff = ""
-        for newFile in filesToAdd:
-            newdiff += "==== new file ====\n"
-            newdiff += "--- /dev/null\n"
-            newdiff += "+++ %s\n" % newFile
-            f = open(newFile, "r")
-            for line in f.readlines():
-                newdiff += "+" + line
-            f.close()
-
-        # change description file: submitTemplate, separatorLine, diff, newdiff
         (handle, fileName) = tempfile.mkstemp()
         tmpFile = os.fdopen(handle, "w+")
         if self.isWindows:
             submitTemplate = submitTemplate.replace("\n", "\r\n")
-            separatorLine = separatorLine.replace("\n", "\r\n")
-            newdiff = newdiff.replace("\n", "\r\n")
-        tmpFile.write(submitTemplate + separatorLine + diff + newdiff)
+        tmpFile.write(submitTemplate)
         tmpFile.close()
 
         if self.prepare_p4_only:
@@ -1871,7 +1874,7 @@ class View(object):
                 # assume error is "... file(s) not in client view"
                 continue
             if "clientFile" not in res:
-                die("No clientFile from 'p4 where %s'" % depot_path)
+                die("No clientFile in 'p4 where' output")
             if "unmap" in res:
                 # it will list all of them, but only one not unmap-ped
                 continue
@@ -2075,7 +2078,14 @@ class P4Sync(Command, P4UserMap):
             # p4 print on a symlink sometimes contains "target\n";
             # if it does, remove the newline
             data = ''.join(contents)
-            if data[-1] == '\n':
+            if not data:
+                # Some version of p4 allowed creating a symlink that pointed
+                # to nothing.  This causes p4 errors when checking out such
+                # a change, and errors here too.  Work around it by ignoring
+                # the bad symlink; hopefully a future change fixes it.
+                print "\nIgnoring empty symlink in %s" % file['depotFile']
+                return
+            elif data[-1] == '\n':
                 contents = [data[:-1]]
             else:
                 contents = [data]
@@ -3079,7 +3089,7 @@ class P4Rebase(Command):
         print "Rebasing the current branch onto %s" % upstream
         oldHead = read_pipe("git rev-parse HEAD").strip()
         system("git rebase %s" % upstream)
-        system("git diff-tree --stat --summary -M %s HEAD" % oldHead)
+        system("git diff-tree --stat --summary -M %s HEAD --" % oldHead)
         return True
 
 class P4Clone(P4Sync):

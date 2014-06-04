@@ -68,10 +68,6 @@ test_expect_success POSIXPERM,SANITY 'unreadable orderfile' '
 	test_must_fail git diff -Ounreadable_file --name-only HEAD^..HEAD
 '
 
-test_expect_success 'orderfile is a directory' '
-	test_must_fail git diff -O/ --name-only HEAD^..HEAD
-'
-
 for i in 1 2
 do
 	test_expect_success "orderfile using option ($i)" '
@@ -98,6 +94,27 @@ do
 	test_expect_success "cancelling configured orderfile ($i)" '
 		git -c diff.orderfile=order_file_$i diff -O/dev/null --name-only HEAD^..HEAD >actual &&
 		test_cmp expect_none actual
+	'
+done
+
+test_expect_success 'setup for testing combine-diff order' '
+	git checkout -b tmp HEAD~ &&
+	create_files 3 &&
+	git checkout master &&
+	git merge --no-commit -s ours tmp &&
+	create_files 5
+'
+
+test_expect_success "combine-diff: no order (=tree object order)" '
+	git diff --name-only HEAD HEAD^ HEAD^2 >actual &&
+	test_cmp expect_none actual
+'
+
+for i in 1 2
+do
+	test_expect_success "combine-diff: orderfile using option ($i)" '
+		git diff -Oorder_file_$i --name-only HEAD HEAD^ HEAD^2 >actual &&
+		test_cmp expect_$i actual
 	'
 done
 

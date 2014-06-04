@@ -81,8 +81,11 @@ static void process_tree(struct rev_info *revs,
 		die("bad tree object");
 	if (obj->flags & (UNINTERESTING | SEEN))
 		return;
-	if (parse_tree(tree) < 0)
+	if (parse_tree(tree) < 0) {
+		if (revs->ignore_missing_links)
+			return;
 		die("bad tree object %s", sha1_to_hex(obj->sha1));
+	}
 	obj->flags |= SEEN;
 	show(obj, path, name, cb_data);
 	me.up = path;
@@ -162,15 +165,17 @@ void mark_edges_uninteresting(struct rev_info *revs, show_edge_fn show_edge)
 		}
 		mark_edge_parents_uninteresting(commit, revs, show_edge);
 	}
-	for (i = 0; i < revs->cmdline.nr; i++) {
-		struct object *obj = revs->cmdline.rev[i].item;
-		struct commit *commit = (struct commit *)obj;
-		if (obj->type != OBJ_COMMIT || !(obj->flags & UNINTERESTING))
-			continue;
-		mark_tree_uninteresting(commit->tree);
-		if (revs->edge_hint && !(obj->flags & SHOWN)) {
-			obj->flags |= SHOWN;
-			show_edge(commit);
+	if (revs->edge_hint) {
+		for (i = 0; i < revs->cmdline.nr; i++) {
+			struct object *obj = revs->cmdline.rev[i].item;
+			struct commit *commit = (struct commit *)obj;
+			if (obj->type != OBJ_COMMIT || !(obj->flags & UNINTERESTING))
+				continue;
+			mark_tree_uninteresting(commit->tree);
+			if (!(obj->flags & SHOWN)) {
+				obj->flags |= SHOWN;
+				show_edge(commit);
+			}
 		}
 	}
 }

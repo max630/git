@@ -304,23 +304,6 @@ int mingw_open (const char *filename, int oflags, ...)
 	return fd;
 }
 
-#undef write
-ssize_t mingw_write(int fd, const void *buf, size_t count)
-{
-	/*
-	 * While write() calls to a file on a local disk are translated
-	 * into WriteFile() calls with a maximum size of 64KB on Windows
-	 * XP and 256KB on Vista, no such cap is placed on writes to
-	 * files over the network on Windows XP.  Unfortunately, there
-	 * seems to be a limit of 32MB-28KB on X64 and 64MB-32KB on x86;
-	 * bigger writes fail on Windows XP.
-	 * So we cap to a nice 31MB here to avoid write failures over
-	 * the net without changing the number of WriteFile() calls in
-	 * the local case.
-	 */
-	return write(fd, buf, min(count, 31 * 1024 * 1024));
-}
-
 static BOOL WINAPI ctrl_ignore(DWORD type)
 {
 	return TRUE;
@@ -1839,4 +1822,28 @@ pid_t waitpid(pid_t pid, int *status, int options)
 
 	errno = EINVAL;
 	return -1;
+}
+
+int mingw_offset_1st_component(const char *path)
+{
+	int offset = 0;
+	if (has_dos_drive_prefix(path))
+		offset = 2;
+
+	/* unc paths */
+	else if (is_dir_sep(path[0]) && is_dir_sep(path[1])) {
+
+		/* skip server name */
+		char *pos = strpbrk(path + 2, "\\/");
+		if (!pos)
+			return 0; /* Error: malformed unc path */
+
+		do {
+			pos++;
+		} while (*pos && !is_dir_sep(*pos));
+
+		offset = pos - path;
+	}
+
+	return offset + is_dir_sep(path[offset]);
 }

@@ -2,6 +2,9 @@
 MAN1_TXT =
 MAN5_TXT =
 MAN7_TXT =
+TECH_DOCS =
+ARTICLES =
+SP_ARTICLES =
 
 MAN1_TXT += $(filter-out \
 		$(addsuffix .txt, $(ARTICLES) $(SP_ARTICLES)), \
@@ -37,12 +40,12 @@ MAN_HTML = $(patsubst %.txt,%.html,$(MAN_TXT))
 OBSOLETE_HTML = git-remote-helpers.html
 DOC_HTML = $(MAN_HTML) $(OBSOLETE_HTML)
 
-ARTICLES = howto-index
+ARTICLES += howto-index
 ARTICLES += everyday
 ARTICLES += git-tools
 ARTICLES += git-bisect-lk2009
 # with their own formatting rules.
-SP_ARTICLES = user-manual
+SP_ARTICLES += user-manual
 SP_ARTICLES += howto/new-command
 SP_ARTICLES += howto/revert-branch-rebase
 SP_ARTICLES += howto/using-merge-subtree
@@ -56,11 +59,13 @@ SP_ARTICLES += howto/recover-corrupted-blob-object
 SP_ARTICLES += howto/recover-corrupted-object-harder
 SP_ARTICLES += howto/rebuild-from-update-hook
 SP_ARTICLES += howto/rebase-from-internal-branch
+SP_ARTICLES += howto/keep-canonical-history-correct
 SP_ARTICLES += howto/maintain-git
 API_DOCS = $(patsubst %.txt,%,$(filter-out technical/api-index-skel.txt technical/api-index.txt, $(wildcard technical/api-*.txt)))
 SP_ARTICLES += $(API_DOCS)
 
-TECH_DOCS = technical/index-format
+TECH_DOCS += technical/http-protocol
+TECH_DOCS += technical/index-format
 TECH_DOCS += technical/pack-format
 TECH_DOCS += technical/pack-heuristics
 TECH_DOCS += technical/pack-protocol

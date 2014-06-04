@@ -180,9 +180,6 @@ int mingw_rmdir(const char *path);
 int mingw_open (const char *filename, int oflags, ...);
 #define open mingw_open
 
-ssize_t mingw_write(int fd, const void *buf, size_t count);
-#define write mingw_write
-
 int mingw_fgetc(FILE *stream);
 #define fgetc mingw_fgetc
 
@@ -342,6 +339,8 @@ static inline char *mingw_find_last_dir_sep(const char *path)
 	return ret;
 }
 #define find_last_dir_sep mingw_find_last_dir_sep
+int mingw_offset_1st_component(const char *path);
+#define offset_1st_component mingw_offset_1st_component
 #define PATH_SEP ';'
 #define PRIuMAX "I64u"
 #define PRId64 "I64d"

@@ -162,7 +162,8 @@ int cmd_mv(int argc, const char **argv, const char *prefix)
 					if (strncmp(path, src_w_slash, len_w_slash))
 						break;
 				}
-				free((char *)src_w_slash);
+				if (src_w_slash != src)
+					free((char *)src_w_slash);
 
 				if (last - first < 1)
 					bad = _("source directory is empty");
@@ -179,6 +180,9 @@ int cmd_mv(int argc, const char **argv, const char *prefix)
 						modes = xrealloc(modes,
 								(argc + last - first)
 								* sizeof(enum update_mode));
+						submodule_gitfile = xrealloc(submodule_gitfile,
+								(argc + last - first)
+								* sizeof(char *));
 					}
 
 					dst = add_slash(dst);
@@ -192,13 +196,15 @@ int cmd_mv(int argc, const char **argv, const char *prefix)
 							prefix_path(dst, dst_len,
 								path + length + 1);
 						modes[argc + j] = INDEX;
+						submodule_gitfile[argc + j] = NULL;
 					}
 					argc += last - first;
 				}
 			}
 		} else if (cache_name_pos(src, length) < 0)
 			bad = _("not under version control");
-		else if (lstat(dst, &st) == 0) {
+		else if (lstat(dst, &st) == 0 &&
+			 (!ignore_case || strcasecmp(src, dst))) {
 			bad = _("destination exists");
 			if (force) {
 				/*
@@ -214,6 +220,8 @@ int cmd_mv(int argc, const char **argv, const char *prefix)
 			}
 		} else if (string_list_has_string(&src_for_dst, dst))
 			bad = _("multiple sources for the same target");
+		else if (is_dir_sep(dst[strlen(dst) - 1]))
+			bad = _("destination directory does not exist");
 		else
 			string_list_insert(&src_for_dst, dst);
 
@@ -224,6 +232,11 @@ int cmd_mv(int argc, const char **argv, const char *prefix)
 						(argc - i) * sizeof(char *));
 					memmove(destination + i,
 						destination + i + 1,
+						(argc - i) * sizeof(char *));
+					memmove(modes + i, modes + i + 1,
+						(argc - i) * sizeof(enum update_mode));
+					memmove(submodule_gitfile + i,
+						submodule_gitfile + i + 1,
 						(argc - i) * sizeof(char *));
 					i--;
 				}

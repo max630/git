@@ -72,6 +72,8 @@ if test -n "$OPTIONS_SPEC"; then
 	parseopt_extra=
 	[ -n "$OPTIONS_KEEPDASHDASH" ] &&
 		parseopt_extra="--keep-dashdash"
+	[ -n "$OPTIONS_STUCKLONG" ] &&
+		parseopt_extra="$parseopt_extra --stuck-long"
 
 	eval "$(
 		echo "$OPTIONS_SPEC" |
@@ -158,8 +160,9 @@ git_pager() {
 	else
 		GIT_PAGER=cat
 	fi
-	: ${LESS=-FRSX}
-	export LESS
+	: ${LESS=-FRX}
+	: ${LV=-c}
+	export LESS LV
 
 	eval "$GIT_PAGER" '"$@"'
 }

@@ -1222,7 +1222,7 @@ static int resolve_gitlink_packed_ref(struct ref_cache *refs,
 	if (ref == NULL)
 		return -1;
 
-	memcpy(sha1, ref->u.value.sha1, 20);
+	hashcpy(sha1, ref->u.value.sha1);
 	return 0;
 }
 
@@ -1477,7 +1477,7 @@ static int filter_refs(const char *refname, const unsigned char *sha1, int flags
 		       void *data)
 {
 	struct ref_filter *filter = (struct ref_filter *)data;
-	if (fnmatch(filter->pattern, refname, 0))
+	if (wildmatch(filter->pattern, refname, 0, NULL))
 		return 0;
 	return filter->fn(refname, sha1, flags, filter->cb_data);
 }
@@ -1880,7 +1880,7 @@ const char *prettify_refname(const char *name)
 		0);
 }
 
-const char *ref_rev_parse_rules[] = {
+static const char *ref_rev_parse_rules[] = {
 	"%.*s",
 	"refs/%.*s",
 	"refs/tags/%.*s",
@@ -1890,12 +1890,12 @@ const char *ref_rev_parse_rules[] = {
 	NULL
 };
 
-int refname_match(const char *abbrev_name, const char *full_name, const char **rules)
+int refname_match(const char *abbrev_name, const char *full_name)
 {
 	const char **p;
 	const int abbrev_name_len = strlen(abbrev_name);
 
-	for (p = rules; *p; p++) {
+	for (p = ref_rev_parse_rules; *p; p++) {
 		if (!strcmp(full_name, mkpath(*p, abbrev_name_len, abbrev_name))) {
 			return 1;
 		}
@@ -1999,7 +1999,6 @@ int dwim_log(const char *str, int len, unsigned char *sha1, char **log)
 
 	*log = NULL;
 	for (p = ref_rev_parse_rules; *p; p++) {
-		struct stat st;
 		unsigned char hash[20];
 		char path[PATH_MAX];
 		const char *ref, *it;
@@ -2008,12 +2007,9 @@ int dwim_log(const char *str, int len, unsigned char *sha1, char **log)
 		ref = resolve_ref_unsafe(path, hash, 1, NULL);
 		if (!ref)
 			continue;
-		if (!stat(git_path("logs/%s", path), &st) &&
-		    S_ISREG(st.st_mode))
+		if (reflog_exists(path))
 			it = path;
-		else if (strcmp(ref, path) &&
-			 !stat(git_path("logs/%s", ref), &st) &&
-			 S_ISREG(st.st_mode))
+		else if (strcmp(ref, path) && reflog_exists(ref))
 			it = ref;
 		else
 			continue;
@@ -2039,6 +2035,7 @@ static struct ref_lock *lock_ref_sha1_basic(const char *refname,
 	int type, lflags;
 	int mustexist = (old_sha1 && !is_null_sha1(old_sha1));
 	int missing = 0;
+	int attempts_remaining = 3;
 
 	lock = xcalloc(1, sizeof(struct ref_lock));
 	lock->lock_fd = -1;
@@ -2080,7 +2077,7 @@ static struct ref_lock *lock_ref_sha1_basic(const char *refname,
 
 	lock->lk = xcalloc(1, sizeof(struct lock_file));
 
-	lflags = LOCK_DIE_ON_ERROR;
+	lflags = 0;
 	if (flags & REF_NODEREF) {
 		refname = orig_refname;
 		lflags |= LOCK_NODEREF;
@@ -2093,13 +2090,32 @@ static struct ref_lock *lock_ref_sha1_basic(const char *refname,
 	if ((flags & REF_NODEREF) && (type & REF_ISSYMREF))
 		lock->force_write = 1;
 
-	if (safe_create_leading_directories(ref_file)) {
+ retry:
+	switch (safe_create_leading_directories(ref_file)) {
+	case SCLD_OK:
+		break; /* success */
+	case SCLD_VANISHED:
+		if (--attempts_remaining > 0)
+			goto retry;
+		/* fall through */
+	default:
 		last_errno = errno;
 		error("unable to create directory for %s", ref_file);
 		goto error_return;
 	}
 
 	lock->lock_fd = hold_lock_file_for_update(lock->lk, ref_file, lflags);
+	if (lock->lock_fd < 0) {
+		if (errno == ENOENT && --attempts_remaining > 0)
+			/*
+			 * Maybe somebody just deleted one of the
+			 * directories leading to ref_file.  Try
+			 * again:
+			 */
+			goto retry;
+		else
+			unable_to_lock_index_die(ref_file, errno);
+	}
 	return old_sha1 ? verify_lock(lock, old_sha1, mustexist) : lock;
 
  error_return:
@@ -2508,6 +2524,51 @@ int delete_ref(const char *refname, const unsigned char *sha1, int delopt)
  */
 #define TMP_RENAMED_LOG  "logs/refs/.tmp-renamed-log"
 
+static int rename_tmp_log(const char *newrefname)
+{
+	int attempts_remaining = 4;
+
+ retry:
+	switch (safe_create_leading_directories(git_path("logs/%s", newrefname))) {
+	case SCLD_OK:
+		break; /* success */
+	case SCLD_VANISHED:
+		if (--attempts_remaining > 0)
+			goto retry;
+		/* fall through */
+	default:
+		error("unable to create directory for %s", newrefname);
+		return -1;
+	}
+
+	if (rename(git_path(TMP_RENAMED_LOG), git_path("logs/%s", newrefname))) {
+		if ((errno==EISDIR || errno==ENOTDIR) && --attempts_remaining > 0) {
+			/*
+			 * rename(a, b) when b is an existing
+			 * directory ought to result in ISDIR, but
+			 * Solaris 5.8 gives ENOTDIR.  Sheesh.
+			 */
+			if (remove_empty_directories(git_path("logs/%s", newrefname))) {
+				error("Directory not empty: logs/%s", newrefname);
+				return -1;
+			}
+			goto retry;
+		} else if (errno == ENOENT && --attempts_remaining > 0) {
+			/*
+			 * Maybe another process just deleted one of
+			 * the directories in the path to newrefname.
+			 * Try again from the beginning.
+			 */
+			goto retry;
+		} else {
+			error("unable to move logfile "TMP_RENAMED_LOG" to logs/%s: %s",
+				newrefname, strerror(errno));
+			return -1;
+		}
+	}
+	return 0;
+}
+
 int rename_ref(const char *oldrefname, const char *newrefname, const char *logmsg)
 {
 	unsigned char sha1[20], orig_sha1[20];
@@ -2555,30 +2616,9 @@ int rename_ref(const char *oldrefname, const char *newrefname, const char *logms
 		}
 	}
 
-	if (log && safe_create_leading_directories(git_path("logs/%s", newrefname))) {
-		error("unable to create directory for %s", newrefname);
+	if (log && rename_tmp_log(newrefname))
 		goto rollback;
-	}
 
- retry:
-	if (log && rename(git_path(TMP_RENAMED_LOG), git_path("logs/%s", newrefname))) {
-		if (errno==EISDIR || errno==ENOTDIR) {
-			/*
-			 * rename(a, b) when b is an existing
-			 * directory ought to result in ISDIR, but
-			 * Solaris 5.8 gives ENOTDIR.  Sheesh.
-			 */
-			if (remove_empty_directories(git_path("logs/%s", newrefname))) {
-				error("Directory not empty: logs/%s", newrefname);
-				goto rollback;
-			}
-			goto retry;
-		} else {
-			error("unable to move logfile "TMP_RENAMED_LOG" to logs/%s: %s",
-				newrefname, strerror(errno));
-			goto rollback;
-		}
-	}
 	logmoved = log;
 
 	lock = lock_ref_sha1_basic(newrefname, NULL, 0, NULL);
@@ -3002,6 +3042,19 @@ int read_ref_at(const char *refname, unsigned long at_time, int cnt,
 	return 1;
 }
 
+int reflog_exists(const char *refname)
+{
+	struct stat st;
+
+	return !lstat(git_path("logs/%s", refname), &st) &&
+		S_ISREG(st.st_mode);
+}
+
+int delete_reflog(const char *refname)
+{
+	return remove_path(git_path("logs/%s", refname));
+}
+
 static int show_one_reflog_ent(struct strbuf *sb, each_reflog_ent_fn fn, void *cb_data)
 {
 	unsigned char osha1[20], nsha1[20];
@@ -3199,9 +3252,9 @@ static struct ref_lock *update_ref_lock(const char *refname,
 	if (!lock) {
 		const char *str = "Cannot lock the ref '%s'.";
 		switch (onerr) {
-		case MSG_ON_ERR: error(str, refname); break;
-		case DIE_ON_ERR: die(str, refname); break;
-		case QUIET_ON_ERR: break;
+		case UPDATE_REFS_MSG_ON_ERR: error(str, refname); break;
+		case UPDATE_REFS_DIE_ON_ERR: die(str, refname); break;
+		case UPDATE_REFS_QUIET_ON_ERR: break;
 		}
 	}
 	return lock;
@@ -3214,13 +3267,116 @@ static int update_ref_write(const char *action, const char *refname,
 	if (write_ref_sha1(lock, sha1, action) < 0) {
 		const char *str = "Cannot update the ref '%s'.";
 		switch (onerr) {
-		case MSG_ON_ERR: error(str, refname); break;
-		case DIE_ON_ERR: die(str, refname); break;
-		case QUIET_ON_ERR: break;
+		case UPDATE_REFS_MSG_ON_ERR: error(str, refname); break;
+		case UPDATE_REFS_DIE_ON_ERR: die(str, refname); break;
+		case UPDATE_REFS_QUIET_ON_ERR: break;
 		}
 		return 1;
 	}
 	return 0;
+}
+
+/**
+ * Information needed for a single ref update.  Set new_sha1 to the
+ * new value or to zero to delete the ref.  To check the old value
+ * while locking the ref, set have_old to 1 and set old_sha1 to the
+ * value or to zero to ensure the ref does not exist before update.
+ */
+struct ref_update {
+	unsigned char new_sha1[20];
+	unsigned char old_sha1[20];
+	int flags; /* REF_NODEREF? */
+	int have_old; /* 1 if old_sha1 is valid, 0 otherwise */
+	struct ref_lock *lock;
+	int type;
+	const char refname[FLEX_ARRAY];
+};
+
+/*
+ * Data structure for holding a reference transaction, which can
+ * consist of checks and updates to multiple references, carried out
+ * as atomically as possible.  This structure is opaque to callers.
+ */
+struct ref_transaction {
+	struct ref_update **updates;
+	size_t alloc;
+	size_t nr;
+};
+
+struct ref_transaction *ref_transaction_begin(void)
+{
+	return xcalloc(1, sizeof(struct ref_transaction));
+}
+
+static void ref_transaction_free(struct ref_transaction *transaction)
+{
+	int i;
+
+	for (i = 0; i < transaction->nr; i++)
+		free(transaction->updates[i]);
+
+	free(transaction->updates);
+	free(transaction);
+}
+
+void ref_transaction_rollback(struct ref_transaction *transaction)
+{
+	ref_transaction_free(transaction);
+}
+
+static struct ref_update *add_update(struct ref_transaction *transaction,
+				     const char *refname)
+{
+	size_t len = strlen(refname);
+	struct ref_update *update = xcalloc(1, sizeof(*update) + len + 1);
+
+	strcpy((char *)update->refname, refname);
+	ALLOC_GROW(transaction->updates, transaction->nr + 1, transaction->alloc);
+	transaction->updates[transaction->nr++] = update;
+	return update;
+}
+
+void ref_transaction_update(struct ref_transaction *transaction,
+			    const char *refname,
+			    unsigned char *new_sha1, unsigned char *old_sha1,
+			    int flags, int have_old)
+{
+	struct ref_update *update = add_update(transaction, refname);
+
+	hashcpy(update->new_sha1, new_sha1);
+	update->flags = flags;
+	update->have_old = have_old;
+	if (have_old)
+		hashcpy(update->old_sha1, old_sha1);
+}
+
+void ref_transaction_create(struct ref_transaction *transaction,
+			    const char *refname,
+			    unsigned char *new_sha1,
+			    int flags)
+{
+	struct ref_update *update = add_update(transaction, refname);
+
+	assert(!is_null_sha1(new_sha1));
+	hashcpy(update->new_sha1, new_sha1);
+	hashclr(update->old_sha1);
+	update->flags = flags;
+	update->have_old = 1;
+}
+
+void ref_transaction_delete(struct ref_transaction *transaction,
+			    const char *refname,
+			    unsigned char *old_sha1,
+			    int flags, int have_old)
+{
+	struct ref_update *update = add_update(transaction, refname);
+
+	update->flags = flags;
+	update->have_old = have_old;
+	if (have_old) {
+		assert(!is_null_sha1(old_sha1));
+		hashcpy(update->old_sha1, old_sha1);
+	}
 }
 
 int update_ref(const char *action, const char *refname,
@@ -3238,7 +3394,7 @@ static int ref_update_compare(const void *r1, const void *r2)
 {
 	const struct ref_update * const *u1 = r1;
 	const struct ref_update * const *u2 = r2;
-	return strcmp((*u1)->ref_name, (*u2)->ref_name);
+	return strcmp((*u1)->refname, (*u2)->refname);
 }
 
 static int ref_update_reject_duplicates(struct ref_update **updates, int n,
@@ -3246,15 +3402,15 @@ static int ref_update_reject_duplicates(struct ref_update **updates, int n,
 {
 	int i;
 	for (i = 1; i < n; i++)
-		if (!strcmp(updates[i - 1]->ref_name, updates[i]->ref_name)) {
+		if (!strcmp(updates[i - 1]->refname, updates[i]->refname)) {
 			const char *str =
 				"Multiple updates for ref '%s' not allowed.";
 			switch (onerr) {
-			case MSG_ON_ERR:
-				error(str, updates[i]->ref_name); break;
-			case DIE_ON_ERR:
-				die(str, updates[i]->ref_name); break;
-			case QUIET_ON_ERR:
+			case UPDATE_REFS_MSG_ON_ERR:
+				error(str, updates[i]->refname); break;
+			case UPDATE_REFS_DIE_ON_ERR:
+				die(str, updates[i]->refname); break;
+			case UPDATE_REFS_QUIET_ON_ERR:
 				break;
 			}
 			return 1;
@@ -3262,26 +3418,21 @@ static int ref_update_reject_duplicates(struct ref_update **updates, int n,
 	return 0;
 }
 
-int update_refs(const char *action, const struct ref_update **updates_orig,
-		int n, enum action_on_err onerr)
+int ref_transaction_commit(struct ref_transaction *transaction,
+			   const char *msg, enum action_on_err onerr)
 {
 	int ret = 0, delnum = 0, i;
-	struct ref_update **updates;
-	int *types;
-	struct ref_lock **locks;
 	const char **delnames;
+	int n = transaction->nr;
+	struct ref_update **updates = transaction->updates;
 
-	if (!updates_orig || !n)
+	if (!n)
 		return 0;
 
 	/* Allocate work space */
-	updates = xmalloc(sizeof(*updates) * n);
-	types = xmalloc(sizeof(*types) * n);
-	locks = xcalloc(n, sizeof(*locks));
 	delnames = xmalloc(sizeof(*delnames) * n);
 
 	/* Copy, sort, and reject duplicate refs */
-	memcpy(updates, updates_orig, sizeof(*updates) * n);
 	qsort(updates, n, sizeof(*updates), ref_update_compare);
 	ret = ref_update_reject_duplicates(updates, n, onerr);
 	if (ret)
@@ -3289,35 +3440,44 @@ int update_refs(const char *action, const struct ref_update **updates_orig,
 
 	/* Acquire all locks while verifying old values */
 	for (i = 0; i < n; i++) {
-		locks[i] = update_ref_lock(updates[i]->ref_name,
-					   (updates[i]->have_old ?
-					    updates[i]->old_sha1 : NULL),
-					   updates[i]->flags,
-					   &types[i], onerr);
-		if (!locks[i]) {
+		struct ref_update *update = updates[i];
+
+		update->lock = update_ref_lock(update->refname,
+					       (update->have_old ?
+						update->old_sha1 : NULL),
+					       update->flags,
+					       &update->type, onerr);
+		if (!update->lock) {
 			ret = 1;
 			goto cleanup;
 		}
 	}
 
 	/* Perform updates first so live commits remain referenced */
-	for (i = 0; i < n; i++)
-		if (!is_null_sha1(updates[i]->new_sha1)) {
-			ret = update_ref_write(action,
-					       updates[i]->ref_name,
-					       updates[i]->new_sha1,
-					       locks[i], onerr);
-			locks[i] = NULL; /* freed by update_ref_write */
+	for (i = 0; i < n; i++) {
+		struct ref_update *update = updates[i];
+
+		if (!is_null_sha1(update->new_sha1)) {
+			ret = update_ref_write(msg,
+					       update->refname,
+					       update->new_sha1,
+					       update->lock, onerr);
+			update->lock = NULL; /* freed by update_ref_write */
 			if (ret)
 				goto cleanup;
 		}
+	}
 
 	/* Perform deletes now that updates are safely completed */
-	for (i = 0; i < n; i++)
-		if (locks[i]) {
-			delnames[delnum++] = locks[i]->ref_name;
-			ret |= delete_ref_loose(locks[i], types[i]);
+	for (i = 0; i < n; i++) {
+		struct ref_update *update = updates[i];
+
+		if (update->lock) {
+			delnames[delnum++] = update->lock->ref_name;
+			ret |= delete_ref_loose(update->lock, update->type);
 		}
+	}
+
 	ret |= repack_without_refs(delnames, delnum);
 	for (i = 0; i < delnum; i++)
 		unlink_or_warn(git_path("logs/%s", delnames[i]));
@@ -3325,36 +3485,11 @@ int update_refs(const char *action, const struct ref_update **updates_orig,
 
 cleanup:
 	for (i = 0; i < n; i++)
-		if (locks[i])
-			unlock_ref(locks[i]);
-	free(updates);
-	free(types);
-	free(locks);
+		if (updates[i]->lock)
+			unlock_ref(updates[i]->lock);
 	free(delnames);
+	ref_transaction_free(transaction);
 	return ret;
-}
-
-/*
- * generate a format suitable for scanf from a ref_rev_parse_rules
- * rule, that is replace the "%.*s" spec with a "%s" spec
- */
-static void gen_scanf_fmt(char *scanf_fmt, const char *rule)
-{
-	char *spec;
-
-	spec = strstr(rule, "%.*s");
-	if (!spec || strstr(spec + 4, "%.*s"))
-		die("invalid rule in ref_rev_parse_rules: %s", rule);
-
-	/* copy all until spec */
-	strncpy(scanf_fmt, rule, spec - rule);
-	scanf_fmt[spec - rule] = '\0';
-	/* copy new spec */
-	strcat(scanf_fmt, "%s");
-	/* copy remaining rule */
-	strcat(scanf_fmt, spec + 4);
-
-	return;
 }
 
 char *shorten_unambiguous_ref(const char *refname, int strict)
@@ -3364,23 +3499,29 @@ char *shorten_unambiguous_ref(const char *refname, int strict)
 	static int nr_rules;
 	char *short_name;
 
-	/* pre generate scanf formats from ref_rev_parse_rules[] */
 	if (!nr_rules) {
+		/*
+		 * Pre-generate scanf formats from ref_rev_parse_rules[].
+		 * Generate a format suitable for scanf from a
+		 * ref_rev_parse_rules rule by interpolating "%s" at the
+		 * location of the "%.*s".
+		 */
 		size_t total_len = 0;
+		size_t offset = 0;
 
 		/* the rule list is NULL terminated, count them first */
 		for (nr_rules = 0; ref_rev_parse_rules[nr_rules]; nr_rules++)
-			/* no +1 because strlen("%s") < strlen("%.*s") */
-			total_len += strlen(ref_rev_parse_rules[nr_rules]);
+			/* -2 for strlen("%.*s") - strlen("%s"); +1 for NUL */
+			total_len += strlen(ref_rev_parse_rules[nr_rules]) - 2 + 1;
 
 		scanf_fmts = xmalloc(nr_rules * sizeof(char *) + total_len);
 
-		total_len = 0;
+		offset = 0;
 		for (i = 0; i < nr_rules; i++) {
-			scanf_fmts[i] = (char *)&scanf_fmts[nr_rules]
-					+ total_len;
-			gen_scanf_fmt(scanf_fmts[i], ref_rev_parse_rules[i]);
-			total_len += strlen(ref_rev_parse_rules[i]);
+			assert(offset < total_len);
+			scanf_fmts[i] = (char *)&scanf_fmts[nr_rules] + offset;
+			offset += snprintf(scanf_fmts[i], total_len - offset,
+					   ref_rev_parse_rules[i], 2, "%s") + 1;
 		}
 	}
 

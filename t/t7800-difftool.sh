@@ -58,7 +58,7 @@ test_expect_success PERL 'custom tool commands override built-ins' '
 
 test_expect_success PERL 'difftool ignores bad --tool values' '
 	: >expect &&
-	test_expect_code 1 \
+	test_must_fail \
 		git difftool --no-prompt --tool=bad-tool branch >actual &&
 	test_cmp expect actual
 '
@@ -431,6 +431,20 @@ test_expect_success PERL 'difftool --no-symlinks detects conflict ' '
 		test_cmp expect file &&
 		echo "tmp content" >expect &&
 		test_cmp expect "$(cat tmpdir)/file"
+	)
+'
+
+test_expect_success PERL 'difftool properly honors gitlink and core.worktree' '
+	git submodule add ./. submod/ule &&
+	(
+		cd submod/ule &&
+		test_config diff.tool checktrees &&
+		test_config difftool.checktrees.cmd '\''
+			test -d "$LOCAL" && test -d "$REMOTE" && echo good
+		'\'' &&
+		echo good >expect &&
+		git difftool --tool=checktrees --dir-diff HEAD~ >actual &&
+		test_cmp expect actual
 	)
 '
 

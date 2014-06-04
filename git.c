@@ -78,7 +78,7 @@ static int handle_options(const char ***argv, int *argc, int *envchanged)
 			if (envchanged)
 				*envchanged = 1;
 		} else if (!strcmp(cmd, "--no-replace-objects")) {
-			read_replace_refs = 0;
+			check_replace_refs = 0;
 			setenv(NO_REPLACE_OBJECTS_ENVIRONMENT, "1", 1);
 			if (envchanged)
 				*envchanged = 1;
@@ -290,7 +290,7 @@ static int run_builtin(struct cmd_struct *p, int argc, const char **argv)
 	if (!help) {
 		if (p->option & RUN_SETUP)
 			prefix = setup_git_directory();
-		if (p->option & RUN_SETUP_GENTLY) {
+		else if (p->option & RUN_SETUP_GENTLY) {
 			int nongit_ok;
 			prefix = setup_git_directory_gently(&nongit_ok);
 		}

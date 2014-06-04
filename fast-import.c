@@ -248,6 +248,7 @@ struct branch {
 	uintmax_t last_commit;
 	uintmax_t num_notes;
 	unsigned active : 1;
+	unsigned delete : 1;
 	unsigned pack_id : PACK_ID_BITS;
 	unsigned char sha1[20];
 };
@@ -1485,14 +1486,11 @@ static int tree_content_set(
 	unsigned int i, n;
 	struct tree_entry *e;
 
-	slash1 = strchr(p, '/');
-	if (slash1)
-		n = slash1 - p;
-	else
-		n = strlen(p);
+	slash1 = strchrnul(p, '/');
+	n = slash1 - p;
 	if (!n)
 		die("Empty path component found in input");
-	if (!slash1 && !S_ISDIR(mode) && subtree)
+	if (!*slash1 && !S_ISDIR(mode) && subtree)
 		die("Non-directories cannot have subtrees");
 
 	if (!root->tree)
@@ -1501,7 +1499,7 @@ static int tree_content_set(
 	for (i = 0; i < t->entry_count; i++) {
 		e = t->entries[i];
 		if (e->name->str_len == n && !strncmp_icase(p, e->name->str_dat, n)) {
-			if (!slash1) {
+			if (!*slash1) {
 				if (!S_ISDIR(mode)
 						&& e->versions[1].mode == mode
 						&& !hashcmp(e->versions[1].sha1, sha1))
@@ -1552,7 +1550,7 @@ static int tree_content_set(
 	e->versions[0].mode = 0;
 	hashclr(e->versions[0].sha1);
 	t->entries[t->entry_count++] = e;
-	if (slash1) {
+	if (*slash1) {
 		e->tree = new_tree_content(8);
 		e->versions[1].mode = S_IFDIR;
 		tree_content_set(e, slash1 + 1, sha1, mode, subtree);
@@ -1576,11 +1574,8 @@ static int tree_content_remove(
 	unsigned int i, n;
 	struct tree_entry *e;
 
-	slash1 = strchr(p, '/');
-	if (slash1)
-		n = slash1 - p;
-	else
-		n = strlen(p);
+	slash1 = strchrnul(p, '/');
+	n = slash1 - p;
 
 	if (!root->tree)
 		load_tree(root);
@@ -1594,7 +1589,7 @@ static int tree_content_remove(
 	for (i = 0; i < t->entry_count; i++) {
 		e = t->entries[i];
 		if (e->name->str_len == n && !strncmp_icase(p, e->name->str_dat, n)) {
-			if (slash1 && !S_ISDIR(e->versions[1].mode))
+			if (*slash1 && !S_ISDIR(e->versions[1].mode))
 				/*
 				 * If p names a file in some subdirectory, and a
 				 * file or symlink matching the name of the
@@ -1602,7 +1597,7 @@ static int tree_content_remove(
 				 * exist and need not be deleted.
 				 */
 				return 1;
-			if (!slash1 || !S_ISDIR(e->versions[1].mode))
+			if (!*slash1 || !S_ISDIR(e->versions[1].mode))
 				goto del_entry;
 			if (!e->tree)
 				load_tree(e);
@@ -1644,11 +1639,8 @@ static int tree_content_get(
 	unsigned int i, n;
 	struct tree_entry *e;
 
-	slash1 = strchr(p, '/');
-	if (slash1)
-		n = slash1 - p;
-	else
-		n = strlen(p);
+	slash1 = strchrnul(p, '/');
+	n = slash1 - p;
 	if (!n && !allow_root)
 		die("Empty path component found in input");
 
@@ -1664,7 +1656,7 @@ static int tree_content_get(
 	for (i = 0; i < t->entry_count; i++) {
 		e = t->entries[i];
 		if (e->name->str_len == n && !strncmp_icase(p, e->name->str_dat, n)) {
-			if (!slash1)
+			if (!*slash1)
 				goto found_entry;
 			if (!S_ISDIR(e->versions[1].mode))
 				return 0;
@@ -1690,10 +1682,13 @@ static int update_branch(struct branch *b)
 	struct ref_lock *lock;
 	unsigned char old_sha1[20];
 
-	if (is_null_sha1(b->sha1))
-		return 0;
 	if (read_ref(b->name, old_sha1))
 		hashclr(old_sha1);
+	if (is_null_sha1(b->sha1)) {
+		if (b->delete)
+			delete_ref(b->name, old_sha1, 0);
+		return 0;
+	}
 	lock = lock_any_ref_for_update(b->name, old_sha1, 0, NULL);
 	if (!lock)
 		return error("Unable to lock %s", b->name);
@@ -2620,8 +2615,11 @@ static int parse_from(struct branch *b)
 			free(buf);
 		} else
 			parse_from_existing(b);
-	} else if (!get_sha1(from, b->sha1))
+	} else if (!get_sha1(from, b->sha1)) {
 		parse_from_existing(b);
+		if (is_null_sha1(b->sha1))
+			b->delete = 1;
+	}
 	else
 		die("Invalid ref name or SHA1 expression: %s", from);
 
