@@ -117,8 +117,7 @@ install-arch: deb-checkdir deb-checkuid build-arch-stamp
 	chmod 644 '$(GIT)'/usr/share/perl5/Git.pm
 	find '$(GIT)'/usr/share/perl5/Git -type d | xargs chmod 0755
 	find '$(GIT)'/usr/share/perl5/Git -type f | xargs chmod 0644
-	# don't include arch, bzr, cvs, hg, p4, svn, email, gui tools,
-	# and gitk program
+	# don't include arch, cvs, p4, svn, email, gui tools, and gitk program
 	for i in git-archimport git-cvs git-p4 git-svn git-send-email \
 	 git-gui git-citool; do \
 	  rm -f '$(GIT)'/usr/lib/git-core/$$i*; \
@@ -198,8 +197,7 @@ install-indep: build-arch-stamp build-indep-stamp
 	PATH=$$PATH:$(CURDIR) DESTDIR='$(GIT)'-man $(MAKE) -C contrib/subtree install-doc $(OPTS)
 	install -m 0644 '$(TMP)'/usr/share/man/man3/Git* \
 	  '$(GIT)'-man/usr/share/man/man3/
-	# don't include arch, bzr, cvs, hg, p4, svn, email, gui, and
-	# gitk man pages
+	# don't include arch, cvs, p4, svn, email, gui, and gitk man pages
 	for i in git-archimport git-cvs git-p4 git-svn git-send-email gitk \
 	 git-gui git-citool; do \
 	  rm -f '$(GIT)'-man/usr/share/man/man1/$$i*; \

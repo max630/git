@@ -1,8 +1,23 @@
 git (1:2.0.0+next.20140616-0.1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit f681aa8b.
+  * merge branch debian-sid.
 
  -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 17 Jun 2014 16:25:26 -0700
+
+git (1:2.0.0-2) unstable; urgency=low
+
+  * debian/rules: drop obsolete THREADED_DELTA_SEARCH setting.
+  * debian/rules: add SANE_TOOL_PATH= INSTALL=install TAR=tar to
+    OPTS to fix the Dyson build (thx Игорь Пашев; closes:
+    #734097).
+  * debian/rules: remove NO_PYTHON=1 now that the git_remote_helpers
+    library has been removed.
+  * debian/rules: remove git-p4 and its documentation from the git,
+    git-man, and git-doc packages.  It depends on Perforce, which is
+    not part of Debian.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 17 Jun 2014 16:17:46 -0700
 
 git (1:2.0.0+next.20140528-1) experimental; urgency=low
 
