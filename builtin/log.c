@@ -63,6 +63,8 @@ static int parse_decoration_style(const char *var, const char *value)
 		return DECORATE_FULL_REFS;
 	else if (!strcmp(value, "short"))
 		return DECORATE_SHORT_REFS;
+	else if (!strcmp(value, "auto"))
+		return (isatty(1) || pager_in_use()) ? DECORATE_SHORT_REFS : 0;
 	return -1;
 }
 
@@ -345,8 +347,7 @@ static int cmd_log_walk(struct rev_info *rev)
 			rev->max_count++;
 		if (!rev->reflog_info) {
 			/* we allow cycles in reflog ancestry */
-			free(commit->buffer);
-			commit->buffer = NULL;
+			free_commit_buffer(commit);
 		}
 		free_commit_list(commit->parents);
 		commit->parents = NULL;
@@ -669,6 +670,7 @@ static void add_header(const char *value)
 static int thread;
 static int do_signoff;
 static const char *signature = git_version_string;
+static const char *signature_file;
 static int config_cover_letter;
 
 enum {
@@ -738,6 +740,8 @@ static int git_format_config(const char *var, const char *value, void *cb)
 	}
 	if (!strcmp(var, "format.signature"))
 		return git_config_string(&signature, var, value);
+	if (!strcmp(var, "format.signaturefile"))
+		return git_config_pathname(&signature_file, var, value);
 	if (!strcmp(var, "format.coverletter")) {
 		if (value && !strcasecmp(value, "auto")) {
 			config_cover_letter = COVER_AUTO;
@@ -840,8 +844,13 @@ static void gen_message_id(struct rev_info *info, char *base)
 
 static void print_signature(void)
 {
-	if (signature && *signature)
-		printf("-- \n%s\n\n", signature);
+	if (!signature || !*signature)
+		return;
+
+	printf("-- \n%s", signature);
+	if (signature[strlen(signature)-1] != '\n')
+		putchar('\n');
+	putchar('\n');
 }
 
 static void add_branch_description(struct strbuf *buf, const char *branch_name)
@@ -915,9 +924,12 @@ static void make_cover_letter(struct rev_info *rev, int use_stdout,
 	log_write_email_headers(rev, head, &pp.subject, &pp.after_subject,
 				&need_8bit_cte);
 
-	for (i = 0; !need_8bit_cte && i < nr; i++)
-		if (has_non_ascii(list[i]->buffer))
+	for (i = 0; !need_8bit_cte && i < nr; i++) {
+		const char *buf = get_commit_buffer(list[i], NULL);
+		if (has_non_ascii(buf))
 			need_8bit_cte = 1;
+		unuse_commit_buffer(list[i], buf);
+	}
 
 	if (!branch_name)
 		branch_name = find_branch_name(rev);
@@ -1226,6 +1238,8 @@ int cmd_format_patch(int argc, const char **argv, const char *prefix)
 			    PARSE_OPT_OPTARG, thread_callback },
 		OPT_STRING(0, "signature", &signature, N_("signature"),
 			    N_("add a signature")),
+		OPT_FILENAME(0, "signature-file", &signature_file,
+				N_("add a signature from a file")),
 		OPT__QUIET(&quiet, N_("don't print the patch filenames")),
 		OPT_END()
 	};
@@ -1443,6 +1457,18 @@ int cmd_format_patch(int argc, const char **argv, const char *prefix)
 			cover_letter = (config_cover_letter == COVER_ON);
 	}
 
+	if (!signature) {
+		; /* --no-signature inhibits all signatures */
+	} else if (signature && signature != git_version_string) {
+		; /* non-default signature already set */
+	} else if (signature_file) {
+		struct strbuf buf = STRBUF_INIT;
+
+		if (strbuf_read_file(&buf, signature_file, 128) < 0)
+			die_errno(_("unable to read signature file '%s'"), signature_file);
+		signature = strbuf_detach(&buf, NULL);
+	}
+
 	if (in_reply_to || thread || cover_letter)
 		rev.ref_message_ids = xcalloc(1, sizeof(struct string_list));
 	if (in_reply_to) {
@@ -1504,8 +1530,7 @@ int cmd_format_patch(int argc, const char **argv, const char *prefix)
 		    reopen_stdout(rev.numbered_files ? NULL : commit, NULL, &rev, quiet))
 			die(_("Failed to create output files"));
 		shown = log_tree_commit(&rev, commit);
-		free(commit->buffer);
-		commit->buffer = NULL;
+		free_commit_buffer(commit);
 
 		/* We put one extra blank line between formatted
 		 * patches and this flag is used by log-tree code
