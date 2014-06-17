@@ -1,4 +1,4 @@
-git (1:2.0.0-1.1) unstable; urgency=low
+git (1:2.0.0-2) unstable; urgency=low
 
   * debian/rules: drop obsolete THREADED_DELTA_SEARCH setting.
   * debian/rules: add SANE_TOOL_PATH= INSTALL=install TAR=tar to
@@ -10,7 +10,7 @@ git (1:2.0.0-1.1) unstable; urgency=low
     git-man, and git-doc packages.  It depends on Perforce, which is
     not part of Debian.
 
- -- Jonathan Nieder <jrnieder@gmail.com>  Fri, 03 Jan 2014 11:54:44 -0800
+ -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 17 Jun 2014 16:17:46 -0700
 
 git (1:2.0.0-1) unstable; urgency=low
 
