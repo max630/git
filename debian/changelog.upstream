@@ -1,3 +1,96 @@
+Version v2.0.1; changes since v2.0.0:
+-------------------------------------
+
+Alexey Shumkin (5):
+      t4205 (log-pretty-formats): don't hardcode SHA-1 in expected outputs
+      t4041, t4205, t6006, t7102: don't hardcode tested encoding value
+      t4205 (log-pretty-format): use `tformat` rather than `format`
+      t4205, t6006: add tests that fail with i18n.logOutputEncoding set
+      pretty.c: format string with truncate respects logOutputEncoding
+
+David Turner (2):
+      merge-recursive.c: fix case-changing merge bug
+      mv: allow renaming to fix case on case insensitive filesystems
+
+Felipe Contreras (1):
+      rerere: fix for merge.conflictstyle
+
+Jacek Konieczny (1):
+      pull: do not abuse 'break' inside a shell 'case'
+
+Jeff King (7):
+      commit: do not complain of empty messages from -C
+      index-pack: distinguish missing objects from type errors
+      run_diff_files: do not look at uninitialized stat data
+      open_sha1_file: report "most interesting" errno
+      move "--follow needs one pathspec" rule to diff_setup_done
+      t5537: re-drop http tests
+      update-index: fix segfault with missing --cacheinfo argument
+
+Jens Lehmann (2):
+      status/commit: show staged submodules regardless of ignore config
+      commit -m: commit staged submodules regardless of ignore config
+
+Jens Lindström (3):
+      remote rm: delete remote configuration as the last
+      remote: repack packed-refs once when deleting multiple refs
+      remote prune: optimize "dangling symref" check/warning
+
+Jiang Xin (2):
+      blame: fix broken time_buf paddings in relative timestamp
+      blame: dynamic blame_date_width for different locales
+
+Johannes Schindelin (1):
+      git grep -O -i: if the pager is 'less', pass the '-I' option
+
+John Keeping (2):
+      completion: add a note that merge options are shared
+      completion: add missing options for git-merge
+
+Junio C Hamano (5):
+      apply --ignore-space-change: lines with and without leading whitespaces do not match
+      Git 1.9.4
+      shortlog: allow --exclude=<glob> to be passed
+      revision: parse "git log -<count>" more carefully
+      Git 2.0.1
+
+Jörn Engel (1):
+      pager: do allow spawning pager recursively
+
+Matthieu Moy (1):
+      rebase -i: test "Nothing to do" case with autostash
+
+Max Kirillov (1):
+      git-show: fix 'git show -s' to not add extra terminator after merge commit
+
+Michael Naumov (1):
+      sideband.c: do not use ANSI control sequence on non-terminal
+
+Nguyễn Thái Ngọc Duy (2):
+      index-pack: work around thread-unsafe pread()
+      gc --auto: do not lock refs in the background
+
+Nick Alcock (1):
+      t5538: move http push tests out to t5542
+
+Ramkumar Ramachandra (1):
+      rebase -i: handle "Nothing to do" case with autostash
+
+René Scharfe (2):
+      mailinfo: use strcmp() for string comparison
+      pack-objects: use free()+xcalloc() instead of xrealloc()+memset()
+
+Yiannis Marangos (2):
+      wrapper.c: add xpread() similar to xread()
+      read-cache.c: verify index file before we opportunistically update it
+
+brian m. carlson (1):
+      blame: correctly handle files regardless of autocrlf
+
+Øystein Walle (1):
+      config: respect '~' and '~user' in mailmap.file
+
+
 Version v2.0.0; changes since v2.0.0-rc4:
 -----------------------------------------
 
@@ -155,7 +248,7 @@ Kyle J. McKay (3):
       ewah_bitmap.c: do not assume size_t and eword_t are the same size
 
 
-Version v2.0.0-rc0; changes since v1.9.3:
+Version v2.0.0-rc0; changes since v1.9.4:
 -----------------------------------------
 
 Adam (1):
@@ -356,14 +449,13 @@ Jonathan Nieder (3):
       .gitignore: test-hashmap is a generated file
       test-hashmap.c: drop unnecessary #includes
 
-Junio C Hamano (35):
+Junio C Hamano (34):
       git add <pathspec>... defaults to "-A"
       git add: -u/-A now affects the entire working tree
       core.statinfo: remove as promised in Git 2.0
       push: switch default from "matching" to "simple"
       diff: remove "diff-files -q" in a version of Git in a distant future
       push: switch default from "matching" to "simple"
-      t3004: add test for ls-files on symlinks via absolute paths
       open_istream(): do not dereference NULL in the error case
       combine-diff: simplify intersect_paths() further
       commit-tree: add and document --no-gpg-sign
@@ -439,13 +531,6 @@ Marat Radchenko (5):
       MSVC: fix t0040-parse-options crash
       parse-options: remove unused OPT_SET_PTR
       MSVC: allow using ExtUtils::MakeMaker
-
-Martin Erik Werner (5):
-      t0060: add test for prefix_path on symlinks via absolute paths
-      t0060: add test for prefix_path when path == work tree
-      t0060: add tests for prefix_path when path begins with work tree
-      setup: add abspath_part_inside_repo() function
-      setup: don't dereference in-tree symlinks for absolute paths
 
 Max Horn (2):
       transport-helper.c: do not overwrite forced bit
@@ -606,6 +691,25 @@ dequis (1):
 
 Дилян Палаузов (1):
       Makefile: describe CHARSET_LIB better
+
+
+Version v1.9.4; changes since v1.9.3:
+-------------------------------------
+
+Junio C Hamano (2):
+      t3004: add test for ls-files on symlinks via absolute paths
+      Git 1.9.4
+
+Martin Erik Werner (6):
+      t0060: add test for prefix_path on symlinks via absolute paths
+      t0060: add test for prefix_path when path == work tree
+      t0060: add tests for prefix_path when path begins with work tree
+      setup: add abspath_part_inside_repo() function
+      setup: don't dereference in-tree symlinks for absolute paths
+      setup: fix windows path buffer over-stepping
+
+Richard Hansen (1):
+      git-prompt.sh: don't assume the shell expands the value of PS1
 
 
 Version v1.9.3; changes since v1.9.2:

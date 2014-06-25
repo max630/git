@@ -1,4 +1,4 @@
-From e6e3feae48f1c554503c59f5c243937b1f165f1b Mon Sep 17 00:00:00 2001
+From 7cb6e919d041f4f88a7adb3ab28fef31040c6340 Mon Sep 17 00:00:00 2001
 From: Jonathan Nieder <jrnieder@gmail.com>
 Date: Mon, 6 Jun 2011 04:37:14 -0500
 Subject: transport: expose git_tcp_connect() and friends in new tcp.h
@@ -21,10 +21,10 @@ Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
  create mode 100644 tcp.h
 
 diff --git a/Makefile b/Makefile
-index a53f3a8..a9cceb9 100644
+index e0caec3..59fdb00 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -725,6 +725,7 @@ LIB_H += string-list.h
+@@ -722,6 +722,7 @@ LIB_H += string-list.h
  LIB_H += submodule.h
  LIB_H += tag.h
  LIB_H += tar.h
@@ -32,7 +32,7 @@ index a53f3a8..a9cceb9 100644
  LIB_H += thread-utils.h
  LIB_H += transport.h
  LIB_H += tree-walk.h
-@@ -881,6 +882,7 @@ LIB_OBJS += string-list.o
+@@ -878,6 +879,7 @@ LIB_OBJS += string-list.o
  LIB_OBJS += submodule.o
  LIB_OBJS += symlinks.o
  LIB_OBJS += tag.o
@@ -638,5 +638,5 @@ index 0000000..566afd4
 +
 +#endif
 -- 
-1.9.1.423.g4596e3a
+2.0.0.526.g5318336
 
