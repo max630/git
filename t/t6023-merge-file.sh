@@ -326,4 +326,23 @@ test_expect_success 'marker size' '
 	test_cmp expect actual
 '
 
+printf "line1\nline2\nline3" >nolf-orig.txt
+printf "line1\nline2\nline3x" >nolf-diff1.txt
+printf "line1\nline2\nline3y" >nolf-diff2.txt
+
+test_expect_success 'conflict at EOF without LF resolved by --ours' \
+	'git merge-file -p --ours nolf-diff1.txt nolf-orig.txt nolf-diff2.txt >output.txt &&
+	 printf "line1\nline2\nline3x" >expect.txt &&
+	 test_cmp expect.txt output.txt'
+
+test_expect_success 'conflict at EOF without LF resolved by --theirs' \
+	'git merge-file -p --theirs nolf-diff1.txt nolf-orig.txt nolf-diff2.txt >output.txt &&
+	 printf "line1\nline2\nline3y" >expect.txt &&
+	 test_cmp expect.txt output.txt'
+
+test_expect_success 'conflict at EOF without LF resolved by --union' \
+	'git merge-file -p --union nolf-diff1.txt nolf-orig.txt nolf-diff2.txt >output.txt &&
+	 printf "line1\nline2\nline3x\nline3y" >expect.txt &&
+	 test_cmp expect.txt output.txt'
+
 test_done
