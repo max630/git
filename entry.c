@@ -44,33 +44,33 @@ static void create_directories(const char *path, int path_len,
 	free(buf);
 }
 
-static void remove_subtree(const char *path)
+static void remove_subtree(struct strbuf *path)
 {
-	DIR *dir = opendir(path);
+	DIR *dir = opendir(path->buf);
 	struct dirent *de;
-	char pathbuf[PATH_MAX];
-	char *name;
+	int origlen = path->len;
 
 	if (!dir)
-		die_errno("cannot opendir '%s'", path);
-	strcpy(pathbuf, path);
-	name = pathbuf + strlen(path);
-	*name++ = '/';
+		die_errno("cannot opendir '%s'", path->buf);
 	while ((de = readdir(dir)) != NULL) {
 		struct stat st;
+
 		if (is_dot_or_dotdot(de->d_name))
 			continue;
-		strcpy(name, de->d_name);
-		if (lstat(pathbuf, &st))
-			die_errno("cannot lstat '%s'", pathbuf);
+
+		strbuf_addch(path, '/');
+		strbuf_addstr(path, de->d_name);
+		if (lstat(path->buf, &st))
+			die_errno("cannot lstat '%s'", path->buf);
 		if (S_ISDIR(st.st_mode))
-			remove_subtree(pathbuf);
-		else if (unlink(pathbuf))
-			die_errno("cannot unlink '%s'", pathbuf);
+			remove_subtree(path);
+		else if (unlink(path->buf))
+			die_errno("cannot unlink '%s'", path->buf);
+		strbuf_setlen(path, origlen);
 	}
 	closedir(dir);
-	if (rmdir(path))
-		die_errno("cannot rmdir '%s'", path);
+	if (rmdir(path->buf))
+		die_errno("cannot rmdir '%s'", path->buf);
 }
 
 static int create_file(const char *path, unsigned int mode)
@@ -136,6 +136,126 @@ static int streaming_write_entry(const struct cache_entry *ce, char *path,
 	return result;
 }
 
+/*
+ * Does 'match' match the given name?
+ * A match is found if
+ *
+ * (1) the 'match' string is leading directory of 'name', or
+ * (2) the 'match' string is exactly the same as 'name'.
+ *
+ * and the return value tells which case it was.
+ *
+ * It returns 0 when there is no match.
+ *
+ * Preserved and simplified from dir.c for use here (without glob special matching)
+ */
+static int match_one(const char *match, const char *name, int namelen)
+{
+	int matchlen;
+
+	/* If the match was just the prefix, we matched */
+	if (!*match)
+		return MATCHED_RECURSIVELY;
+
+	if (ignore_case) {
+		for (;;) {
+			unsigned char c1 = tolower(*match);
+			unsigned char c2 = tolower(*name);
+			if (c1 == '\0' )
+				break;
+			if (c1 != c2)
+				return 0;
+			match++;
+			name++;
+			namelen--;
+		}
+		/* We don't match the matchstring exactly, */
+		matchlen = strlen(match);
+		if (strncmp_icase(match, name, matchlen))
+			return 0;
+	} else {
+		for (;;) {
+			unsigned char c1 = *match;
+			unsigned char c2 = *name;
+			if (c1 == '\0' )
+				break;
+			if (c1 != c2)
+				return 0;
+			match++;
+			name++;
+			namelen--;
+		}
+		/* We don't match the matchstring exactly, */
+		matchlen = strlen(match);
+		if (strncmp(match, name, matchlen))
+			return 0;
+	}
+
+	if (namelen == matchlen)
+		return MATCHED_EXACTLY;
+	if (match[matchlen-1] == '/' || name[matchlen] == '/')
+		return MATCHED_RECURSIVELY;
+	return 0;
+}
+
+static enum git_target_type get_symlink_type(const char *filepath, const char *symlinkpath)
+{
+	/* For certain O/S and file-systems, symlinks need to know before-hand whether it
+	 * is a directory or a file being pointed to.
+	 *
+	 * This allows us to use index information for relative paths that lie
+	 * within the working directory.
+	 *
+	 * This function is not interested in interrogating the file-system.
+	 */
+	char *sanitized;
+	const char *fpos, *last;
+	enum git_target_type ret;
+	int len, pos;
+
+	/* This is an absolute path, so git doesn't know.
+	 */
+	if (is_absolute_path(symlinkpath))
+		return GIT_TARGET_UNKNOWN;
+
+	/* Work on a sanitized version of the path that can be
+	 * matched against the index.
+	 */
+	last = NULL;
+	for (fpos = filepath; *fpos; ++fpos)
+		if (is_dir_sep(*fpos))
+			last = fpos;
+
+	if (last) {
+		len = (1+last-filepath);
+		sanitized = xmalloc(len + strlen(symlinkpath)+1);
+		memcpy(sanitized, filepath, 1+last-filepath);
+	} else {
+		len = 0;
+		sanitized = xmalloc(strlen(symlinkpath)+1);
+	}
+	strcpy(sanitized+len, symlinkpath);
+
+	ret = GIT_TARGET_UNKNOWN;
+	if (!normalize_path_copy(sanitized, sanitized)) {
+		for (pos = 0; pos < active_nr; pos++) {
+			struct cache_entry *ce = active_cache[pos];
+			switch (match_one(sanitized, ce->name, ce_namelen(ce))) {
+				case MATCHED_EXACTLY:
+				case MATCHED_FNMATCH:
+					ret = GIT_TARGET_ISFILE;
+					break;
+				case MATCHED_RECURSIVELY:
+					ret = GIT_TARGET_ISDIR;
+					break;
+			}
+		}
+	}
+
+	free(sanitized);
+	return ret;
+}
+
 static int write_entry(struct cache_entry *ce,
 		       char *path, const struct checkout *state, int to_tempfile)
 {
@@ -165,7 +285,10 @@ static int write_entry(struct cache_entry *ce,
 				path, sha1_to_hex(ce->sha1));
 
 		if (ce_mode_s_ifmt == S_IFLNK && has_symlinks && !to_tempfile) {
-			ret = symlink(new, path);
+			/* Note that symlink_with_type is a macro, and that for filesystems that
+			 * don't care, get_symlink_type will not be called.
+			 */
+			ret = symlink_with_type(new, path, get_symlink_type(path, new));
 			free(new);
 			if (ret)
 				return error("unable to create symlink %s (%s)",
@@ -245,27 +368,25 @@ static int check_path(const char *path, int len, struct stat *st, int skiplen)
 int checkout_entry(struct cache_entry *ce,
 		   const struct checkout *state, char *topath)
 {
-	static struct strbuf path_buf = STRBUF_INIT;
-	char *path;
+	static struct strbuf path = STRBUF_INIT;
 	struct stat st;
-	int len;
 
 	if (topath)
 		return write_entry(ce, topath, state, 1);
 
-	strbuf_reset(&path_buf);
-	strbuf_add(&path_buf, state->base_dir, state->base_dir_len);
-	strbuf_add(&path_buf, ce->name, ce_namelen(ce));
-	path = path_buf.buf;
-	len = path_buf.len;
+	strbuf_reset(&path);
+	strbuf_add(&path, state->base_dir, state->base_dir_len);
+	strbuf_add(&path, ce->name, ce_namelen(ce));
 
-	if (!check_path(path, len, &st, state->base_dir_len)) {
+	if (!check_path(path.buf, path.len, &st, state->base_dir_len)) {
 		unsigned changed = ce_match_stat(ce, &st, CE_MATCH_IGNORE_VALID|CE_MATCH_IGNORE_SKIP_WORKTREE);
 		if (!changed)
 			return 0;
 		if (!state->force) {
 			if (!state->quiet)
-				fprintf(stderr, "%s already exists, no checkout\n", path);
+				fprintf(stderr,
+					"%s already exists, no checkout\n",
+					path.buf);
 			return -1;
 		}
 
@@ -280,12 +401,14 @@ int checkout_entry(struct cache_entry *ce,
 			if (S_ISGITLINK(ce->ce_mode))
 				return 0;
 			if (!state->force)
-				return error("%s is a directory", path);
-			remove_subtree(path);
-		} else if (unlink(path))
-			return error("unable to unlink old '%s' (%s)", path, strerror(errno));
+				return error("%s is a directory", path.buf);
+			remove_subtree(&path);
+		} else if (unlink(path.buf))
+			return error("unable to unlink old '%s' (%s)",
+				     path.buf, strerror(errno));
 	} else if (state->not_new)
 		return 0;
-	create_directories(path, len, state);
-	return write_entry(ce, path, state, 0);
+
+	create_directories(path.buf, path.len, state);
+	return write_entry(ce, path.buf, state, 0);
 }

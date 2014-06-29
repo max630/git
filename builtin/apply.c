@@ -1943,13 +1943,7 @@ static int parse_chunk(char *buffer, unsigned long size, struct patch *patch)
 				       size - offset - hdrsize, patch);
 
 	if (!patchsize) {
-		static const char *binhdr[] = {
-			"Binary files ",
-			"Files ",
-			NULL,
-		};
 		static const char git_binary[] = "GIT binary patch\n";
-		int i;
 		int hd = hdrsize + offset;
 		unsigned long llen = linelen(buffer + hd, size - hd);
 
@@ -1965,6 +1959,12 @@ static int parse_chunk(char *buffer, unsigned long size, struct patch *patch)
 				patchsize = 0;
 		}
 		else if (!memcmp(" differ\n", buffer + hd + llen - 8, 8)) {
+			static const char *binhdr[] = {
+				"Binary files ",
+				"Files ",
+				NULL,
+			};
+			int i;
 			for (i = 0; binhdr[i]; i++) {
 				int len = strlen(binhdr[i]);
 				if (len < size - hd &&
@@ -4061,7 +4061,7 @@ static int write_out_one_reject(struct patch *patch)
 		return error(_("cannot open %s: %s"), namebuf, strerror(errno));
 
 	/* Normal git tools never deal with .rej, so do not pretend
-	 * this is a git patch by saying --git nor give extended
+	 * this is a git patch by saying --git or giving extended
 	 * headers.  While at it, maybe please "kompare" that wants
 	 * the trailing TAB and some garbage at the end of line ;-).
 	 */
@@ -4152,7 +4152,7 @@ static int use_patch(struct patch *p)
 	/* See if it matches any of exclude/include rule */
 	for (i = 0; i < limit_by_name.nr; i++) {
 		struct string_list_item *it = &limit_by_name.items[i];
-		if (!fnmatch(it->string, pathname, 0))
+		if (!wildmatch(it->string, pathname, 0, NULL))
 			return (it->util != NULL);
 	}
 

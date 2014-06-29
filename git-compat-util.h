@@ -85,6 +85,16 @@
 #define _NETBSD_SOURCE 1
 #define _SGI_SOURCE 1
 
+/* default is not to pass type - mingw needs this */
+#define symlink_with_type(a,b,c) symlink((a),(b))
+
+/* Used for 'Target Type' Parameter for symlink_with_type */
+enum git_target_type {
+	GIT_TARGET_UNKNOWN,
+	GIT_TARGET_ISFILE,
+	GIT_TARGET_ISDIR
+};
+
 #if defined(WIN32) && !defined(__CYGWIN__) /* Both MinGW and MSVC */
 # if defined (_MSC_VER) && !defined(_WIN32_WINNT)
 #  define _WIN32_WINNT 0x0502
@@ -116,9 +126,6 @@
 #include <sys/time.h>
 #include <time.h>
 #include <signal.h>
-#ifndef USE_WILDMATCH
-#include <fnmatch.h>
-#endif
 #include <assert.h>
 #include <regex.h>
 #include <utime.h>
@@ -132,8 +139,10 @@
 #if defined(__MINGW32__)
 /* pull in Windows compatibility stuff */
 #include "compat/mingw.h"
+#include "compat/win32/fscache.h"
 #elif defined(_MSC_VER)
 #include "compat/msvc.h"
+#include "compat/win32/fscache.h"
 #else
 #include <sys/wait.h>
 #include <sys/resource.h>
@@ -270,6 +279,10 @@ extern char *gitbasename(char *);
 #define has_dos_drive_prefix(path) 0
 #endif
 
+#ifndef offset_1st_component
+#define offset_1st_component(path) (is_dir_sep((path)[0]))
+#endif
+
 #ifndef is_dir_sep
 #define is_dir_sep(c) ((c) == '/')
 #endif
@@ -304,16 +317,7 @@ extern char *gitbasename(char *);
 
 #include "compat/bswap.h"
 
-#ifdef USE_WILDMATCH
 #include "wildmatch.h"
-#define FNM_PATHNAME WM_PATHNAME
-#define FNM_CASEFOLD WM_CASEFOLD
-#define FNM_NOMATCH  WM_NOMATCH
-static inline int fnmatch(const char *pattern, const char *string, int flags)
-{
-	return wildmatch(pattern, string, flags, NULL);
-}
-#endif
 
 /* General helper functions */
 extern void vreportf(const char *prefix, const char *err, va_list params);
@@ -351,14 +355,15 @@ extern void set_error_routine(void (*routine)(const char *err, va_list params));
 extern void set_die_is_recursing_routine(int (*routine)(void));
 
 extern int starts_with(const char *str, const char *prefix);
-extern int prefixcmp(const char *str, const char *prefix);
 extern int ends_with(const char *str, const char *suffix);
-extern int suffixcmp(const char *str, const char *suffix);
 
 static inline const char *skip_prefix(const char *str, const char *prefix)
 {
-	size_t len = strlen(prefix);
-	return strncmp(str, prefix, len) ? NULL : str + len;
+	do {
+		if (!*prefix)
+			return str;
+	} while (*str++ == *prefix++);
+	return NULL;
 }
 
 #if defined(NO_MMAP) || defined(USE_WIN32_MMAP)
@@ -480,9 +485,15 @@ extern FILE *git_fopen(const char*, const char*);
 #endif
 
 #ifdef SNPRINTF_RETURNS_BOGUS
+#ifdef snprintf
+#undef snprintf
+#endif
 #define snprintf git_snprintf
 extern int git_snprintf(char *str, size_t maxsize,
 			const char *format, ...);
+#ifdef vsnprintf
+#undef vsnprintf
+#endif
 #define vsnprintf git_vsnprintf
 extern int git_vsnprintf(char *str, size_t maxsize,
 			 const char *format, va_list ap);
@@ -541,7 +552,7 @@ extern FILE *xfdopen(int fd, const char *mode);
 extern int xmkstemp(char *template);
 extern int xmkstemp_mode(char *template, int mode);
 extern int odb_mkstemp(char *template, size_t limit, const char *pattern);
-extern int odb_pack_keep(char *name, size_t namesz, unsigned char *sha1);
+extern int odb_pack_keep(char *name, size_t namesz, const unsigned char *sha1);
 
 static inline size_t xsize_t(off_t len)
 {
@@ -720,5 +731,35 @@ void warn_on_inaccessible(const char *path);
 
 /* Get the passwd entry for the UID of the current process. */
 struct passwd *xgetpwuid_self(void);
+
+#ifdef GMTIME_UNRELIABLE_ERRORS
+struct tm *git_gmtime(const time_t *);
+struct tm *git_gmtime_r(const time_t *, struct tm *);
+#define gmtime git_gmtime
+#define gmtime_r git_gmtime_r
+#endif
+
+#ifndef mark_as_git_dir
+#define mark_as_git_dir(x) /* noop */
+#endif
+
+#ifndef get_home_directory
+#define get_home_directory() getenv("HOME")
+#endif
+
+/*
+ * Enable/disable a read-only cache for file system data on platforms that
+ * support it.
+ *
+ * Implementing a live-cache is complicated and requires special platform
+ * support (inotify, ReadDirectoryChangesW...). enable_fscache shall be used
+ * to mark sections of git code that extensively read from the file system
+ * without modifying anything. Implementations can use this to cache e.g. stat
+ * data or even file content without the need to synchronize with the file
+ * system.
+ */
+#ifndef enable_fscache
+#define enable_fscache(x) /* noop */
+#endif
 
 #endif

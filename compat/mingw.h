@@ -84,10 +84,6 @@ struct itimerval {
  * trivial stubs
  */
 
-static inline int readlink(const char *path, char *buf, size_t bufsiz)
-{ errno = ENOSYS; return -1; }
-static inline int symlink(const char *oldpath, const char *newpath)
-{ errno = ENOSYS; return -1; }
 static inline int fchmod(int fildes, mode_t mode)
 { errno = ENOSYS; return -1; }
 static inline pid_t fork(void)
@@ -118,10 +114,7 @@ static inline int fcntl(int fd, int cmd, ...)
  * simple adaptors
  */
 
-static inline int mingw_mkdir(const char *path, int mode)
-{
-	return mkdir(path);
-}
+int mingw_mkdir(const char *path, int mode);
 #define mkdir mingw_mkdir
 
 #define WNOHANG 1
@@ -151,6 +144,10 @@ static inline int mingw_SSL_set_wfd(SSL *ssl, int fd)
 #define SSL_set_wfd mingw_SSL_set_wfd
 #endif
 
+#undef symlink_with_type
+#define symlink_with_type(a,b,c) mingw_symlink((a),(b),(c))
+#define symlink(a,b) mingw_symlink((a),(b),GIT_TARGET_UNKNOWN)
+
 /*
  * implementations of missing functions
  */
@@ -166,6 +163,9 @@ struct passwd *getpwuid(uid_t uid);
 int setitimer(int type, struct itimerval *in, struct itimerval *out);
 int sigaction(int sig, struct sigaction *in, struct sigaction *out);
 int link(const char *oldpath, const char *newpath);
+
+int mingw_symlink(const char *oldpath, const char *newpath, enum git_target_type targettype);
+int readlink(const char *path, char *buf, size_t bufsiz);
 
 /*
  * replacements of existing functions
@@ -192,11 +192,27 @@ FILE *mingw_freopen (const char *filename, const char *otype, FILE *stream);
 int mingw_fflush(FILE *stream);
 #define fflush mingw_fflush
 
+int mingw_access(const char *filename, int mode);
+#undef access
+#define access mingw_access
+
+int mingw_chdir(const char *dirname);
+#define chdir mingw_chdir
+
+int mingw_chmod(const char *filename, int mode);
+#define chmod mingw_chmod
+
+char *mingw_mktemp(char *template);
+#define mktemp mingw_mktemp
+
 char *mingw_getcwd(char *pointer, int len);
 #define getcwd mingw_getcwd
 
 char *mingw_getenv(const char *name);
 #define getenv mingw_getenv
+int mingw_putenv(const char *namevalue);
+#define putenv mingw_putenv
+#define unsetenv mingw_putenv
 
 int mingw_gethostname(char *host, int namelen);
 #define gethostname mingw_gethostname
@@ -262,6 +278,22 @@ static inline int getrlimit(int resource, struct rlimit *rlp)
 }
 
 /*
+ * The unit of FILETIME is 100-nanoseconds since January 1, 1601, UTC.
+ * Returns the 100-nanoseconds ("hekto nanoseconds") since the epoch.
+ */
+static inline long long filetime_to_hnsec(const FILETIME *ft)
+{
+	long long winTime = ((long long)ft->dwHighDateTime << 32) + ft->dwLowDateTime;
+	/* Windows to Unix Epoch conversion */
+	return winTime - 116444736000000000LL;
+}
+
+static inline time_t filetime_to_time_t(const FILETIME *ft)
+{
+	return (time_t)(filetime_to_hnsec(ft) / 10000000);
+}
+
+/*
  * Use mingw specific stat()/lstat()/fstat() implementations on Windows.
  */
 #define off_t off64_t
@@ -282,7 +314,7 @@ int mingw_fstat(int fd, struct stat *buf);
 #ifdef lstat
 #undef lstat
 #endif
-#define lstat mingw_lstat
+extern int (*lstat)(const char *file_name, struct stat *buf);
 
 #ifndef _stati64
 # define _stati64(x,y) mingw_stat(x,y)
@@ -317,12 +349,8 @@ int mingw_raise(int sig);
  * ANSI emulation wrappers
  */
 
-int winansi_fputs(const char *str, FILE *stream);
-int winansi_printf(const char *format, ...) __attribute__((format (printf, 1, 2)));
-int winansi_fprintf(FILE *stream, const char *format, ...) __attribute__((format (printf, 2, 3)));
-#define fputs winansi_fputs
-#define printf(...) winansi_printf(__VA_ARGS__)
-#define fprintf(...) winansi_fprintf(__VA_ARGS__)
+void winansi_init(void);
+HANDLE winansi_get_osfhandle(int fd);
 
 /*
  * git specific compatibility
@@ -339,6 +367,8 @@ static inline char *mingw_find_last_dir_sep(const char *path)
 	return ret;
 }
 #define find_last_dir_sep mingw_find_last_dir_sep
+int mingw_offset_1st_component(const char *path);
+#define offset_1st_component mingw_offset_1st_component
 #define PATH_SEP ';'
 #define PRIuMAX "I64u"
 #define PRId64 "I64d"
@@ -346,12 +376,182 @@ static inline char *mingw_find_last_dir_sep(const char *path)
 void mingw_open_html(const char *path);
 #define open_html mingw_open_html
 
-/*
- * helpers
- */
+void mingw_mark_as_git_dir(const char *dir);
+#define mark_as_git_dir mingw_mark_as_git_dir
 
-char **make_augmented_environ(const char *const *vars);
-void free_environ(char **env);
+char *mingw_resolve_symlink(char *p, size_t s);
+#define resolve_symlink mingw_resolve_symlink
+
+/**
+ * Max length of long paths (exceeding MAX_PATH). The actual maximum supported
+ * by NTFS is 32,767 (* sizeof(wchar_t)), but we choose an arbitrary smaller
+ * value to limit required stack memory.
+ */
+#define MAX_LONG_PATH 4096
+
+/**
+ * Handles paths that would exceed the MAX_PATH limit of Windows Unicode APIs.
+ *
+ * With expand == false, the function checks for over-long paths and fails
+ * with ENAMETOOLONG. The path parameter is not modified, except if cwd + path
+ * exceeds max_path, but the resulting absolute path doesn't (e.g. due to
+ * eliminating '..' components). The path parameter must point to a buffer
+ * of max_path wide characters.
+ *
+ * With expand == true, an over-long path is automatically converted in place
+ * to an absolute path prefixed with '\\?\', and the new length is returned.
+ * The path parameter must point to a buffer of MAX_LONG_PATH wide characters.
+ *
+ * Parameters:
+ * path: path to check and / or convert
+ * len: size of path on input (number of wide chars without \0)
+ * max_path: max short path length to check (usually MAX_PATH = 260, but just
+ * 248 for CreateDirectoryW)
+ * expand: false to only check the length, true to expand the path to a
+ * '\\?\'-prefixed absolute path
+ *
+ * Return:
+ * length of the resulting path, or -1 on failure
+ *
+ * Errors:
+ * ENAMETOOLONG if path is too long
+ */
+int handle_long_path(wchar_t *path, int len, int max_path, int expand);
+
+/**
+ * Converts UTF-8 encoded string to UTF-16LE.
+ *
+ * To support repositories with legacy-encoded file names, invalid UTF-8 bytes
+ * 0xa0 - 0xff are converted to corresponding printable Unicode chars \u00a0 -
+ * \u00ff, and invalid UTF-8 bytes 0x80 - 0x9f (which would make non-printable
+ * Unicode) are converted to hex-code.
+ *
+ * Lead-bytes not followed by an appropriate number of trail-bytes, over-long
+ * encodings and 4-byte encodings > \u10ffff are detected as invalid UTF-8.
+ *
+ * Maximum space requirement for the target buffer is two wide chars per UTF-8
+ * char (((strlen(utf) * 2) + 1) [* sizeof(wchar_t)]).
+ *
+ * The maximum space is needed only if the entire input string consists of
+ * invalid UTF-8 bytes in range 0x80-0x9f, as per the following table:
+ *
+ *               |                   | UTF-8 | UTF-16 |
+ *   Code point  |  UTF-8 sequence   | bytes | words  | ratio
+ * --------------+-------------------+-------+--------+-------
+ * 000000-00007f | 0-7f              |   1   |   1    |  1
+ * 000080-0007ff | c2-df + 80-bf     |   2   |   1    |  0.5
+ * 000800-00ffff | e0-ef + 2 * 80-bf |   3   |   1    |  0.33
+ * 010000-10ffff | f0-f4 + 3 * 80-bf |   4   |  2 (a) |  0.5
+ * invalid       | 80-9f             |   1   |  2 (b) |  2
+ * invalid       | a0-ff             |   1   |   1    |  1
+ *
+ * (a) encoded as UTF-16 surrogate pair
+ * (b) encoded as two hex digits
+ *
+ * Note that, while the UTF-8 encoding scheme can be extended to 5-byte, 6-byte
+ * or even indefinite-byte sequences, the largest valid code point \u10ffff
+ * encodes as only 4 UTF-8 bytes.
+ *
+ * Parameters:
+ * wcs: wide char target buffer
+ * utf: string to convert
+ * wcslen: size of target buffer (in wchar_t's)
+ * utflen: size of string to convert, or -1 if 0-terminated
+ *
+ * Returns:
+ * length of converted string (_wcslen(wcs)), or -1 on failure
+ *
+ * Errors:
+ * EINVAL: one of the input parameters is invalid (e.g. NULL)
+ * ERANGE: the output buffer is too small
+ */
+int xutftowcsn(wchar_t *wcs, const char *utf, size_t wcslen, int utflen);
+
+/**
+ * Simplified variant of xutftowcsn, assumes input string is \0-terminated.
+ */
+static inline int xutftowcs(wchar_t *wcs, const char *utf, size_t wcslen)
+{
+	return xutftowcsn(wcs, utf, wcslen, -1);
+}
+
+/**
+ * Simplified file system specific wrapper of xutftowcsn and handle_long_path.
+ * Converts ERANGE to ENAMETOOLONG. If expand is true, wcs must be at least
+ * MAX_LONG_PATH wide chars (see handle_long_path).
+ */
+static inline int xutftowcs_path_ex(wchar_t *wcs, const char *utf,
+		size_t wcslen, int utflen, int max_path, int expand)
+{
+	int result = xutftowcsn(wcs, utf, wcslen, utflen);
+	if (result < 0 && errno == ERANGE)
+		errno = ENAMETOOLONG;
+	if (result >= 0)
+		result = handle_long_path(wcs, result, max_path, expand);
+	return result;
+}
+
+/**
+ * Simplified file system specific variant of xutftowcsn, assumes output
+ * buffer size is MAX_PATH wide chars and input string is \0-terminated,
+ * fails with ENAMETOOLONG if input string is too long. Typically used for
+ * Windows APIs that don't support long paths, e.g. SetCurrentDirectory,
+ * LoadLibrary, CreateProcess...
+ */
+static inline int xutftowcs_path(wchar_t *wcs, const char *utf)
+{
+	return xutftowcs_path_ex(wcs, utf, MAX_PATH, -1, MAX_PATH, 0);
+}
+
+/* need to re-declare that here as mingw.h is included before cache.h */
+extern int core_long_paths;
+
+/**
+ * Simplified file system specific variant of xutftowcsn for Windows APIs
+ * that support long paths via '\\?\'-prefix, assumes output buffer size is
+ * MAX_LONG_PATH wide chars, fails with ENAMETOOLONG if input string is too
+ * long. The 'core.longpaths' git-config option controls whether the path
+ * is only checked or expanded to a long path.
+ */
+static inline int xutftowcs_long_path(wchar_t *wcs, const char *utf)
+{
+	return xutftowcs_path_ex(wcs, utf, MAX_LONG_PATH, -1, MAX_PATH,
+			core_long_paths);
+}
+
+/**
+ * Converts UTF-16LE encoded string to UTF-8.
+ *
+ * Maximum space requirement for the target buffer is three UTF-8 chars per
+ * wide char ((_wcslen(wcs) * 3) + 1).
+ *
+ * The maximum space is needed only if the entire input string consists of
+ * UTF-16 words in range 0x0800-0xd7ff or 0xe000-0xffff (i.e. \u0800-\uffff
+ * modulo surrogate pairs), as per the following table:
+ *
+ *               |                       | UTF-16 | UTF-8 |
+ *   Code point  |  UTF-16 sequence      | words  | bytes | ratio
+ * --------------+-----------------------+--------+-------+-------
+ * 000000-00007f | 0000-007f             |   1    |   1   |  1
+ * 000080-0007ff | 0080-07ff             |   1    |   2   |  2
+ * 000800-00ffff | 0800-d7ff / e000-ffff |   1    |   3   |  3
+ * 010000-10ffff | d800-dbff + dc00-dfff |   2    |   4   |  2
+ *
+ * Note that invalid code points > 10ffff cannot be represented in UTF-16.
+ *
+ * Parameters:
+ * utf: target buffer
+ * wcs: wide string to convert
+ * utflen: size of target buffer
+ *
+ * Returns:
+ * length of converted string, or -1 on failure
+ *
+ * Errors:
+ * EINVAL: one of the input parameters is invalid (e.g. NULL)
+ * ERANGE: the output buffer is too small
+ */
+int xwcstoutf(char *utf, const wchar_t *wcs, size_t utflen);
 
 /*
  * A critical section used in the implementation of the spawn
@@ -361,22 +561,16 @@ void free_environ(char **env);
 extern CRITICAL_SECTION pinfo_cs;
 
 /*
- * A replacement of main() that ensures that argv[0] has a path
- * and that default fmode and std(in|out|err) are in binary mode
+ * A replacement of main() that adds win32 specific initialization.
  */
 
+void mingw_startup();
 #define main(c,v) dummy_decl_mingw_main(); \
 static int mingw_main(c,v); \
-int main(int argc, char **argv) \
+int main(c,v) \
 { \
-	extern CRITICAL_SECTION pinfo_cs; \
-	_fmode = _O_BINARY; \
-	_setmode(_fileno(stdin), _O_BINARY); \
-	_setmode(_fileno(stdout), _O_BINARY); \
-	_setmode(_fileno(stderr), _O_BINARY); \
-	argv[0] = xstrdup(_pgmptr); \
-	InitializeCriticalSection(&pinfo_cs); \
-	return mingw_main(argc, argv); \
+	mingw_startup(); \
+	return mingw_main(__argc, __argv); \
 } \
 static int mingw_main(c,v)
 
@@ -384,3 +578,6 @@ static int mingw_main(c,v)
  * Used by Pthread API implementation for Windows
  */
 extern int err_win_to_posix(DWORD winerr);
+
+extern const char *get_windows_home_directory();
+#define get_home_directory() get_windows_home_directory()

@@ -59,7 +59,9 @@ GIT_QUIET=
 say () {
 	if test -z "$GIT_QUIET"
 	then
-		printf '%s\n' "$*"
+		cat <<EOF
+$*
+EOF
 	fi
 }
 
@@ -72,6 +74,8 @@ if test -n "$OPTIONS_SPEC"; then
 	parseopt_extra=
 	[ -n "$OPTIONS_KEEPDASHDASH" ] &&
 		parseopt_extra="--keep-dashdash"
+	[ -n "$OPTIONS_STUCKLONG" ] &&
+		parseopt_extra="$parseopt_extra --stuck-long"
 
 	eval "$(
 		echo "$OPTIONS_SPEC" |

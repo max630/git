@@ -7,6 +7,7 @@
 #include "credential.h"
 #include "version.h"
 #include "pkt-line.h"
+#include "exec_cmd.h"
 
 int active_requests;
 int http_is_verbose;
@@ -143,6 +144,18 @@ static void process_curl_messages(void)
 }
 #endif
 
+static int git_config_path(const char **result,
+		const char *var, const char *value)
+{
+	if (git_config_string(result, var, value))
+		return 1;
+#ifdef __MINGW32__
+	if (**result == '/')
+		*result = system_path((*result) + 1);
+#endif
+	return 0;
+}
+
 static int http_options(const char *var, const char *value, void *cb)
 {
 	if (!strcmp("http.sslverify", var)) {
@@ -150,17 +163,17 @@ static int http_options(const char *var, const char *value, void *cb)
 		return 0;
 	}
 	if (!strcmp("http.sslcert", var))
-		return git_config_string(&ssl_cert, var, value);
+		return git_config_path(&ssl_cert, var, value);
 #if LIBCURL_VERSION_NUM >= 0x070903
 	if (!strcmp("http.sslkey", var))
-		return git_config_string(&ssl_key, var, value);
+		return git_config_path(&ssl_key, var, value);
 #endif
 #if LIBCURL_VERSION_NUM >= 0x070908
 	if (!strcmp("http.sslcapath", var))
-		return git_config_string(&ssl_capath, var, value);
+		return git_config_path(&ssl_capath, var, value);
 #endif
 	if (!strcmp("http.sslcainfo", var))
-		return git_config_string(&ssl_cainfo, var, value);
+		return git_config_path(&ssl_cainfo, var, value);
 	if (!strcmp("http.sslcertpasswordprotected", var)) {
 		ssl_cert_password_required = git_config_bool(var, value);
 		return 0;
@@ -880,6 +893,20 @@ int handle_curl_result(struct slot_results *results)
 	}
 }
 
+int run_one_slot(struct active_request_slot *slot,
+		 struct slot_results *results)
+{
+	slot->results = results;
+	if (!start_active_slot(slot)) {
+		snprintf(curl_errorstr, sizeof(curl_errorstr),
+			 "failed to start HTTP request");
+		return HTTP_START_FAILED;
+	}
+
+	run_active_slot(slot);
+	return handle_curl_result(results);
+}
+
 static CURLcode curlinfo_strbuf(CURL *curl, CURLINFO info, struct strbuf *buf)
 {
 	char *ptr;
@@ -907,7 +934,6 @@ static int http_request(const char *url,
 	int ret;
 
 	slot = get_active_slot();
-	slot->results = &results;
 	curl_easy_setopt(slot->curl, CURLOPT_HTTPGET, 1);
 
 	if (result == NULL) {
@@ -942,14 +968,7 @@ static int http_request(const char *url,
 	curl_easy_setopt(slot->curl, CURLOPT_HTTPHEADER, headers);
 	curl_easy_setopt(slot->curl, CURLOPT_ENCODING, "gzip");
 
-	if (start_active_slot(slot)) {
-		run_active_slot(slot);
-		ret = handle_curl_result(&results);
-	} else {
-		snprintf(curl_errorstr, sizeof(curl_errorstr),
-			 "failed to start HTTP request");
-		ret = HTTP_START_FAILED;
-	}
+	ret = run_one_slot(slot, &results);
 
 	if (options && options->content_type)
 		curlinfo_strbuf(slot->curl, CURLINFO_CONTENT_TYPE,
@@ -1384,7 +1403,7 @@ struct http_object_request *new_http_object_request(const char *base_url,
 	unsigned char *sha1)
 {
 	char *hex = sha1_to_hex(sha1);
-	char *filename;
+	const char *filename;
 	char prevfile[PATH_MAX];
 	int prevlocal;
 	char prev_buf[PREV_BUF_SIZE];

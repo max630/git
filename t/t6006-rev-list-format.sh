@@ -22,13 +22,13 @@ test_expect_success 'setup' '
 	: >foo &&
 	git add foo &&
 	git config i18n.commitEncoding iso8859-1 &&
-	git commit -m "$added_iso88591" &&
+	echo "$added_iso88591" | git commit -F - &&
 	head1=$(git rev-parse --verify HEAD) &&
 	head1_short=$(git rev-parse --verify --short $head1) &&
 	tree1=$(git rev-parse --verify HEAD:) &&
 	tree1_short=$(git rev-parse --verify --short $tree1) &&
 	echo "$changed" > foo &&
-	git commit -a -m "$changed_iso88591" &&
+	echo "$changed_iso88591" | git commit -a -F - &&
 	head2=$(git rev-parse --verify HEAD) &&
 	head2_short=$(git rev-parse --verify --short $head2) &&
 	tree2=$(git rev-parse --verify HEAD:) &&
@@ -190,12 +190,9 @@ test_expect_success '%C(auto) respects --no-color' '
 '
 
 test_expect_success TTY '%C(auto) respects --color=auto (stdout is tty)' '
-	(
-		TERM=vt100 && export TERM &&
-		test_terminal \
-			git log --format=$AUTO_COLOR -1 --color=auto >actual &&
-		has_color actual
-	)
+	test_terminal env TERM=vt100 \
+		git log --format=$AUTO_COLOR -1 --color=auto >actual &&
+	has_color actual
 '
 
 test_expect_success '%C(auto) respects --color=auto (stdout not tty)' '

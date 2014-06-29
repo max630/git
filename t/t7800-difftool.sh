@@ -371,7 +371,7 @@ do
 done >actual
 EOF
 
-test_expect_success PERL,SYMLINKS 'difftool --dir-diff --symlink without unstaged changes' '
+test_expect_success PERL,SYMLINKS_SH 'difftool --dir-diff --symlink without unstaged changes' '
 	cat >expect <<-EOF &&
 	file
 	$(pwd)/file
@@ -431,6 +431,20 @@ test_expect_success PERL 'difftool --no-symlinks detects conflict ' '
 		test_cmp expect file &&
 		echo "tmp content" >expect &&
 		test_cmp expect "$(cat tmpdir)/file"
+	)
+'
+
+test_expect_success PERL 'difftool properly honors gitlink and core.worktree' '
+	git submodule add ./. submod/ule &&
+	(
+		cd submod/ule &&
+		test_config diff.tool checktrees &&
+		test_config difftool.checktrees.cmd '\''
+			test -d "$LOCAL" && test -d "$REMOTE" && echo good
+		'\'' &&
+		echo good >expect &&
+		git difftool --tool=checktrees --dir-diff HEAD~ >actual &&
+		test_cmp expect actual
 	)
 '
 

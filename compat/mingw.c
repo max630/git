@@ -1,10 +1,14 @@
 #include "../git-compat-util.h"
 #include "win32.h"
+#include <winioctl.h>
 #include <conio.h>
+#include <wchar.h>
 #include "../strbuf.h"
 #include "../run-command.h"
+#include "../cache.h"
 
 static const int delay[] = { 0, 1, 10, 20, 40 };
+unsigned int _CRT_fmode = _O_BINARY;
 
 int err_win_to_posix(DWORD winerr)
 {
@@ -178,7 +182,7 @@ static int ask_yes_no_if_possible(const char *format, ...)
 	vsnprintf(question, sizeof(question), format, args);
 	va_end(args);
 
-	if ((retry_hook[0] = mingw_getenv("GIT_ASK_YESNO"))) {
+	if ((retry_hook[0] = getenv("GIT_ASK_YESNO"))) {
 		retry_hook[1] = question;
 		return !run_command_v_opt(retry_hook, 0);
 	}
@@ -198,14 +202,46 @@ static int ask_yes_no_if_possible(const char *format, ...)
 	}
 }
 
-#undef unlink
-int mingw_unlink(const char *pathname)
+int do_wunlink(const wchar_t *wpathname)
 {
-	int ret, tries = 0;
+	int ret, tries;
+	WIN32_FIND_DATAW findbuf;
+	HANDLE handle;
+
+	/* Check for directories and symlinks */
+	handle = FindFirstFileW(wpathname, &findbuf);
+	if (handle == INVALID_HANDLE_VALUE) {
+		errno = ENOENT;
+		return -1;
+	}
+	FindClose(handle);
 
 	/* read-only files cannot be removed */
-	chmod(pathname, 0666);
-	while ((ret = unlink(pathname)) == -1 && tries < ARRAY_SIZE(delay)) {
+	_wchmod(wpathname, 0666);
+
+	tries = 0;
+
+	do {
+		if (findbuf.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
+			BOOL bres;
+			if (findbuf.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+				bres = RemoveDirectoryW(wpathname);
+			else
+				bres = DeleteFileW(wpathname);
+			if (!bres)
+				ret = -1;
+			else
+				ret =  0;
+		}
+		else if (findbuf.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+			ret = _wrmdir(wpathname);
+		}
+		else
+			ret =  _wunlink(wpathname);
+
+		if (ret == 0)
+			break;
+
 		if (!is_file_in_use_error(GetLastError()))
 			break;
 		/*
@@ -215,51 +251,97 @@ int mingw_unlink(const char *pathname)
 		 * complete its operation, we give up our time slice now.
 		 * If we have to retry again, we do sleep a bit.
 		 */
+		if (tries >= ARRAY_SIZE(delay))
+			break;
 		Sleep(delay[tries]);
 		tries++;
-	}
-	while (ret == -1 && is_file_in_use_error(GetLastError()) &&
-	       ask_yes_no_if_possible("Unlink of file '%s' failed. "
-			"Should I try again?", pathname))
-	       ret = unlink(pathname);
+	} while (TRUE);
+
 	return ret;
 }
 
-static int is_dir_empty(const char *path)
+int mingw_wunlink(const wchar_t *wpathname)
 {
-	struct strbuf buf = STRBUF_INIT;
-	WIN32_FIND_DATAA findbuf;
+	char pathname[PATH_MAX];
+	int ret;
+
+	do {
+
+		ret = do_wunlink(wpathname);
+
+		if (ret == 0)
+			break;
+
+		if (xwcstoutf(pathname, wpathname, PATH_MAX) < 0)
+			return -1;
+
+	} while (is_file_in_use_error(GetLastError()) &&
+	       ask_yes_no_if_possible("Unlink of file '%s' failed. "
+			"Should I try again?", pathname));
+
+	return ret;
+
+
+}
+
+static inline wchar_t *to_backslash_wpath(wchar_t *path);
+
+int mingw_unlink(const char *pathname)
+{
+	wchar_t wpathname[MAX_LONG_PATH];
+	int ret;
+
+	do {
+
+		if (xutftowcs_long_path(wpathname, pathname) < 0)
+			return -1;
+
+		ret = do_wunlink(to_backslash_wpath(wpathname));
+
+	} while (ret != 0 && is_file_in_use_error(GetLastError()) &&
+	       ask_yes_no_if_possible("Unlink of file '%s' failed. "
+			"Should I try again?", pathname));
+
+	return ret;
+}
+
+
+static int is_dir_empty(const wchar_t *wpath)
+{
+	WIN32_FIND_DATAW findbuf;
 	HANDLE handle;
-
-	strbuf_addf(&buf, "%s\\*", path);
-	handle = FindFirstFileA(buf.buf, &findbuf);
-	if (handle == INVALID_HANDLE_VALUE) {
-		strbuf_release(&buf);
+	wchar_t wbuf[MAX_LONG_PATH + 2];
+	wcscpy(wbuf, wpath);
+	wcscat(wbuf, L"\\*");
+	handle = FindFirstFileW(wbuf, &findbuf);
+	if (handle == INVALID_HANDLE_VALUE)
 		return GetLastError() == ERROR_NO_MORE_FILES;
-	}
 
-	while (!strcmp(findbuf.cFileName, ".") ||
-			!strcmp(findbuf.cFileName, ".."))
-		if (!FindNextFile(handle, &findbuf)) {
-			strbuf_release(&buf);
-			return GetLastError() == ERROR_NO_MORE_FILES;
+	while (!wcscmp(findbuf.cFileName, L".") ||
+			!wcscmp(findbuf.cFileName, L".."))
+		if (!FindNextFileW(handle, &findbuf)) {
+			DWORD err = GetLastError();
+			FindClose(handle);
+			return err == ERROR_NO_MORE_FILES;
 		}
 	FindClose(handle);
-	strbuf_release(&buf);
 	return 0;
 }
 
-#undef rmdir
 int mingw_rmdir(const char *pathname)
 {
 	int ret, tries = 0;
+	wchar_t wpathname[MAX_LONG_PATH];
+	if (xutftowcs_long_path(wpathname, pathname) < 0)
+		return -1;
+	to_backslash_wpath(wpathname);
 
-	while ((ret = rmdir(pathname)) == -1 && tries < ARRAY_SIZE(delay)) {
+	while ((ret = _wrmdir(wpathname)) == -1 && tries < ARRAY_SIZE(delay)) {
 		if (!is_file_in_use_error(GetLastError()))
 			errno = err_win_to_posix(GetLastError());
 		if (errno != EACCES)
 			break;
-		if (!is_dir_empty(pathname)) {
+		if (!is_dir_empty(wpathname)) {
 			errno = ENOTEMPTY;
 			break;
 		}
@@ -276,16 +358,60 @@ int mingw_rmdir(const char *pathname)
 	while (ret == -1 && errno == EACCES && is_file_in_use_error(GetLastError()) &&
 	       ask_yes_no_if_possible("Deletion of directory '%s' failed. "
 			"Should I try again?", pathname))
-	       ret = rmdir(pathname);
+	       ret = _wrmdir(wpathname);
 	return ret;
 }
 
-#undef open
+static int make_hidden(const wchar_t *path)
+{
+	DWORD attribs = GetFileAttributesW(path);
+	if (SetFileAttributesW(path, FILE_ATTRIBUTE_HIDDEN | attribs))
+		return 0;
+	errno = err_win_to_posix(GetLastError());
+	return -1;
+}
+
+void mingw_mark_as_git_dir(const char *dir)
+{
+	wchar_t wdir[MAX_LONG_PATH];
+	if (hide_dotfiles != HIDE_DOTFILES_FALSE && !is_bare_repository())
+		if (xutftowcs_long_path(wdir, dir) < 0 || make_hidden(wdir))
+			warning("Failed to make '%s' hidden", dir);
+	git_config_set("core.hideDotFiles",
+		hide_dotfiles == HIDE_DOTFILES_FALSE ? "false" :
+		(hide_dotfiles == HIDE_DOTFILES_DOTGITONLY ?
+		 "dotGitOnly" : "true"));
+}
+
+int mingw_mkdir(const char *path, int mode)
+{
+	int ret;
+	wchar_t wpath[MAX_LONG_PATH];
+	/* CreateDirectoryW path limit is 248 (MAX_PATH - 8.3 file name) */
+	if (xutftowcs_path_ex(wpath, path, MAX_LONG_PATH, -1, 248,
+			core_long_paths) < 0)
+		return -1;
+
+	ret = _wmkdir(wpath);
+	if (!ret && hide_dotfiles == HIDE_DOTFILES_TRUE) {
+		/*
+		 * In Windows a file or dir starting with a dot is not
+		 * automatically hidden. So lets mark it as hidden when
+		 * such a directory is created.
+		 */
+		const char *start = basename((char*)path);
+		if (*start == '.')
+			return make_hidden(wpath);
+	}
+	return ret;
+}
+
 int mingw_open (const char *filename, int oflags, ...)
 {
 	va_list args;
 	unsigned mode;
 	int fd;
+	wchar_t wfilename[MAX_LONG_PATH];
 
 	va_start(args, oflags);
 	mode = va_arg(args, int);
@@ -294,12 +420,25 @@ int mingw_open (const char *filename, int oflags, ...)
 	if (filename && !strcmp(filename, "/dev/null"))
 		filename = "nul";
 
-	fd = open(filename, oflags, mode);
+	if (xutftowcs_long_path(wfilename, filename) < 0)
+		return -1;
+	fd = _wopen(wfilename, oflags, mode);
 
 	if (fd < 0 && (oflags & O_CREAT) && errno == EACCES) {
-		DWORD attrs = GetFileAttributes(filename);
+		DWORD attrs = GetFileAttributesW(wfilename);
 		if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY))
 			errno = EISDIR;
+	}
+	if ((oflags & O_CREAT) && fd >= 0 &&
+	    hide_dotfiles == HIDE_DOTFILES_TRUE) {
+		/*
+		 * In Windows a file or dir starting with a dot is not
+		 * automatically hidden. So lets mark it as hidden when
+		 * such a file is created.
+		 */
+		const char *start = basename((char*)filename);
+		if (*start == '.' && make_hidden(wfilename))
+			warning("Could not mark '%s' as hidden.", filename);
 	}
 	return fd;
 }
@@ -332,17 +471,40 @@ int mingw_fgetc(FILE *stream)
 #undef fopen
 FILE *mingw_fopen (const char *filename, const char *otype)
 {
+	int hide = 0;
+	FILE *file;
+	wchar_t wfilename[MAX_LONG_PATH], wotype[4];
+	if (hide_dotfiles == HIDE_DOTFILES_TRUE &&
+	    basename((char*)filename)[0] == '.')
+		hide = access(filename, F_OK);
 	if (filename && !strcmp(filename, "/dev/null"))
 		filename = "nul";
-	return fopen(filename, otype);
+	if (xutftowcs_long_path(wfilename, filename) < 0 ||
+		xutftowcs(wotype, otype, ARRAY_SIZE(wotype)) < 0)
+		return NULL;
+	file = _wfopen(wfilename, wotype);
+	if (file && hide && make_hidden(wfilename))
+		warning("Could not mark '%s' as hidden.", filename);
+	return file;
 }
 
-#undef freopen
 FILE *mingw_freopen (const char *filename, const char *otype, FILE *stream)
 {
+	int hide = 0;
+	FILE *file;
+	wchar_t wfilename[MAX_LONG_PATH], wotype[4];
+	if (hide_dotfiles == HIDE_DOTFILES_TRUE &&
+	    basename((char*)filename)[0] == '.')
+		hide = access(filename, F_OK);
 	if (filename && !strcmp(filename, "/dev/null"))
 		filename = "nul";
-	return freopen(filename, otype, stream);
+	if (xutftowcs_long_path(wfilename, filename) < 0 ||
+		xutftowcs(wotype, otype, ARRAY_SIZE(wotype)) < 0)
+		return NULL;
+	file = _wfreopen(wfilename, wotype, stream);
+	if (file && hide && make_hidden(wfilename))
+		warning("Could not mark '%s' as hidden.", filename);
+	return file;
 }
 
 #undef fflush
@@ -367,35 +529,259 @@ int mingw_fflush(FILE *stream)
 	return ret;
 }
 
+int mingw_access(const char *filename, int mode)
+{
+	wchar_t wfilename[MAX_LONG_PATH];
+	if (xutftowcs_long_path(wfilename, filename) < 0)
+		return -1;
+	/* X_OK is not supported by the MSVCRT version */
+	return _waccess(wfilename, mode & ~X_OK);
+}
+
+static int do_wlstat(int follow, const wchar_t *wfilename, struct stat *buf, wchar_t *wbuffer, int buffersize);
+static int do_readlink(const wchar_t *path, wchar_t *buf, size_t bufsiz);
+static wchar_t *do_resolve_symlink(wchar_t *pathname, size_t bufsize);
+static inline int is_absolute_pathw(const wchar_t *path);
+static wchar_t *do_getcwd(wchar_t *wpointer, int len);
+
 /*
- * The unit of FILETIME is 100-nanoseconds since January 1, 1601, UTC.
- * Returns the 100-nanoseconds ("hekto nanoseconds") since the epoch.
- */
-static inline long long filetime_to_hnsec(const FILETIME *ft)
-{
-	long long winTime = ((long long)ft->dwHighDateTime << 32) + ft->dwLowDateTime;
-	/* Windows to Unix Epoch conversion */
-	return winTime - 116444736000000000LL;
-}
-
-static inline time_t filetime_to_time_t(const FILETIME *ft)
-{
-	return (time_t)(filetime_to_hnsec(ft) / 10000000);
-}
-
-/* We keep the do_lstat code in a separate function to avoid recursion.
- * When a path ends with a slash, the stat will fail with ENOENT. In
- * this case, we strip the trailing slashes and stat again.
+ * When changing to a directory that contains symbolic links in the path,
+ * we need to follow the unix behaviour, which is to unravel the symbolic links.
  *
- * If follow is true then act like stat() and report on the link
- * target. Otherwise report on the link itself.
+ * Windows seems to leave the symbolic links intact.
+ * This breaks functions like make_absolute_path() that requires the unix behaviour to work.
+ *
  */
-static int do_lstat(int follow, const char *file_name, struct stat *buf)
+static int do_wchdir(wchar_t *dirname)
 {
-	int err;
-	WIN32_FILE_ATTRIBUTE_DATA fdata;
+	wchar_t resolved[MAX_PATH];
+	int ret;
 
-	if (!(err = get_file_attr(file_name, &fdata))) {
+	if (! is_absolute_pathw(dirname)) {
+
+		/*
+		 * Change to real, symlink-resolved, CWD first.
+		 * This enforces unix behaviour when CWD is a symlink.
+		 */
+		if (!do_getcwd(resolved, MAX_PATH)) {
+			errno = ENOENT;  /* CWD is not a path. */
+			return -1;
+		}
+
+		ret = _wchdir(resolved);
+		if (ret)
+			return ret;
+	}
+	wcscpy(resolved, dirname);
+	do_resolve_symlink(resolved, MAX_PATH);
+	return _wchdir(resolved);
+}
+
+
+/* cached length of current directory for handle_long_path */
+static int current_directory_len = 0;
+
+int mingw_chdir(const char *dirname)
+{
+	int result;
+	wchar_t wdirname[MAX_PATH];
+	/* SetCurrentDirectoryW doesn't support long paths */
+	if (xutftowcs_path(wdirname, dirname) < 0)
+		return -1;
+	return do_wchdir(to_backslash_wpath(wdirname));
+	current_directory_len = GetCurrentDirectoryW(0, NULL);
+	return result;
+}
+
+int mingw_chmod(const char *filename, int mode)
+{
+	wchar_t wfilename[MAX_LONG_PATH];
+	if (xutftowcs_long_path(wfilename, filename) < 0)
+		return -1;
+	return _wchmod(wfilename, mode);
+}
+
+#ifndef FSCTL_GET_REPARSE_POINT
+#define FSCTL_GET_REPARSE_POINT  0x000900a8
+#endif
+
+static int do_readlink(const wchar_t *path, wchar_t *buf, size_t bufsiz)
+{
+	HANDLE handle = CreateFileW(path, GENERIC_READ,
+			FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
+			NULL, OPEN_EXISTING,
+			FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,
+			NULL);
+
+	if (handle != INVALID_HANDLE_VALUE) {
+		unsigned char buffer[MAXIMUM_REPARSE_DATA_BUFFER_SIZE];
+		DWORD dummy = 0;
+		if (DeviceIoControl(handle, FSCTL_GET_REPARSE_POINT, NULL, 0, buffer,
+			MAXIMUM_REPARSE_DATA_BUFFER_SIZE, &dummy, NULL)) {
+			REPARSE_DATA_BUFFER *b = (REPARSE_DATA_BUFFER *) buffer;
+			if (b->ReparseTag == IO_REPARSE_TAG_SYMLINK) {
+				int len = b->SymbolicLinkReparseBuffer.SubstituteNameLength / sizeof(wchar_t);
+				int offset = b->SymbolicLinkReparseBuffer.SubstituteNameOffset / sizeof(wchar_t);
+				len = (bufsiz < len) ? bufsiz : len;
+				/* Get rid of the \??\ prefix that gets put into absolute reparse points, something
+				 * to do with the NT drive namespace.
+				 */
+				if (len >4 && wcsncmp(b->SymbolicLinkReparseBuffer.PathBuffer+offset,L"\\??\\",4) == 0) {
+					offset += 4;
+					len -= 4;
+				}
+				wcsncpy(buf, & b->SymbolicLinkReparseBuffer.PathBuffer[offset], len);
+				buf[len] = 0;
+				CloseHandle(handle);
+				return len;
+			}
+		}
+
+		CloseHandle(handle);
+	}
+
+	errno = EINVAL;
+	return -1;
+}
+
+#define has_dos_drive_prefixw(path) (iswalpha(*(path)) && (path)[1] == ':')
+static inline int is_absolute_pathw(const wchar_t *path)
+{
+	return is_dir_sep(path[0]) || has_dos_drive_prefixw(path);
+}
+
+char *mingw_resolve_symlink(char *pathname, size_t bufsize) {
+	wchar_t wpathname[MAX_PATH+1];
+	if (xutftowcs(wpathname, pathname, MAX_PATH) >= 0) {
+		do_resolve_symlink(to_backslash_wpath(wpathname), MAX_PATH);
+		xwcstoutf(pathname, wpathname, bufsize);
+	}
+	return pathname;
+}
+
+/*
+ * This resolves symlinks with support for symlinks in the path along the way.
+ *
+ * It is based on resolve_symlink in lockfile.c with support for widechars.
+ *
+ * To do this, it uses a left-to-right approach, checking each part of the path
+ * for a symlink and then replacing that section (depending on whether it is
+ * absolute or relative) with the link.
+ *
+ * This implementation is required to pass tests for make_absolute_path.
+ */
+const int MAXDEPTH = 10;
+static wchar_t *do_resolve_symlink(wchar_t *pathname, size_t bufsize)
+{
+	/* Limit the number of links we resolve to prevent recursion */
+	int depth = MAXDEPTH;
+
+	wchar_t *start=pathname;
+	wchar_t *from=pathname;
+	wchar_t *last;
+	wchar_t link[MAX_PATH+1];
+
+	while (*from && depth > 0) {
+		wchar_t endch;
+		int link_len;
+		/* Find the next section. */
+		from = wcschr(start+1, '\\');
+		if (!from)
+			from = start+wcslen(start);
+		else {
+			/* Skip drive letters */
+			if (from > start && from[-1] == ':') {
+				from = wcschr(from+1, '\\');
+				if (!from)
+					from = start+wcslen(start);
+			}
+		}
+		if (start > pathname && from-start == 3 && start[1]=='.' && start[2] == '.' ) {
+			/* Handle /../ */
+			if (start[-1] != ':') {
+				for (last = start-1; last > pathname; --last)
+					if (*last == '\\')
+						break;
+				if (last > pathname) {
+					memmove(last, from, (pathname-from)+bufsize );
+				}
+			}
+		}
+
+		/* Temporarily replace pathsep with \0 */
+		endch = *from;
+		*from = L'\0';
+		/* and read the link up to that point */
+		link_len = do_readlink(pathname, link, MAX_PATH);
+		*from = endch;
+
+		if (link_len >=0) {
+			/* It's a link - make sure it will fit */
+			if ((link_len + (from-pathname)) > MAX_PATH) {
+				char path[MAX_PATH];
+				xwcstoutf(path, pathname, MAX_PATH);
+				warning("%s: symlink too long", path);
+				return pathname;
+			}
+			/* readlink() never null-terminates */
+			link[link_len] = L'\0';
+
+			if (is_absolute_pathw(link)) {
+				/* Concat rest onto link */
+				wcscat(link, from);
+				if (wcslen(link) > bufsize) {
+					char path[MAX_PATH];
+					xwcstoutf(path, pathname, MAX_PATH);
+					warning("%s: symlink too long", path);
+					return pathname;
+				}
+				/* Absolute path replace all*/
+				wcscpy(pathname, link);
+				start = pathname;
+			} else {
+				if ((wcslen(link)+(start-pathname) > bufsize)) {
+					char path[MAX_PATH];
+					xwcstoutf(path, pathname, MAX_PATH);
+					warning("%s: symlink too long", path);
+					return pathname;
+				}
+				/* Concat rest onto link */
+				wcscat(link, from);
+
+				if (start[0] == L'.' && start[1] == L'\0') {
+					/* Special case of '.' and a relative symlink,
+					   since this has to be actually relative to
+					   one directory up.
+					*/
+					wcscpy(start, L"..\\");
+					/* Concat with link and rest of filename.
+					 */
+					wcscpy(start+3, link);
+				} else {
+					/* replace bit from  start
+					 * with link and rest of filename.
+					 */
+					wcscpy(start, link);
+				}
+			}
+			--depth;
+		} else {
+			/* Move to next section.
+			 */
+			start = from+1;
+			while (*start == '\\')
+				++start;
+		}
+	}
+	return pathname;
+}
+
+static int do_wlstat(int follow, const wchar_t *wfilename, struct stat *buf, wchar_t *wbuffer, int buffersize)
+{
+	WIN32_FILE_ATTRIBUTE_DATA fdata;
+	int usebuffer = 0;
+
+	while (GetFileAttributesExW(wfilename, GetFileExInfoStandard, &fdata)) {
 		buf->st_ino = 0;
 		buf->st_gid = 0;
 		buf->st_uid = 0;
@@ -408,28 +794,90 @@ static int do_lstat(int follow, const char *file_name, struct stat *buf)
 		buf->st_mtime = filetime_to_time_t(&(fdata.ftLastWriteTime));
 		buf->st_ctime = filetime_to_time_t(&(fdata.ftCreationTime));
 		if (fdata.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
-			WIN32_FIND_DATAA findbuf;
-			HANDLE handle = FindFirstFileA(file_name, &findbuf);
-			if (handle != INVALID_HANDLE_VALUE) {
+			WIN32_FIND_DATAW findbuf;
+			int len;
+			/* Check for trailing pathsep and remove it. */
+			len = wcslen(wfilename);
+			if (len > 0 && wfilename[len-1] == L'\\') {
+				if (!usebuffer) {
+					/* don't modify original */
+					usebuffer = 1;
+					wcscpy(wbuffer, wfilename);
+					/* Now continuing using passed-in buffer. */
+					wfilename = wbuffer;
+				}
+				wbuffer[len-1] = L'\0';
+			}
+
+			HANDLE handle = FindFirstFileW(wfilename, &findbuf);
+			if (handle == INVALID_HANDLE_VALUE) {
+				/* Prevent infinite loop */
+				break;
+			} else {
 				if ((findbuf.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) &&
 						(findbuf.dwReserved0 == IO_REPARSE_TAG_SYMLINK)) {
-					if (follow) {
-						char buffer[MAXIMUM_REPARSE_DATA_BUFFER_SIZE];
-						buf->st_size = readlink(file_name, buffer, MAXIMUM_REPARSE_DATA_BUFFER_SIZE);
+					if (!follow || !wbuffer) {
+						wchar_t buffer[MAX_PATH];
+						buf->st_size = do_readlink(wfilename, buffer, MAX_PATH);
+						buf->st_mode = S_IFLNK;
+						buf->st_mode |= S_IREAD;
+						if (!(findbuf.dwFileAttributes & FILE_ATTRIBUTE_READONLY))
+							buf->st_mode |= S_IWRITE;
+						FindClose(handle);
+						return 0;
 					} else {
 						buf->st_mode = S_IFLNK;
+						wcscpy(wbuffer, wfilename);
+						if (do_resolve_symlink(wbuffer, buffersize) <= 0) {
+							FindClose(handle);
+							break;
+						}
+						/* Now continuing using link in passed-in buffer.
+						 */
+						wfilename = wbuffer;
+						usebuffer = 1;
 					}
-					buf->st_mode |= S_IREAD;
-					if (!(findbuf.dwFileAttributes & FILE_ATTRIBUTE_READONLY))
-						buf->st_mode |= S_IWRITE;
 				}
 				FindClose(handle);
 			}
 		}
-		return 0;
+		else
+			return 0;
 	}
-	errno = err;
+	switch (GetLastError()) {
+	case ERROR_ACCESS_DENIED:
+	case ERROR_SHARING_VIOLATION:
+	case ERROR_LOCK_VIOLATION:
+	case ERROR_SHARING_BUFFER_EXCEEDED:
+		errno = EACCES;
+		break;
+	case ERROR_BUFFER_OVERFLOW:
+		errno = ENAMETOOLONG;
+		break;
+	case ERROR_NOT_ENOUGH_MEMORY:
+		errno = ENOMEM;
+		break;
+	default:
+		errno = ENOENT;
+		break;
+	}
 	return -1;
+}
+
+/* We keep the do_lstat code in a separate function to avoid recursion.
+ * When a path ends with a slash, the stat will fail with ENOENT. In
+ * this case, we strip the trailing slashes and stat again.
+ *
+ * If follow is true then act like stat() and report on the link
+ * target. Otherwise report on the link itself.
+ */
+static int do_lstat(int follow, const char *file_name, struct stat *buf)
+{
+	wchar_t wfilename[MAX_LONG_PATH];
+	if (xutftowcs_long_path(wfilename, file_name) < 0)
+		return -1;
+	to_backslash_wpath(wfilename);
+	return do_wlstat(follow, wfilename, buf, wfilename, MAX_PATH);
 }
 
 /* We provide our own lstat/fstat functions, since the provided
@@ -441,7 +889,7 @@ static int do_lstat(int follow, const char *file_name, struct stat *buf)
 static int do_stat_internal(int follow, const char *file_name, struct stat *buf)
 {
 	int namelen;
-	static char alt_name[PATH_MAX];
+	char alt_name[PATH_MAX];
 
 	if (!do_lstat(follow, file_name, buf))
 		return 0;
@@ -464,6 +912,8 @@ static int do_stat_internal(int follow, const char *file_name, struct stat *buf)
 	alt_name[namelen] = 0;
 	return do_lstat(follow, alt_name, buf);
 }
+
+int (*lstat)(const char *file_name, struct stat *buf) = mingw_lstat;
 
 int mingw_lstat(const char *file_name, struct stat *buf)
 {
@@ -516,16 +966,20 @@ int mingw_utime (const char *file_name, const struct utimbuf *times)
 {
 	FILETIME mft, aft;
 	int fh, rc;
+	DWORD attrs;
+	wchar_t wfilename[MAX_LONG_PATH];
+	if (xutftowcs_long_path(wfilename, file_name) < 0)
+		return -1;
 
 	/* must have write permission */
-	DWORD attrs = GetFileAttributes(file_name);
+	attrs = GetFileAttributesW(wfilename);
 	if (attrs != INVALID_FILE_ATTRIBUTES &&
 	    (attrs & FILE_ATTRIBUTE_READONLY)) {
 		/* ignore errors here; open() will report them */
-		SetFileAttributes(file_name, attrs & ~FILE_ATTRIBUTE_READONLY);
+		SetFileAttributesW(wfilename, attrs & ~FILE_ATTRIBUTE_READONLY);
 	}
 
-	if ((fh = open(file_name, O_RDWR | O_BINARY)) < 0) {
+	if ((fh = _wopen(wfilename, O_RDWR | O_BINARY)) < 0) {
 		rc = -1;
 		goto revert_attrs;
 	}
@@ -548,7 +1002,7 @@ revert_attrs:
 	if (attrs != INVALID_FILE_ATTRIBUTES &&
 	    (attrs & FILE_ATTRIBUTE_READONLY)) {
 		/* ignore errors again */
-		SetFileAttributes(file_name, attrs);
+		SetFileAttributesW(wfilename, attrs);
 	}
 	return rc;
 }
@@ -557,6 +1011,19 @@ unsigned int sleep (unsigned int seconds)
 {
 	Sleep(seconds*1000);
 	return 0;
+}
+
+char *mingw_mktemp(char *template)
+{
+	wchar_t wtemplate[MAX_PATH];
+	/* we need to return the path, thus no long paths here! */
+	if (xutftowcs_path(wtemplate, template) < 0)
+		return NULL;
+	if (!_wmktemp(wtemplate))
+		return NULL;
+	if (xwcstoutf(template, wtemplate, strlen(template) + 1) < 0)
+		return NULL;
+	return template;
 }
 
 int mkstemp(char *template)
@@ -617,17 +1084,125 @@ struct tm *localtime_r(const time_t *timep, struct tm *result)
 	return result;
 }
 
-#undef getcwd
-char *mingw_getcwd(char *pointer, int len)
+static wchar_t *do_getcwd(wchar_t *wpointer, int len)
 {
 	int i;
-	char *ret = getcwd(pointer, len);
-	if (!ret)
-		return ret;
-	for (i = 0; pointer[i]; i++)
-		if (pointer[i] == '\\')
-			pointer[i] = '/';
-	return ret;
+	if (!_wgetcwd(wpointer, len))
+		return NULL;
+
+	/* Unix getcwd resolves symlinks
+	 */
+	do_resolve_symlink(wpointer, len);
+	i = wcslen(wpointer);
+	/* Unix getcwd doesn't appear ever to have a trailing /
+	 * which do_resolve_symlink can append.
+	 */
+	if (wpointer[i-1] == L'\\')
+		wpointer[i-1] = L'\0';
+	return wpointer;
+}
+
+static inline wchar_t *to_unix_wpath(wchar_t *path);
+
+char *mingw_getcwd(char *pointer, int len)
+{
+	wchar_t wpointer[MAX_PATH];
+	if (!do_getcwd(wpointer, ARRAY_SIZE(wpointer)))
+		return NULL;
+
+	if (xwcstoutf(pointer, to_unix_wpath(wpointer), len) < 0)
+		return NULL;
+
+	return pointer;
+}
+
+/*
+ * Compare environment entries by key (i.e. stopping at '=' or '\0').
+ */
+static int compareenv(const void *v1, const void *v2)
+{
+	const char *e1 = *(const char**)v1;
+	const char *e2 = *(const char**)v2;
+
+	for (;;) {
+		int c1 = *e1++;
+		int c2 = *e2++;
+		c1 = (c1 == '=') ? 0 : tolower(c1);
+		c2 = (c2 == '=') ? 0 : tolower(c2);
+		if (c1 > c2)
+			return 1;
+		if (c1 < c2)
+			return -1;
+		if (c1 == 0)
+			return 0;
+	}
+}
+
+static int bsearchenv(char **env, const char *name, size_t size)
+{
+	unsigned low = 0, high = size;
+	while (low < high) {
+		unsigned mid = low + ((high - low) >> 1);
+		int cmp = compareenv(&env[mid], &name);
+		if (cmp < 0)
+			low = mid + 1;
+		else if (cmp > 0)
+			high = mid;
+		else
+			return mid;
+	}
+	return ~low; /* not found, return 1's complement of insert position */
+}
+
+/*
+ * If name contains '=', then sets the variable, otherwise it unsets it
+ * Size includes the terminating NULL. Env must have room for size + 1 entries
+ * (in case of insert). Returns the new size. Optionally frees removed entries.
+ */
+static int do_putenv(char **env, const char *name, int size, int free_old)
+{
+	int i = bsearchenv(env, name, size - 1);
+
+	/* optionally free removed / replaced entry */
+	if (i >= 0 && free_old)
+		free(env[i]);
+
+	if (strchr(name, '=')) {
+		/* if new value ('key=value') is specified, insert or replace entry */
+		if (i < 0) {
+			i = ~i;
+			memmove(&env[i + 1], &env[i], (size - i) * sizeof(char*));
+			size++;
+		}
+		env[i] = (char*) name;
+	} else if (i >= 0) {
+		/* otherwise ('key') remove existing entry */
+		size--;
+		memmove(&env[i], &env[i + 1], (size - i) * sizeof(char*));
+	}
+	return size;
+}
+
+/* used number of elements of environ array, including terminating NULL */
+static int environ_size = 0;
+/* allocated size of environ array, in bytes */
+static int environ_alloc = 0;
+
+char *mingw_getenv(const char *name)
+{
+	char *value;
+	int pos = bsearchenv(environ, name, environ_size - 1);
+	if (pos < 0)
+		return NULL;
+	value = strchr(environ[pos], '=');
+	return value ? &value[1] : NULL;
+}
+
+int mingw_putenv(const char *namevalue)
+{
+	ALLOC_GROW(environ, (environ_size + 1) * sizeof(char*), environ_alloc);
+	environ_size = do_putenv(environ, namevalue, environ_size, 1);
+	return 0;
 }
 
 /*
@@ -729,7 +1304,7 @@ static const char *parse_interpreter(const char *cmd)
  */
 static char **get_path_split(void)
 {
-	char *p, **path, *envpath = mingw_getenv("PATH");
+	char *p, **path, *envpath = getenv("PATH");
 	int i, n = 0;
 
 	if (!envpath || !*envpath)
@@ -782,14 +1357,21 @@ static void free_path_split(char **path)
 static char *lookup_prog(const char *dir, const char *cmd, int isexe, int exe_only)
 {
 	char path[MAX_PATH];
-	snprintf(path, sizeof(path), "%s/%s.exe", dir, cmd);
+	wchar_t wpath[MAX_PATH];
+	snprintf(path, sizeof(path), "%s\\%s.exe", dir, cmd);
 
-	if (!isexe && access(path, F_OK) == 0)
+	if (xutftowcs_path(wpath, path) < 0)
+		return NULL;
+
+	if (!isexe && _waccess(wpath, F_OK) == 0)
 		return xstrdup(path);
-	path[strlen(path)-4] = '\0';
-	if ((!exe_only || isexe) && access(path, F_OK) == 0)
-		if (!(GetFileAttributes(path) & FILE_ATTRIBUTE_DIRECTORY))
+	wpath[wcslen(wpath)-4] = '\0';
+	if ((!exe_only || isexe) && _waccess(wpath, F_OK) == 0) {
+		if (!(GetFileAttributesW(wpath) & FILE_ATTRIBUTE_DIRECTORY)) {
+			path[strlen(path)-4] = '\0';
 			return xstrdup(path);
+		}
+	}
 	return NULL;
 }
 
@@ -812,11 +1394,37 @@ static char *path_lookup(const char *cmd, char **path, int exe_only)
 	return prog;
 }
 
-static int env_compare(const void *a, const void *b)
+/*
+ * Create environment block suitable for CreateProcess. Merges current
+ * process environment and the supplied environment changes.
+ */
+static wchar_t *make_environment_block(char **deltaenv)
 {
-	char *const *ea = a;
-	char *const *eb = b;
-	return strcasecmp(*ea, *eb);
+	wchar_t *wenvblk = NULL;
+	char **tmpenv;
+	int i = 0, size = environ_size, wenvsz = 0, wenvpos = 0;
+
+	while (deltaenv && deltaenv[i])
+		i++;
+
+	/* copy the environment, leaving space for changes */
+	tmpenv = xmalloc((size + i) * sizeof(char*));
+	memcpy(tmpenv, environ, size * sizeof(char*));
+
+	/* merge supplied environment changes into the temporary environment */
+	for (i = 0; deltaenv && deltaenv[i]; i++)
+		size = do_putenv(tmpenv, deltaenv[i], size, 0);
+
+	/* create environment block from temporary environment */
+	for (i = 0; tmpenv[i]; i++) {
+		size = 2 * strlen(tmpenv[i]) + 2; /* +2 for final \0 */
+		ALLOC_GROW(wenvblk, (wenvpos + size) * sizeof(wchar_t), wenvsz);
+		wenvpos += xutftowcs(&wenvblk[wenvpos], tmpenv[i], size) + 1;
+	}
+	/* add final \0 terminator */
+	wenvblk[wenvpos] = 0;
+	free(tmpenv);
+	return wenvblk;
 }
 
 struct pinfo_t {
@@ -827,14 +1435,15 @@ struct pinfo_t {
 static struct pinfo_t *pinfo = NULL;
 CRITICAL_SECTION pinfo_cs;
 
-static pid_t mingw_spawnve_fd(const char *cmd, const char **argv, char **env,
+static pid_t mingw_spawnve_fd(const char *cmd, const char **argv, char **deltaenv,
 			      const char *dir,
 			      int prepend_cmd, int fhin, int fhout, int fherr)
 {
-	STARTUPINFO si;
+	STARTUPINFOW si;
 	PROCESS_INFORMATION pi;
-	struct strbuf envblk, args;
-	unsigned flags;
+	struct strbuf args;
+	wchar_t wcmd[MAX_PATH], wdir[MAX_PATH], *wargs, *wenvblk = NULL;
+	unsigned flags = CREATE_UNICODE_ENVIRONMENT;
 	BOOL ret;
 
 	/* Determine whether or not we are associated to a console */
@@ -851,7 +1460,7 @@ static pid_t mingw_spawnve_fd(const char *cmd, const char **argv, char **env,
 		 * instead of CREATE_NO_WINDOW to make ssh
 		 * recognize that it has no console.
 		 */
-		flags = DETACHED_PROCESS;
+		flags |= DETACHED_PROCESS;
 	} else {
 		/* There is already a console. If we specified
 		 * DETACHED_PROCESS here, too, Windows would
@@ -859,15 +1468,20 @@ static pid_t mingw_spawnve_fd(const char *cmd, const char **argv, char **env,
 		 * The same is true for CREATE_NO_WINDOW.
 		 * Go figure!
 		 */
-		flags = 0;
 		CloseHandle(cons);
 	}
 	memset(&si, 0, sizeof(si));
 	si.cb = sizeof(si);
 	si.dwFlags = STARTF_USESTDHANDLES;
-	si.hStdInput = (HANDLE) _get_osfhandle(fhin);
-	si.hStdOutput = (HANDLE) _get_osfhandle(fhout);
-	si.hStdError = (HANDLE) _get_osfhandle(fherr);
+	si.hStdInput = winansi_get_osfhandle(fhin);
+	si.hStdOutput = winansi_get_osfhandle(fhout);
+	si.hStdError = winansi_get_osfhandle(fherr);
+
+	/* executables and the current directory don't support long paths */
+	if (xutftowcs_path(wcmd, cmd) < 0)
+		return -1;
+	if (dir && xutftowcs_path(wdir, dir) < 0)
+		return -1;
 
 	/* concatenate argv, quoting args as we go */
 	strbuf_init(&args, 0);
@@ -886,33 +1500,18 @@ static pid_t mingw_spawnve_fd(const char *cmd, const char **argv, char **env,
 			free(quoted);
 	}
 
-	if (env) {
-		int count = 0;
-		char **e, **sorted_env;
+	wargs = xmalloc((2 * args.len + 1) * sizeof(wchar_t));
+	xutftowcs(wargs, args.buf, 2 * args.len + 1);
+	strbuf_release(&args);
 
-		for (e = env; *e; e++)
-			count++;
-
-		/* environment must be sorted */
-		sorted_env = xmalloc(sizeof(*sorted_env) * (count + 1));
-		memcpy(sorted_env, env, sizeof(*sorted_env) * (count + 1));
-		qsort(sorted_env, count, sizeof(*sorted_env), env_compare);
-
-		strbuf_init(&envblk, 0);
-		for (e = sorted_env; *e; e++) {
-			strbuf_addstr(&envblk, *e);
-			strbuf_addch(&envblk, '\0');
-		}
-		free(sorted_env);
-	}
+	wenvblk = make_environment_block(deltaenv);
 
 	memset(&pi, 0, sizeof(pi));
-	ret = CreateProcess(cmd, args.buf, NULL, NULL, TRUE, flags,
-		env ? envblk.buf : NULL, dir, &si, &pi);
+	ret = CreateProcessW(wcmd, wargs, NULL, NULL, TRUE, flags,
+		wenvblk, dir ? wdir : NULL, &si, &pi);
 
-	if (env)
-		strbuf_release(&envblk);
-	strbuf_release(&args);
+	free(wenvblk);
+	free(wargs);
 
 	if (!ret) {
 		errno = ENOENT;
@@ -941,13 +1540,12 @@ static pid_t mingw_spawnve_fd(const char *cmd, const char **argv, char **env,
 	return (pid_t)pi.dwProcessId;
 }
 
-static pid_t mingw_spawnve(const char *cmd, const char **argv, char **env,
-			   int prepend_cmd)
+static pid_t mingw_spawnv(const char *cmd, const char **argv, int prepend_cmd)
 {
-	return mingw_spawnve_fd(cmd, argv, env, NULL, prepend_cmd, 0, 1, 2);
+	return mingw_spawnve_fd(cmd, argv, NULL, NULL, prepend_cmd, 0, 1, 2);
 }
 
-pid_t mingw_spawnvpe(const char *cmd, const char **argv, char **env,
+pid_t mingw_spawnvpe(const char *cmd, const char **argv, char **deltaenv,
 		     const char *dir,
 		     int fhin, int fhout, int fherr)
 {
@@ -971,14 +1569,14 @@ pid_t mingw_spawnvpe(const char *cmd, const char **argv, char **env,
 				pid = -1;
 			}
 			else {
-				pid = mingw_spawnve_fd(iprog, argv, env, dir, 1,
+				pid = mingw_spawnve_fd(iprog, argv, deltaenv, dir, 1,
 						       fhin, fhout, fherr);
 				free(iprog);
 			}
 			argv[0] = argv0;
 		}
 		else
-			pid = mingw_spawnve_fd(prog, argv, env, dir, 0,
+			pid = mingw_spawnve_fd(prog, argv, deltaenv, dir, 0,
 					       fhin, fhout, fherr);
 		free(prog);
 	}
@@ -986,7 +1584,7 @@ pid_t mingw_spawnvpe(const char *cmd, const char **argv, char **env,
 	return pid;
 }
 
-static int try_shell_exec(const char *cmd, char *const *argv, char **env)
+static int try_shell_exec(const char *cmd, char *const *argv)
 {
 	const char *interpr = parse_interpreter(cmd);
 	char **path;
@@ -1004,7 +1602,7 @@ static int try_shell_exec(const char *cmd, char *const *argv, char **env)
 		argv2 = xmalloc(sizeof(*argv) * (argc+1));
 		argv2[0] = (char *)cmd;	/* full path to the script file */
 		memcpy(&argv2[1], &argv[1], sizeof(*argv) * argc);
-		pid = mingw_spawnve(prog, argv2, env, 1);
+		pid = mingw_spawnv(prog, argv2, 1);
 		if (pid >= 0) {
 			int status;
 			if (waitpid(pid, &status, 0) < 0)
@@ -1019,19 +1617,20 @@ static int try_shell_exec(const char *cmd, char *const *argv, char **env)
 	return pid;
 }
 
-static void mingw_execve(const char *cmd, char *const *argv, char *const *env)
+int mingw_execv(const char *cmd, char *const *argv)
 {
 	/* check if git_command is a shell script */
-	if (!try_shell_exec(cmd, argv, (char **)env)) {
+	if (!try_shell_exec(cmd, argv)) {
 		int pid, status;
 
-		pid = mingw_spawnve(cmd, (const char **)argv, (char **)env, 0);
+		pid = mingw_spawnv(cmd, (const char **)argv, 0);
 		if (pid < 0)
-			return;
+			return -1;
 		if (waitpid(pid, &status, 0) < 0)
 			status = 255;
 		exit(status);
 	}
+	return -1;
 }
 
 int mingw_execvp(const char *cmd, char *const *argv)
@@ -1040,18 +1639,12 @@ int mingw_execvp(const char *cmd, char *const *argv)
 	char *prog = path_lookup(cmd, path, 0);
 
 	if (prog) {
-		mingw_execve(prog, argv, environ);
+		mingw_execv(prog, argv);
 		free(prog);
 	} else
 		errno = ENOENT;
 
 	free_path_split(path);
-	return -1;
-}
-
-int mingw_execv(const char *cmd, char *const *argv)
-{
-	mingw_execve(cmd, argv, environ);
 	return -1;
 }
 
@@ -1078,110 +1671,6 @@ int mingw_kill(pid_t pid, int sig)
 
 	errno = EINVAL;
 	return -1;
-}
-
-static char **copy_environ(void)
-{
-	char **env;
-	int i = 0;
-	while (environ[i])
-		i++;
-	env = xmalloc((i+1)*sizeof(*env));
-	for (i = 0; environ[i]; i++)
-		env[i] = xstrdup(environ[i]);
-	env[i] = NULL;
-	return env;
-}
-
-void free_environ(char **env)
-{
-	int i;
-	for (i = 0; env[i]; i++)
-		free(env[i]);
-	free(env);
-}
-
-static int lookup_env(char **env, const char *name, size_t nmln)
-{
-	int i;
-
-	for (i = 0; env[i]; i++) {
-		if (0 == strncmp(env[i], name, nmln)
-		    && '=' == env[i][nmln])
-			/* matches */
-			return i;
-	}
-	return -1;
-}
-
-/*
- * If name contains '=', then sets the variable, otherwise it unsets it
- */
-static char **env_setenv(char **env, const char *name)
-{
-	char *eq = strchrnul(name, '=');
-	int i = lookup_env(env, name, eq-name);
-
-	if (i < 0) {
-		if (*eq) {
-			for (i = 0; env[i]; i++)
-				;
-			env = xrealloc(env, (i+2)*sizeof(*env));
-			env[i] = xstrdup(name);
-			env[i+1] = NULL;
-		}
-	}
-	else {
-		free(env[i]);
-		if (*eq)
-			env[i] = xstrdup(name);
-		else
-			for (; env[i]; i++)
-				env[i] = env[i+1];
-	}
-	return env;
-}
-
-/*
- * Copies global environ and adjusts variables as specified by vars.
- */
-char **make_augmented_environ(const char *const *vars)
-{
-	char **env = copy_environ();
-
-	while (*vars)
-		env = env_setenv(env, *vars++);
-	return env;
-}
-
-#undef getenv
-
-/*
- * The system's getenv looks up the name in a case-insensitive manner.
- * This version tries a case-sensitive lookup and falls back to
- * case-insensitive if nothing was found.  This is necessary because,
- * as a prominent example, CMD sets 'Path', but not 'PATH'.
- * Warning: not thread-safe.
- */
-static char *getenv_cs(const char *name)
-{
-	size_t len = strlen(name);
-	int i = lookup_env(environ, name, len);
-	if (i >= 0)
-		return environ[i] + len + 1;	/* skip past name and '=' */
-	return getenv(name);
-}
-
-char *mingw_getenv(const char *name)
-{
-	char *result = getenv_cs(name);
-	if (!result && !strcmp(name, "TMPDIR")) {
-		/* on Windows it is TMP and TEMP */
-		result = getenv_cs("TMP");
-		if (!result)
-			result = getenv_cs("TEMP");
-	}
-	return result;
 }
 
 /*
@@ -1481,33 +1970,37 @@ int mingw_rename(const char *pold, const char *pnew)
 {
 	DWORD attrs, gle;
 	int tries = 0;
+	wchar_t wpold[MAX_LONG_PATH], wpnew[MAX_LONG_PATH];
+	if (xutftowcs_long_path(wpold, pold) < 0 ||
+	    xutftowcs_long_path(wpnew, pnew) < 0)
+		return -1;
 
 	/*
 	 * Try native rename() first to get errno right.
 	 * It is based on MoveFile(), which cannot overwrite existing files.
 	 */
-	if (!rename(pold, pnew))
+	if (!_wrename(wpold, wpnew))
 		return 0;
 	if (errno != EEXIST)
 		return -1;
 repeat:
-	if (MoveFileEx(pold, pnew, MOVEFILE_REPLACE_EXISTING))
+	if (MoveFileExW(wpold, wpnew, MOVEFILE_REPLACE_EXISTING))
 		return 0;
 	/* TODO: translate more errors */
 	gle = GetLastError();
 	if (gle == ERROR_ACCESS_DENIED &&
-	    (attrs = GetFileAttributes(pnew)) != INVALID_FILE_ATTRIBUTES) {
+	    (attrs = GetFileAttributesW(wpnew)) != INVALID_FILE_ATTRIBUTES) {
 		if (attrs & FILE_ATTRIBUTE_DIRECTORY) {
 			errno = EISDIR;
 			return -1;
 		}
 		if ((attrs & FILE_ATTRIBUTE_READONLY) &&
-		    SetFileAttributes(pnew, attrs & ~FILE_ATTRIBUTE_READONLY)) {
-			if (MoveFileEx(pold, pnew, MOVEFILE_REPLACE_EXISTING))
+		    SetFileAttributesW(wpnew, attrs & ~FILE_ATTRIBUTE_READONLY)) {
+			if (MoveFileExW(wpold, wpnew, MOVEFILE_REPLACE_EXISTING))
 				return 0;
 			gle = GetLastError();
 			/* revert file attributes on failure */
-			SetFileAttributes(pnew, attrs);
+			SetFileAttributesW(wpnew, attrs);
 		}
 	}
 	if (tries < ARRAY_SIZE(delay) && gle == ERROR_ACCESS_DENIED) {
@@ -1710,25 +2203,49 @@ int mingw_raise(int sig)
 	}
 }
 
-
-static const char *make_backslash_path(const char *path)
+static inline wchar_t *to_unix_wpath(wchar_t *path)
 {
-	static char buf[PATH_MAX + 1];
-	char *c;
+	wchar_t *c;
+	for (c = path; *c; c++) {
+		if (*c == '\\')
+			*c = '/';
+	}
+	return path;
+}
 
-	if (strlcpy(buf, path, PATH_MAX) >= PATH_MAX)
-		die("Too long path: %.*s", 60, path);
-
-	for (c = buf; *c; c++) {
+static inline wchar_t *to_backslash_wpath(wchar_t *path)
+{
+	wchar_t *c;
+	for (c = path; *c; c++) {
 		if (*c == '/')
 			*c = '\\';
 	}
-	return buf;
+	return path;
+}
+
+
+static inline char *backslash_path(char *path)
+{
+	char *c;
+	for (c = path; *c; c++) {
+		if (*c == '/')
+			*c = '\\';
+	}
+	return path;
+}
+
+static const char *make_backslash_path(const char *path, char *buf)
+{
+	if (strlcpy(buf, path, PATH_MAX) >= PATH_MAX)
+		die("Too long path: %.*s", 60, path);
+
+	return backslash_path(buf);
 }
 
 void mingw_open_html(const char *unixpath)
 {
-	const char *htmlpath = make_backslash_path(unixpath);
+	char buf[PATH_MAX + 1];
+	const char *htmlpath = make_backslash_path(unixpath, buf);
 	typedef HINSTANCE (WINAPI *T)(HWND, const char *,
 			const char *, const char *, const char *, INT);
 	T ShellExecute;
@@ -1751,13 +2268,31 @@ void mingw_open_html(const char *unixpath)
 	}
 }
 
+#define SYMBOLIC_LINK_FLAG_DIRECTORY 0x1
+
 int link(const char *oldpath, const char *newpath)
 {
-	typedef BOOL (WINAPI *T)(const char*, const char*, LPSECURITY_ATTRIBUTES);
+	typedef BOOL (WINAPI *T)(LPCWSTR, LPCWSTR, LPSECURITY_ATTRIBUTES);
 	static T create_hard_link = NULL;
+	wchar_t woldpath[MAX_LONG_PATH], wnewpath[MAX_LONG_PATH], wbuf[MAX_LONG_PATH];
+	struct stat  st;
+
+	if (xutftowcs_long_path(woldpath, oldpath) < 0 ||
+	    xutftowcs_long_path(wnewpath, newpath) < 0)
+		return -1;
+	to_backslash_wpath(woldpath);
+	to_backslash_wpath(wnewpath);
+
+	if (!do_wlstat(0, wnewpath, &st, wbuf, MAX_PATH)) {
+		/* Delete the file if it exists.
+		 */
+		if (mingw_wunlink(wnewpath))
+			return -1;
+	}
+
 	if (!create_hard_link) {
 		create_hard_link = (T) GetProcAddress(
-			GetModuleHandle("kernel32.dll"), "CreateHardLinkA");
+			GetModuleHandle("kernel32.dll"), "CreateHardLinkW");
 		if (!create_hard_link)
 			create_hard_link = (T)-1;
 	}
@@ -1765,11 +2300,116 @@ int link(const char *oldpath, const char *newpath)
 		errno = ENOSYS;
 		return -1;
 	}
-	if (!create_hard_link(newpath, oldpath, NULL)) {
+	if (!create_hard_link(wnewpath, woldpath, NULL)) {
 		errno = err_win_to_posix(GetLastError());
 		return -1;
 	}
 	return 0;
+}
+
+int mingw_symlink(const char *oldpath, const char *newpath, enum git_target_type targettype)
+{
+	typedef BOOL WINAPI (*symlink_fn)(const wchar_t*, const wchar_t*, DWORD);
+	static symlink_fn create_symbolic_link = NULL;
+	wchar_t woldpath[MAX_PATH], wnewpath[MAX_PATH], wbuf[MAX_PATH];
+	struct stat  st;
+	int flags = 0;
+
+	if (xutftowcs(woldpath, oldpath, MAX_PATH) < 0)
+		return -1;
+	if (xutftowcs(wnewpath, newpath, MAX_PATH) < 0)
+		return -1;
+	to_backslash_wpath(woldpath);
+	to_backslash_wpath(wnewpath);
+	if (!do_wlstat(0, wnewpath, &st, wbuf, MAX_PATH)) {
+		/* Delete the file if it exists.
+		 */
+		if (mingw_wunlink(wnewpath))
+			return -1;
+	}
+
+	switch (targettype) {
+		case GIT_TARGET_UNKNOWN:
+			{
+				/* Determine the target symbolic link type from the
+				   Filesystem.
+				  */
+				wchar_t wcurdir[MAX_PATH] = L"";
+				if (!is_absolute_pathw(woldpath)) {
+					/* If woldpath is relative, then stat needs to be
+					   from the directory containing the original file.
+					 */
+
+					wchar_t *pos, *wlast=NULL, oldc;
+					int ret;
+
+					for (pos = wnewpath; *pos; ++pos)
+						if (is_dir_sep(*pos))
+							wlast = pos;
+
+					if (wlast != NULL)  {
+						do_getcwd(wcurdir, MAX_PATH);
+
+						oldc = *wlast;
+						*wlast = L'\0';
+
+						ret = do_wchdir(wnewpath);
+						if (ret)
+							*wcurdir = L'\0';
+
+						*wlast = oldc;
+						if (ret)
+							return -1;
+					}
+				}
+
+				if (!do_wlstat(1, woldpath, &st, wbuf, MAX_PATH)) {
+					if (S_ISDIR(st.st_mode) )
+						flags = SYMBOLIC_LINK_FLAG_DIRECTORY;
+				}
+
+				if (*wcurdir)
+					do_wchdir(wcurdir);
+			}
+			break;
+		case GIT_TARGET_ISDIR:
+			flags = SYMBOLIC_LINK_FLAG_DIRECTORY;
+			break;
+		case GIT_TARGET_ISFILE:
+			break;
+	}
+
+	if (!create_symbolic_link) {
+		create_symbolic_link = (symlink_fn) GetProcAddress(
+				GetModuleHandle("kernel32.dll"), "CreateSymbolicLinkW");
+		if (!create_symbolic_link)
+			create_symbolic_link = (symlink_fn)-1;
+	}
+	if (create_symbolic_link == (symlink_fn)-1) {
+		errno = ENOSYS;
+		return -1;
+	}
+
+	if (!create_symbolic_link(wnewpath, woldpath, flags)) {
+		errno = err_win_to_posix(GetLastError());
+		return -1;
+	}
+	return 0;
+}
+
+int do_readlink(const wchar_t *path, wchar_t *buf, size_t bufsiz);
+
+int readlink(const char *path, char *buf, size_t bufsiz)
+{
+	wchar_t wpath[MAX_PATH], wbuffer[MAX_PATH];
+	int result;
+	if (xutftowcs(wpath, path, MAX_PATH) < 0)
+		return -1;
+	result = do_readlink(wpath, wbuffer, MAX_PATH);
+	if (result >= 0) {
+		return xwcstoutf(buf, to_unix_wpath(wbuffer), bufsiz);
+	}
+	return -1;
 }
 
 pid_t waitpid(pid_t pid, int *status, int options)
@@ -1822,4 +2462,301 @@ pid_t waitpid(pid_t pid, int *status, int options)
 
 	errno = EINVAL;
 	return -1;
+}
+
+int mingw_offset_1st_component(const char *path)
+{
+	int offset = 0;
+	if (has_dos_drive_prefix(path))
+		offset = 2;
+
+	/* unc paths */
+	else if (is_dir_sep(path[0]) && is_dir_sep(path[1])) {
+
+		/* skip server name */
+		char *pos = strpbrk(path + 2, "\\/");
+		if (!pos)
+			return 0; /* Error: malformed unc path */
+
+		do {
+			pos++;
+		} while (*pos && !is_dir_sep(*pos));
+
+		offset = pos - path;
+	}
+
+	return offset + is_dir_sep(path[offset]);
+}
+
+const char *get_windows_home_directory(void)
+{
+	static const char *home_directory = NULL;
+	struct strbuf buf = STRBUF_INIT;
+
+	if (home_directory)
+		return home_directory;
+
+	home_directory = getenv("HOME");
+	if (home_directory && *home_directory)
+		return home_directory;
+
+	strbuf_addf(&buf, "%s/%s", getenv("HOMEDRIVE"), getenv("HOMEPATH"));
+	home_directory = strbuf_detach(&buf, NULL);
+
+	return home_directory;
+}
+
+int xutftowcsn(wchar_t *wcs, const char *utfs, size_t wcslen, int utflen)
+{
+	int upos = 0, wpos = 0;
+	const unsigned char *utf = (const unsigned char*) utfs;
+	if (!utf || !wcs || wcslen < 1) {
+		errno = EINVAL;
+		return -1;
+	}
+	/* reserve space for \0 */
+	wcslen--;
+	if (utflen < 0)
+		utflen = INT_MAX;
+
+	while (upos < utflen) {
+		int c = utf[upos++] & 0xff;
+		if (utflen == INT_MAX && c == 0)
+			break;
+
+		if (wpos >= wcslen) {
+			wcs[wpos] = 0;
+			errno = ERANGE;
+			return -1;
+		}
+
+		if (c < 0x80) {
+			/* ASCII */
+			wcs[wpos++] = c;
+		} else if (c >= 0xc2 && c < 0xe0 && upos < utflen &&
+				(utf[upos] & 0xc0) == 0x80) {
+			/* 2-byte utf-8 */
+			c = ((c & 0x1f) << 6);
+			c |= (utf[upos++] & 0x3f);
+			wcs[wpos++] = c;
+		} else if (c >= 0xe0 && c < 0xf0 && upos + 1 < utflen &&
+				!(c == 0xe0 && utf[upos] < 0xa0) && /* over-long encoding */
+				(utf[upos] & 0xc0) == 0x80 &&
+				(utf[upos + 1] & 0xc0) == 0x80) {
+			/* 3-byte utf-8 */
+			c = ((c & 0x0f) << 12);
+			c |= ((utf[upos++] & 0x3f) << 6);
+			c |= (utf[upos++] & 0x3f);
+			wcs[wpos++] = c;
+		} else if (c >= 0xf0 && c < 0xf5 && upos + 2 < utflen &&
+				wpos + 1 < wcslen &&
+				!(c == 0xf0 && utf[upos] < 0x90) && /* over-long encoding */
+				!(c == 0xf4 && utf[upos] >= 0x90) && /* > \u10ffff */
+				(utf[upos] & 0xc0) == 0x80 &&
+				(utf[upos + 1] & 0xc0) == 0x80 &&
+				(utf[upos + 2] & 0xc0) == 0x80) {
+			/* 4-byte utf-8: convert to \ud8xx \udcxx surrogate pair */
+			c = ((c & 0x07) << 18);
+			c |= ((utf[upos++] & 0x3f) << 12);
+			c |= ((utf[upos++] & 0x3f) << 6);
+			c |= (utf[upos++] & 0x3f);
+			c -= 0x10000;
+			wcs[wpos++] = 0xd800 | (c >> 10);
+			wcs[wpos++] = 0xdc00 | (c & 0x3ff);
+		} else if (c >= 0xa0) {
+			/* invalid utf-8 byte, printable unicode char: convert 1:1 */
+			wcs[wpos++] = c;
+		} else {
+			/* invalid utf-8 byte, non-printable unicode: convert to hex */
+			static const char *hex = "0123456789abcdef";
+			wcs[wpos++] = hex[c >> 4];
+			if (wpos < wcslen)
+				wcs[wpos++] = hex[c & 0x0f];
+		}
+	}
+	wcs[wpos] = 0;
+	return wpos;
+}
+
+int xwcstoutf(char *utf, const wchar_t *wcs, size_t utflen)
+{
+	if (!wcs || !utf || utflen < 1) {
+		errno = EINVAL;
+		return -1;
+	}
+	utflen = WideCharToMultiByte(CP_UTF8, 0, wcs, -1, utf, utflen, NULL, NULL);
+	if (utflen)
+		return utflen - 1;
+	errno = ERANGE;
+	return -1;
+}
+
+int handle_long_path(wchar_t *path, int len, int max_path, int expand)
+{
+	int result;
+	wchar_t buf[MAX_LONG_PATH];
+
+	/*
+	 * we don't need special handling if path is relative to the current
+	 * directory, and current directory + path don't exceed the desired
+	 * max_path limit. This should cover > 99 % of cases with minimal
+	 * performance impact (git almost always uses relative paths).
+	 */
+	if ((len < 2 || (!is_dir_sep(path[0]) && path[1] != ':')) &&
+	    (current_directory_len + len < max_path))
+		return len;
+
+	/*
+	 * handle everything else:
+	 * - absolute paths: "C:\dir\file"
+	 * - absolute UNC paths: "\\server\share\dir\file"
+	 * - absolute paths on current drive: "\dir\file"
+	 * - relative paths on other drive: "X:file"
+	 * - prefixed paths: "\\?\...", "\\.\..."
+	 */
+
+	/* convert to absolute path using GetFullPathNameW */
+	result = GetFullPathNameW(path, MAX_LONG_PATH, buf, NULL);
+	if (!result) {
+		errno = err_win_to_posix(GetLastError());
+		return -1;
+	}
+
+	/*
+	 * return absolute path if it fits within max_path (even if
+	 * "cwd + path" doesn't due to '..' components)
+	 */
+	if (result < max_path) {
+		wcscpy(path, buf);
+		return result;
+	}
+
+	/* error out if we shouldn't expand the path or buf is too small */
+	if (!expand || result >= MAX_LONG_PATH - 6) {
+		errno = ENAMETOOLONG;
+		return -1;
+	}
+
+	/* prefix full path with "\\?\" or "\\?\UNC\" */
+	if (buf[0] == '\\') {
+		/* ...unless already prefixed */
+		if (buf[1] == '\\' && (buf[2] == '?' || buf[2] == '.'))
+			return len;
+
+		wcscpy(path, L"\\\\?\\UNC\\");
+		wcscpy(path + 8, buf + 2);
+		return result + 6;
+	} else {
+		wcscpy(path, L"\\\\?\\");
+		wcscpy(path + 4, buf);
+		return result + 4;
+	}
+}
+
+/*
+ * Disable MSVCRT command line wildcard expansion (__getmainargs called from
+ * mingw startup code, see init.c in mingw runtime).
+ */
+int _CRT_glob = 0;
+
+typedef struct {
+	int newmode;
+} _startupinfo;
+
+extern int __wgetmainargs(int *argc, wchar_t ***argv, wchar_t ***env, int glob,
+		_startupinfo *si);
+
+static NORETURN void die_startup()
+{
+	fputs("fatal: not enough memory for initialization", stderr);
+	exit(128);
+}
+
+static void *malloc_startup(size_t size)
+{
+	void *result = malloc(size);
+	if (!result)
+		die_startup();
+	return result;
+}
+
+static char *wcstoutfdup_startup(char *buffer, const wchar_t *wcs, size_t len)
+{
+	len = xwcstoutf(buffer, wcs, len) + 1;
+	return memcpy(malloc_startup(len), buffer, len);
+}
+
+void mingw_startup()
+{
+	int i, maxlen, argc;
+	char *buffer;
+	wchar_t **wenv, **wargv;
+	_startupinfo si;
+
+	/* get wide char arguments and environment */
+	si.newmode = 0;
+	if (__wgetmainargs(&argc, &wargv, &wenv, _CRT_glob, &si) < 0)
+		die_startup();
+
+	/* determine size of argv and environ conversion buffer */
+	maxlen = wcslen(_wpgmptr);
+	for (i = 1; i < argc; i++)
+		maxlen = max(maxlen, wcslen(wargv[i]));
+	for (i = 0; wenv[i]; i++)
+		maxlen = max(maxlen, wcslen(wenv[i]));
+
+	/*
+	 * nedmalloc can't free CRT memory, allocate resizable environment
+	 * list. Note that xmalloc / xmemdupz etc. call getenv, so we cannot
+	 * use it while initializing the environment itself.
+	 */
+	environ_size = i + 1;
+	environ_alloc = alloc_nr(environ_size * sizeof(char*));
+	environ = malloc_startup(environ_alloc);
+
+	/* allocate buffer (wchar_t encodes to max 3 UTF-8 bytes) */
+	maxlen = 3 * maxlen + 1;
+	buffer = malloc_startup(maxlen);
+
+	/* convert command line arguments and environment to UTF-8 */
+	__argv[0] = wcstoutfdup_startup(buffer, _wpgmptr, maxlen);
+	for (i = 1; i < argc; i++)
+		__argv[i] = wcstoutfdup_startup(buffer, wargv[i], maxlen);
+	for (i = 0; wenv[i]; i++)
+		environ[i] = wcstoutfdup_startup(buffer, wenv[i], maxlen);
+	environ[i] = NULL;
+	free(buffer);
+
+	/* sort environment for O(log n) getenv / putenv */
+	qsort(environ, i, sizeof(char*), compareenv);
+
+	/* fix Windows specific environment settings */
+
+	/* on Windows it is TMP and TEMP */
+	if (!getenv("TMPDIR")) {
+		const char *tmp = getenv("TMP");
+		if (!tmp)
+			tmp = getenv("TEMP");
+		if (tmp)
+			setenv("TMPDIR", tmp, 1);
+	}
+
+	/* simulate TERM to enable auto-color (see color.c) */
+	if (!getenv("TERM"))
+		setenv("TERM", "winansi", 1);
+
+	/* initialize critical section for waitpid pinfo_t list */
+	InitializeCriticalSection(&pinfo_cs);
+
+	/* set up default file mode and file modes for stdin/out/err */
+	_fmode = _O_BINARY;
+	_setmode(_fileno(stdin), _O_BINARY);
+	_setmode(_fileno(stdout), _O_BINARY);
+	_setmode(_fileno(stderr), _O_BINARY);
+
+	/* initialize Unicode console */
+	winansi_init();
+
+	/* init length of current directory for handle_long_path */
+	current_directory_len = GetCurrentDirectoryW(0, NULL);
 }

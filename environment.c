@@ -45,7 +45,7 @@ const char *editor_program;
 const char *askpass_program;
 const char *excludes_file;
 enum auto_crlf auto_crlf = AUTO_CRLF_FALSE;
-int read_replace_refs = 1; /* NEEDSWORK: rename to use_replace_refs */
+int check_replace_refs = 1;
 enum eol core_eol = EOL_UNSET;
 enum safe_crlf safe_crlf = SAFE_CRLF_WARN;
 unsigned whitespace_rule_cfg = WS_DEFAULT_RULE;
@@ -63,6 +63,9 @@ int merge_log_config = -1;
 int precomposed_unicode = -1; /* see probe_utf8_pathname_composition() */
 struct startup_info *startup_info;
 unsigned long pack_size_limit_cfg;
+enum hide_dotfiles_type hide_dotfiles = HIDE_DOTFILES_DOTGITONLY;
+int core_fscache;
+int core_long_paths;
 
 /*
  * The character that begins a commented line in user-editable file
@@ -156,7 +159,7 @@ static void setup_git_env(void)
 	else
 		git_graft_env = 1;
 	if (getenv(NO_REPLACE_OBJECTS_ENVIRONMENT))
-		read_replace_refs = 0;
+		check_replace_refs = 0;
 	namespace = expand_namespace(getenv(GIT_NAMESPACE_ENVIRONMENT));
 	namespace_len = strlen(namespace);
 	shallow_file = getenv(GIT_SHALLOW_FILE_ENVIRONMENT);
@@ -251,7 +254,7 @@ int odb_mkstemp(char *template, size_t limit, const char *pattern)
 	return xmkstemp_mode(template, mode);
 }
 
-int odb_pack_keep(char *name, size_t namesz, unsigned char *sha1)
+int odb_pack_keep(char *name, size_t namesz, const unsigned char *sha1)
 {
 	int fd;
 

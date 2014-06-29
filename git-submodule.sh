@@ -9,7 +9,7 @@ USAGE="[--quiet] add [-b <branch>] [-f|--force] [--name <name>] [--reference <re
    or: $dashless [--quiet] status [--cached] [--recursive] [--] [<path>...]
    or: $dashless [--quiet] init [--] [<path>...]
    or: $dashless [--quiet] deinit [-f|--force] [--] <path>...
-   or: $dashless [--quiet] update [--init] [--remote] [-N|--no-fetch] [-f|--force] [--rebase] [--reference <repository>] [--merge] [--recursive] [--] [<path>...]
+   or: $dashless [--quiet] update [--init] [--remote] [-N|--no-fetch] [-f|--force] [--checkout|--merge|--rebase] [--reference <repository>] [--recursive] [--] [<path>...]
    or: $dashless [--quiet] summary [--cached|--files] [--summary-limit <n>] [commit] [--] [<path>...]
    or: $dashless [--quiet] foreach [--recursive] <command>
    or: $dashless [--quiet] sync [--recursive] [--] [<path>...]"
@@ -241,6 +241,12 @@ module_name()
 #
 # Clone a submodule
 #
+# $1 = submodule path
+# $2 = submodule name
+# $3 = URL to clone
+# $4 = reference repository to reuse (empty for independent)
+# $5 = depth argument for shallow clones (empty for deep)
+#
 # Prior to calling, cmd_update checks that a possibly existing
 # path is not a git repository.
 # Likewise, cmd_add checks that path does not exist at all,
@@ -285,9 +291,6 @@ module_clone()
 	# resolve any symlinks that might be present in $PWD
 	a=$(cd_to_toplevel && cd "$gitdir" && pwd)/
 	b=$(cd_to_toplevel && cd "$sm_path" && pwd)/
-	# normalize Windows-style absolute paths to POSIX-style absolute paths
-	case $a in [a-zA-Z]:/*) a=/${a%%:*}${a#*:} ;; esac
-	case $b in [a-zA-Z]:/*) b=/${b%%:*}${b#*:} ;; esac
 	# Remove all common leading directories after a sanity check
 	if test "${a#$b}" != "$a" || test "${b#$a}" != "$b"; then
 		die "$(eval_gettext "Gitdir '\$a' is part of the submodule path '\$b' or vice versa")"
@@ -431,9 +434,11 @@ cmd_add()
 
 	if test -z "$force" && ! git add --dry-run --ignore-missing "$sm_path" > /dev/null 2>&1
 	then
-		eval_gettextln "The following path is ignored by one of your .gitignore files:
-\$sm_path
-Use -f if you really want to add it." >&2
+		cat >&2 <<EOF
+The following path is ignored by one of your .gitignore files:
+$(eval_gettextln $sm_path)
+Use -f if you really want to add it.
+EOF
 		exit 1
 	fi
 
@@ -805,17 +810,10 @@ cmd_update()
 			update_module=$update
 		else
 			update_module=$(git config submodule."$name".update)
-			case "$update_module" in
-			'')
-				;; # Unset update mode
-			checkout | rebase | merge | none)
-				;; # Known update modes
-			!*)
-				;; # Custom update command
-			*)
-				die "$(eval_gettext "Invalid update mode '$update_module' for submodule '$name'")"
-				;;
-			esac
+			if test -z "$update_module"
+			then
+				update_module="checkout"
+			fi
 		fi
 
 		displaypath=$(relative_path "$prefix$sm_path")
@@ -884,11 +882,16 @@ Maybe you want to use 'update --init'?")"
 			case ";$cloned_modules;" in
 			*";$name;"*)
 				# then there is no local change to integrate
-				update_module= ;;
+				update_module=checkout ;;
 			esac
 
 			must_die_on_failure=
 			case "$update_module" in
+			checkout)
+				command="git checkout $subforce -q"
+				die_msg="$(eval_gettext "Unable to checkout '\$sha1' in submodule path '\$displaypath'")"
+				say_msg="$(eval_gettext "Submodule path '\$displaypath': checked out '\$sha1'")"
+				;;
 			rebase)
 				command="git rebase"
 				die_msg="$(eval_gettext "Unable to rebase '\$sha1' in submodule path '\$displaypath'")"
@@ -908,10 +911,7 @@ Maybe you want to use 'update --init'?")"
 				must_die_on_failure=yes
 				;;
 			*)
-				command="git checkout $subforce -q"
-				die_msg="$(eval_gettext "Unable to checkout '\$sha1' in submodule path '\$displaypath'")"
-				say_msg="$(eval_gettext "Submodule path '\$displaypath': checked out '\$sha1'")"
-				;;
+				die "$(eval_gettext "Invalid update mode '$update_module' for submodule '$name'")"
 			esac
 
 			if (clear_local_git_env; cd "$sm_path" && $command "$sha1")

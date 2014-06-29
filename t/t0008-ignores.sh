@@ -5,7 +5,13 @@ test_description=check-ignore
 . ./test-lib.sh
 
 init_vars () {
-	global_excludes="$(pwd)/global-excludes"
+	# On Windows, avoid using "C:" in the global-excludes paths.
+	if test_have_prereq MINGW
+	then
+		global_excludes="global-excludes"
+	else
+		global_excludes="$(pwd)/global-excludes"
+	fi
 }
 
 enable_global_excludes () {
@@ -773,6 +779,37 @@ test_expect_success PIPE 'streaming support for --stdin' '
 	echo >&9 two &&
 	read response <&8 &&
 	echo "$response" | grep "^::	two"
+'
+
+############################################################################
+#
+# test whitespace handling
+
+test_expect_success 'trailing whitespace is ignored' '
+	mkdir whitespace &&
+	>whitespace/trailing &&
+	>whitespace/untracked &&
+	echo "whitespace/trailing   " >ignore &&
+	cat >expect <<EOF &&
+whitespace/untracked
+EOF
+	: >err.expect &&
+	git ls-files -o -X ignore whitespace >actual 2>err &&
+	test_cmp expect actual &&
+	test_cmp err.expect err
+'
+
+test_expect_success !MINGW 'quoting allows trailing whitespace' '
+	rm -rf whitespace &&
+	mkdir whitespace &&
+	>"whitespace/trailing  " &&
+	>whitespace/untracked &&
+	echo "whitespace/trailing\\ \\ " >ignore &&
+	echo whitespace/untracked >expect &&
+	: >err.expect &&
+	git ls-files -o -X ignore whitespace >actual 2>err &&
+	test_cmp expect actual &&
+	test_cmp err.expect err
 '
 
 test_done

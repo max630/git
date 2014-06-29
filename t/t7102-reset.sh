@@ -41,7 +41,9 @@ test_expect_success 'creating initial files and commits' '
 
 	echo "1st line 2nd file" >secondfile &&
 	echo "2nd line 2nd file" >>secondfile &&
-	git -c "i18n.commitEncoding=iso8859-1" commit -a -m "$(commit_msg iso8859-1)" &&
+	# "git commit -m" would break MinGW, as Windows refuse to pass
+	# iso8859-1 encoded parameter to git.
+	commit_msg iso8859-1 | git -c "i18n.commitEncoding=iso8859-1" commit -a -F - &&
 	head5=$(git rev-parse --verify HEAD)
 '
 # git log --pretty=oneline # to see those SHA1 involved
@@ -331,7 +333,9 @@ test_expect_success 'redoing the last two commits should succeed' '
 
 	echo "1st line 2nd file" >secondfile &&
 	echo "2nd line 2nd file" >>secondfile &&
-	git -c "i18n.commitEncoding=iso8859-1" commit -a -m "$(commit_msg iso8859-1)" &&
+	# "git commit -m" would break MinGW, as Windows refuse to pass
+	# iso8859-1 encoded parameter to git.
+	commit_msg iso8859-1 | git -c "i18n.commitEncoding=iso8859-1" commit -a -F - &&
 	check_changes $head5
 '
 
@@ -533,6 +537,32 @@ test_expect_success 'reset with paths accepts tree' '
 	git reset HEAD^^{tree} -- . &&
 	git diff --cached HEAD^ --exit-code &&
 	git diff HEAD --exit-code
+'
+
+test_expect_success 'reset -N keeps removed files as intent-to-add' '
+	echo new-file >new-file &&
+	git add new-file &&
+	git reset -N HEAD &&
+
+	tree=$(git write-tree) &&
+	git ls-tree $tree new-file >actual &&
+	>expect &&
+	test_cmp expect actual &&
+
+	git diff --name-only >actual &&
+	echo new-file >expect &&
+	test_cmp expect actual
+'
+
+test_expect_success 'reset --mixed sets up work tree' '
+	git init mixed_worktree &&
+	(
+		cd mixed_worktree &&
+		test_commit dummy
+	) &&
+	: >expect &&
+	git --git-dir=mixed_worktree/.git --work-tree=mixed_worktree reset >actual &&
+	test_cmp expect actual
 '
 
 test_done
