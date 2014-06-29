@@ -1,3 +1,12 @@
+git (1:2.0.0+next.20140528-1.max~3) UNRELEASED; urgency=low
+
+  * Non-maintainer upload.
+    * Apply "git_no_lf_at_eof"
+    * Revert debian patch series regarding checking-out vs submodules
+    * Merge "multiple-work-tree"
+
+ -- Max Kirillov <max@max630.net>  Sun, 29 Jun 2014 23:17:22 +0300
+
 git (1:2.0.0+next.20140528-1.max~2) UNRELEASED; urgency=low
 
   * Non-maintainer upload.
