@@ -1,4 +1,4 @@
-From f1718f7b2a906cbbe8c124fa66f0fea0c3e000ac Mon Sep 17 00:00:00 2001
+From a2baaf1e4eceb22735bad3255ac797950025c825 Mon Sep 17 00:00:00 2001
 From: Jens Lehmann <Jens.Lehmann@web.de>
 Date: Tue, 19 Jun 2012 20:55:45 +0200
 Subject: submodule: teach unpack_trees() to remove submodule contents
@@ -92,7 +92,7 @@ index 055918c..df291cf 100644
  		const char *line_prefix,
  		unsigned char one[20], unsigned char two[20],
 diff --git a/unpack-trees.c b/unpack-trees.c
-index 97fc995..a593cb3 100644
+index 0ac39e9..8d05c58 100644
 --- a/unpack-trees.c
 +++ b/unpack-trees.c
 @@ -8,6 +8,7 @@
@@ -103,7 +103,7 @@ index 97fc995..a593cb3 100644
  
  /*
   * Error messages expected by scripts out of plumbing commands such as
-@@ -1265,14 +1266,13 @@ static void invalidate_ce_path(const struct cache_entry *ce,
+@@ -1249,14 +1250,13 @@ static void invalidate_ce_path(const struct cache_entry *ce,
  /*
   * Check that checking out ce->sha1 in subdir ce->name is not
   * going to overwrite any working files.
@@ -142,5 +142,5 @@ index bc1bfb8..30059a5 100644
  }
  
 -- 
-1.9.1.423.g4596e3a
+2.0.0.526.g5318336
 

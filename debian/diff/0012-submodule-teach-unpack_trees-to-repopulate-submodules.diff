@@ -1,4 +1,4 @@
-From 4fc510702ba73dff31dbd3bfcf8b4351c50cce0e Mon Sep 17 00:00:00 2001
+From 19b63fa09f9ecbc72f439ce57a6e8f013ba4c366 Mon Sep 17 00:00:00 2001
 From: Jens Lehmann <Jens.Lehmann@web.de>
 Date: Mon, 18 Jun 2012 22:11:45 +0200
 Subject: submodule: teach unpack_trees() to repopulate submodules
@@ -17,7 +17,7 @@ Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
  4 files changed, 65 insertions(+), 3 deletions(-)
 
 diff --git a/entry.c b/entry.c
-index 7b7aa81..d1bf6ec 100644
+index 77c6882..cfb265d 100644
 --- a/entry.c
 +++ b/entry.c
 @@ -2,6 +2,7 @@
@@ -131,10 +131,10 @@ index df291cf..3657ca8 100644
  void show_submodule_summary(FILE *f, const char *path,
  		const char *line_prefix,
 diff --git a/unpack-trees.c b/unpack-trees.c
-index 6db1931..b61487a 100644
+index 8d05c58..3a4b88a 100644
 --- a/unpack-trees.c
 +++ b/unpack-trees.c
-@@ -1369,6 +1369,7 @@ static int check_ok_to_remove(const char *name, int len, int dtype,
+@@ -1353,6 +1353,7 @@ static int check_ok_to_remove(const char *name, int len, int dtype,
  			      struct unpack_trees_options *o)
  {
  	const struct cache_entry *result;
@@ -142,7 +142,7 @@ index 6db1931..b61487a 100644
  
  	/*
  	 * It may be that the 'lstat()' succeeded even though
-@@ -1411,6 +1412,24 @@ static int check_ok_to_remove(const char *name, int len, int dtype,
+@@ -1395,6 +1396,24 @@ static int check_ok_to_remove(const char *name, int len, int dtype,
  			return 0;
  	}
  
@@ -168,5 +168,5 @@ index 6db1931..b61487a 100644
  		add_rejected_path(o, error_type, name);
  }
 -- 
-1.8.5.2
+2.0.0.526.g5318336
 

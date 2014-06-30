@@ -1,4 +1,4 @@
-From ccf2d32815152699c069604c0bfb23c0cd8318e1 Mon Sep 17 00:00:00 2001
+From ff23d14200de1421f3ca05cfdb6e1063ba0945ae Mon Sep 17 00:00:00 2001
 From: Jens Lehmann <Jens.Lehmann@web.de>
 Date: Fri, 5 Apr 2013 18:35:27 +0200
 Subject: submodule: teach unpack_trees() to update submodules
@@ -190,7 +190,7 @@ index 3657ca8..b42ae91 100644
  		    const unsigned char a[20], const unsigned char b[20], int search);
  int find_unpushed_submodules(unsigned char new_sha1[20], const char *remotes_name,
 diff --git a/unpack-trees.c b/unpack-trees.c
-index 756b586..0d5a351 100644
+index 3a4b88a..381ac94 100644
 --- a/unpack-trees.c
 +++ b/unpack-trees.c
 @@ -27,6 +27,9 @@ static const char *unpack_plumbing_errors[NB_UNPACK_TREES_ERROR_TYPES] = {
@@ -203,7 +203,7 @@ index 756b586..0d5a351 100644
  	/* ERROR_WOULD_LOSE_UNTRACKED_OVERWRITTEN */
  	"Untracked working tree file '%s' would be overwritten by merge.",
  
-@@ -71,6 +74,8 @@ void setup_unpack_trees_porcelain(struct unpack_trees_options *opts,
+@@ -69,6 +72,8 @@ void setup_unpack_trees_porcelain(struct unpack_trees_options *opts,
  
  	msgs[ERROR_NOT_UPTODATE_DIR] =
  		"Updating the following directories would lose untracked files in it:\n%s";
@@ -212,7 +212,7 @@ index 756b586..0d5a351 100644
  
  	if (advice_commit_before_merge)
  		msg = "The following untracked working tree files would be %s by %s:\n%%s"
-@@ -1223,17 +1228,15 @@ static int verify_uptodate_1(const struct cache_entry *ce,
+@@ -1207,17 +1212,15 @@ static int verify_uptodate_1(const struct cache_entry *ce,
  	if (!lstat(ce->name, &st)) {
  		int flags = CE_MATCH_IGNORE_VALID|CE_MATCH_IGNORE_SKIP_WORKTREE;
  		unsigned changed = ie_match_stat(o->src_index, ce, &st, flags);
@@ -239,7 +239,7 @@ index 756b586..0d5a351 100644
  		errno = 0;
  	}
  	if (errno == ENOENT)
-@@ -1256,6 +1259,36 @@ static int verify_uptodate_sparse(const struct cache_entry *ce,
+@@ -1240,6 +1243,36 @@ static int verify_uptodate_sparse(const struct cache_entry *ce,
  	return verify_uptodate_1(ce, o, ERROR_SPARSE_NOT_UPTODATE_FILE);
  }
  
@@ -276,7 +276,7 @@ index 756b586..0d5a351 100644
  static void invalidate_ce_path(const struct cache_entry *ce,
  			       struct unpack_trees_options *o)
  {
-@@ -1534,9 +1567,17 @@ static int merged_entry(const struct cache_entry *ce,
+@@ -1518,9 +1551,17 @@ static int merged_entry(const struct cache_entry *ce,
  			copy_cache_entry(merge, old);
  			update = 0;
  		} else {
@@ -310,5 +310,5 @@ index 36a73a6..bee8740 100644
  	ERROR_WOULD_LOSE_UNTRACKED_REMOVED,
  	ERROR_BIND_OVERLAP,
 -- 
-1.9.0.279.gdc9e3eb
+2.0.0.526.g5318336
 
