@@ -1,12 +1,5 @@
-Version next; changes since v2.0.0:
+Version next; changes since v2.0.1:
 -----------------------------------
-
-Alexey Shumkin (5):
-      t4205 (log-pretty-formats): don't hardcode SHA-1 in expected outputs
-      t4041, t4205, t6006, t7102: don't hardcode tested encoding value
-      t4205 (log-pretty-format): use `tformat` rather than `format`
-      t4205, t6006: add tests that fail with i18n.logOutputEncoding set
-      pretty.c: format string with truncate respects logOutputEncoding
 
 Anders Kaseorg (1):
       gitk: Allow displaying time zones from author and commit dates timestamps
@@ -59,10 +52,8 @@ David Kastrup (2):
       blame: large-scale performance rewrite
       Bump core.deltaBaseCacheLimit to 96m
 
-David Turner (5):
+David Turner (3):
       docs: document RUN_SETUP_GENTLY and clarify RUN_SETUP
-      merge-recursive.c: fix case-changing merge bug
-      mv: allow renaming to fix case on case insensitive filesystems
       refs.c: optimize check_refname_component()
       refs.c: SSE2 optimizations for check_refname_component
 
@@ -138,7 +129,7 @@ Erik Faye-Lund (1):
 Fabian Ruch (1):
       sequencer: signal failed ff as an aborted, not a conflicted merge
 
-Felipe Contreras (13):
+Felipe Contreras (12):
       fast-export: improve argument parsing
       fast-export: add new --refspec option
       transport-helper: add support for old:new refspec
@@ -150,7 +141,6 @@ Felipe Contreras (13):
       mergetools: add vimdiff3 mode
       mergetool: run prompt only if guessed tool
       merge: enable defaulttoupstream by default
-      rerere: fix for merge.conflictstyle
       silence a bunch of format-zero-length warnings
 
 Ilya Bobyr (4):
@@ -158,9 +148,6 @@ Ilya Bobyr (4):
       test-lib: tests skipped by GIT_SKIP_TESTS say so
       test-lib: '--run' to run only specific tests
       gitk: Replace SHA1 entry field on keyboard paste
-
-Jacek Konieczny (1):
-      pull: do not abuse 'break' inside a shell 'case'
 
 James Denholm (6):
       contrib/subtree/Makefile: scrap unused $(gitdir)
@@ -176,13 +163,12 @@ Jason St. John (1):
 Jean-Jacques Lafay (1):
       git tag --contains: avoid stack overflow
 
-Jeff King (103):
+Jeff King (96):
       run_external_diff: use an argv_array for the environment
       run_external_diff: clean up error handling
       run_external_diff: drop fflush(NULL)
       run_external_diff: hoist common bits out of conditional
       run_external_diff: refactor cmdline setup logic
-      commit: do not complain of empty messages from -C
       t3910: show failure of core.precomposeunicode with decomposed filenames
       replace: refactor command-mode determination
       replace: use OPT_CMDMODE to handle modes
@@ -196,8 +182,6 @@ Jeff King (103):
       let clang use the constant-return error() macro
       grep: use run-command's "dir" option for --open-files-in-pager
       t/lib-httpd: require SANITY prereq
-      index-pack: distinguish missing objects from type errors
-      run_diff_files: do not look at uninitialized stat data
       run-command: store an optional argv_array
       run_column_filter: use argv_array
       git_connect: use argv_array
@@ -205,8 +189,6 @@ Jeff King (103):
       get_exporter: use argv_array
       get_importer: use run-command's internal argv_array
       argv-array: drop "detach" code
-      open_sha1_file: report "most interesting" errno
-      move "--follow needs one pathspec" rule to diff_setup_done
       format-patch: make newline after signature conditional
       daemon/config: factor out duplicate xstrdup_tolower
       test-lib: preserve GIT_CURL_VERBOSE from the environment
@@ -218,10 +200,8 @@ Jeff King (103):
       strbuf: add strbuf_reencode helper
       remote-curl: reencode http error messages
       http: default text charset to iso-8859-1
-      t5537: re-drop http tests
       error_resolve_conflict: rewrap advice message
       error_resolve_conflict: drop quotations around operation
-      update-index: fix segfault with missing --cacheinfo argument
       repack: do not accidentally pack kept objects by default
       repack: respect pack.writebitmaps
       repack: s/write_bitmap/&s/ in code
@@ -281,17 +261,10 @@ Jeff King (103):
       setup_git_env(): introduce git_path_from_env() helper
       move "%G" format test from t7510 to t6006
 
-Jens Lehmann (5):
-      status/commit: show staged submodules regardless of ignore config
-      commit -m: commit staged submodules regardless of ignore config
+Jens Lehmann (3):
       git-gui: show staged submodules regardless of ignore config
       git-gui: tolerate major version changes when comparing the git version
       gitk: Show staged submodules regardless of ignore config
-
-Jens Lindström (3):
-      remote rm: delete remote configuration as the last
-      remote: repack packed-refs once when deleting multiple refs
-      remote prune: optimize "dangling symref" check/warning
 
 Jeremiah Mahler (7):
       format-patch: add "--signature-file=<file>" option
@@ -302,19 +275,8 @@ Jeremiah Mahler (7):
       name-hash.c: replace cache_name_compare() with memcmp(3)
       cleanup duplicate name_compare() functions
 
-Jiang Xin (2):
-      blame: fix broken time_buf paddings in relative timestamp
-      blame: dynamic blame_date_width for different locales
-
-Johannes Schindelin (1):
-      git grep -O -i: if the pager is 'less', pass the '-I' option
-
 Johannes Sixt (1):
       fix brown paper bag breakage in t5150-request-pull.sh
-
-John Keeping (2):
-      completion: add a note that merge options are shared
-      completion: add missing options for git-merge
 
 Jonathan McCrohan (1):
       git-instaweb: add support for Apache 2.4
@@ -325,8 +287,7 @@ Jonathan Nieder (4):
       test-lint: find unportable sed, echo, test, and export usage after &&
       test doc: test_write_lines does not split its arguments
 
-Junio C Hamano (40):
-      apply --ignore-space-change: lines with and without leading whitespaces do not match
+Junio C Hamano (35):
       send-email: windows drive prefix (e.g. C:) appears only at the beginning
       mergetool: document the default for --[no-]prompt
       compat/bswap.h: restore preference __BIG_ENDIAN over BIG_ENDIAN
@@ -340,12 +301,10 @@ Junio C Hamano (40):
       CodingGuidelines: on splitting a long line
       CodingGuidelines: avoid "test <cond> -a/-o <cond>"
       scripts: more "export VAR=VALUE" fixes
-      Git 1.9.4
       fetch doc: update introductory part for clarity
       fetch doc: update note on '+' in front of the refspec
       fetch doc: remove notes on outdated "mixed layout"
       First batch for 2.1
-      shortlog: allow --exclude=<glob> to be passed
       fetch doc: on pulling multiple refspecs
       fetch doc: update refspec format description
       fetch doc: remove "short-cut" section
@@ -359,16 +318,11 @@ Junio C Hamano (40):
       t3302: do not chdir around in the primary test process
       t3302: drop unnecessary NOT_EXPENSIVE pseudo-prerequisite
       t3419: drop unnecessary NOT_EXPENSIVE pseudo-prerequisite
-      revision: parse "git log -<count>" more carefully
       t0008: do not depend on 'echo' handling backslashes specially
       Third batch for 2.1
       git-submodule.sh: avoid "echo" path-like values
       Fourth batch for 2.1
-      Git 2.0.1
       Fifth batch for 2.1
-
-Jörn Engel (1):
-      pager: do allow spawning pager recursively
 
 Karsten Blees (1):
       MSVC: link dynamically to the CRT
@@ -408,14 +362,12 @@ Marc Branchaud (2):
 Matthew Chen (1):
       submodule: document "sync --recursive"
 
-Matthieu Moy (4):
+Matthieu Moy (3):
       git-remote-mediawiki: allow stop/start-ing the test server
       git-remote-mediawiki: fix encoding issue for UTF-8 media files
       pager: remove 'S' from $LESS by default
-      rebase -i: test "Nothing to do" case with autostash
 
-Max Kirillov (3):
-      git-show: fix 'git show -s' to not add extra terminator after merge commit
+Max Kirillov (2):
       gitk: Switch to patch mode when searching for line origin
       gitk: Add visiblerefs option, which lists always-shown branches
 
@@ -455,9 +407,6 @@ Michael Haggerty (27):
 Michael J Gruber (1):
       t7510: use consistent &&-chains in loop
 
-Michael Naumov (1):
-      sideband.c: do not use ANSI control sequence on non-terminal
-
 Michael S. Tsirkin (6):
       git-send-email: two new options: to-cover, cc-cover
       test/send-email: to-cover, cc-cover tests
@@ -466,15 +415,10 @@ Michael S. Tsirkin (6):
       patch-id: make it stable against hunk reordering
       patch-id-test: test stable and unstable behaviour
 
-Nguyễn Thái Ngọc Duy (5):
-      index-pack: work around thread-unsafe pread()
+Nguyễn Thái Ngọc Duy (3):
       config: be strict on core.commentChar
       commit: allow core.commentChar=auto for character auto selection
-      gc --auto: do not lock refs in the background
       git potty: restore environments after alias expansion
-
-Nick Alcock (1):
-      t5538: move http push tests out to t5542
 
 Pasha Bolokhov (1):
       dir.c:trim_trailing_spaces(): fix for " \ " sequence
@@ -483,15 +427,10 @@ Pat Thoyts (2):
       wincred: add install target
       wincred: avoid overwriting configured variables
 
-Ramkumar Ramachandra (1):
-      rebase -i: handle "Nothing to do" case with autostash
-
 Ramsay Allan Jones (1):
       t0000-*.sh: fix the GIT_SKIP_TESTS sub-tests
 
-René Scharfe (5):
-      mailinfo: use strcmp() for string comparison
-      pack-objects: use free()+xcalloc() instead of xrealloc()+memset()
+René Scharfe (3):
       Use starts_with() for C strings instead of memcmp()
       blame: factor out get_next_line()
       blame: simplify prepare_lines()
@@ -549,13 +488,98 @@ Yi EungJun (2):
       http-protocol.txt: Basic Auth is defined in RFC 2617, not RFC 2616
       http: fix charset detection of extract_content_type()
 
+brian m. carlson (1):
+      rebase--merge: fix --skip with two conflicts in a row
+
+
+Version v2.0.1; changes since v2.0.0:
+-------------------------------------
+
+Alexey Shumkin (5):
+      t4205 (log-pretty-formats): don't hardcode SHA-1 in expected outputs
+      t4041, t4205, t6006, t7102: don't hardcode tested encoding value
+      t4205 (log-pretty-format): use `tformat` rather than `format`
+      t4205, t6006: add tests that fail with i18n.logOutputEncoding set
+      pretty.c: format string with truncate respects logOutputEncoding
+
+David Turner (2):
+      merge-recursive.c: fix case-changing merge bug
+      mv: allow renaming to fix case on case insensitive filesystems
+
+Felipe Contreras (1):
+      rerere: fix for merge.conflictstyle
+
+Jacek Konieczny (1):
+      pull: do not abuse 'break' inside a shell 'case'
+
+Jeff King (7):
+      commit: do not complain of empty messages from -C
+      index-pack: distinguish missing objects from type errors
+      run_diff_files: do not look at uninitialized stat data
+      open_sha1_file: report "most interesting" errno
+      move "--follow needs one pathspec" rule to diff_setup_done
+      t5537: re-drop http tests
+      update-index: fix segfault with missing --cacheinfo argument
+
+Jens Lehmann (2):
+      status/commit: show staged submodules regardless of ignore config
+      commit -m: commit staged submodules regardless of ignore config
+
+Jens Lindström (3):
+      remote rm: delete remote configuration as the last
+      remote: repack packed-refs once when deleting multiple refs
+      remote prune: optimize "dangling symref" check/warning
+
+Jiang Xin (2):
+      blame: fix broken time_buf paddings in relative timestamp
+      blame: dynamic blame_date_width for different locales
+
+Johannes Schindelin (1):
+      git grep -O -i: if the pager is 'less', pass the '-I' option
+
+John Keeping (2):
+      completion: add a note that merge options are shared
+      completion: add missing options for git-merge
+
+Junio C Hamano (5):
+      apply --ignore-space-change: lines with and without leading whitespaces do not match
+      Git 1.9.4
+      shortlog: allow --exclude=<glob> to be passed
+      revision: parse "git log -<count>" more carefully
+      Git 2.0.1
+
+Jörn Engel (1):
+      pager: do allow spawning pager recursively
+
+Matthieu Moy (1):
+      rebase -i: test "Nothing to do" case with autostash
+
+Max Kirillov (1):
+      git-show: fix 'git show -s' to not add extra terminator after merge commit
+
+Michael Naumov (1):
+      sideband.c: do not use ANSI control sequence on non-terminal
+
+Nguyễn Thái Ngọc Duy (2):
+      index-pack: work around thread-unsafe pread()
+      gc --auto: do not lock refs in the background
+
+Nick Alcock (1):
+      t5538: move http push tests out to t5542
+
+Ramkumar Ramachandra (1):
+      rebase -i: handle "Nothing to do" case with autostash
+
+René Scharfe (2):
+      mailinfo: use strcmp() for string comparison
+      pack-objects: use free()+xcalloc() instead of xrealloc()+memset()
+
 Yiannis Marangos (2):
       wrapper.c: add xpread() similar to xread()
       read-cache.c: verify index file before we opportunistically update it
 
-brian m. carlson (2):
+brian m. carlson (1):
       blame: correctly handle files regardless of autocrlf
-      rebase--merge: fix --skip with two conflicts in a row
 
 Øystein Walle (1):
       config: respect '~' and '~user' in mailmap.file
@@ -718,7 +742,7 @@ Kyle J. McKay (3):
       ewah_bitmap.c: do not assume size_t and eword_t are the same size
 
 
-Version v2.0.0-rc0; changes since v1.9.3:
+Version v2.0.0-rc0; changes since v1.9.4:
 -----------------------------------------
 
 Adam (1):
@@ -919,14 +943,13 @@ Jonathan Nieder (3):
       .gitignore: test-hashmap is a generated file
       test-hashmap.c: drop unnecessary #includes
 
-Junio C Hamano (35):
+Junio C Hamano (34):
       git add <pathspec>... defaults to "-A"
       git add: -u/-A now affects the entire working tree
       core.statinfo: remove as promised in Git 2.0
       push: switch default from "matching" to "simple"
       diff: remove "diff-files -q" in a version of Git in a distant future
       push: switch default from "matching" to "simple"
-      t3004: add test for ls-files on symlinks via absolute paths
       open_istream(): do not dereference NULL in the error case
       combine-diff: simplify intersect_paths() further
       commit-tree: add and document --no-gpg-sign
@@ -1002,13 +1025,6 @@ Marat Radchenko (5):
       MSVC: fix t0040-parse-options crash
       parse-options: remove unused OPT_SET_PTR
       MSVC: allow using ExtUtils::MakeMaker
-
-Martin Erik Werner (5):
-      t0060: add test for prefix_path on symlinks via absolute paths
-      t0060: add test for prefix_path when path == work tree
-      t0060: add tests for prefix_path when path begins with work tree
-      setup: add abspath_part_inside_repo() function
-      setup: don't dereference in-tree symlinks for absolute paths
 
 Max Horn (2):
       transport-helper.c: do not overwrite forced bit
@@ -1169,6 +1185,25 @@ dequis (1):
 
 Дилян Палаузов (1):
       Makefile: describe CHARSET_LIB better
+
+
+Version v1.9.4; changes since v1.9.3:
+-------------------------------------
+
+Junio C Hamano (2):
+      t3004: add test for ls-files on symlinks via absolute paths
+      Git 1.9.4
+
+Martin Erik Werner (6):
+      t0060: add test for prefix_path on symlinks via absolute paths
+      t0060: add test for prefix_path when path == work tree
+      t0060: add tests for prefix_path when path begins with work tree
+      setup: add abspath_part_inside_repo() function
+      setup: don't dereference in-tree symlinks for absolute paths
+      setup: fix windows path buffer over-stepping
+
+Richard Hansen (1):
+      git-prompt.sh: don't assume the shell expands the value of PS1
 
 
 Version v1.9.3; changes since v1.9.2:
