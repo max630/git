@@ -549,7 +549,7 @@ static const char *update(struct command *cmd, struct shallow_info *si)
 			break;
 		case DENY_DETACH_INSTEAD:
 			update_ref("push into current branch (detach)", "HEAD",
-				old_sha1, NULL, REF_NODEREF, DIE_ON_ERR);
+				old_sha1, NULL, REF_NODEREF, UPDATE_REFS_DIE_ON_ERR);
 			break;
 		}
 	}
