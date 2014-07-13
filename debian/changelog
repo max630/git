@@ -1,3 +1,25 @@
+git (1:2.0.1-1.max630~1) UNRELEASED; urgency=low
+
+  * Non-maintainer upload.
+  * new upstream
+    * master by 2014-07-10
+    * tmp/ssl_perl_compatibility - revert feqture requiring new Perl
+    * up/mk/merge-incomplete-files
+    * tmp/multiple_work_trees_dev
+      * v7 by dn
+      * partly implemented submodule support
+  * new gitk
+    * master by 2014-06-24
+    * gitk_blame_region
+    * gitk_ignorespace
+    * tmp/takefile_v3
+    * gitk_responsive_load
+    * visible_selection2
+    * gitk_gotoparent_keybinding
+    * gitk_show_cherrypick_origin
+
+ -- Max Kirillov <max@max630.net>  Sun, 13 Jul 2014 18:16:31 +0300
+
 git (1:2.0.1-1) unstable; urgency=low
 
   * new upstream point release.
