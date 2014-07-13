@@ -160,7 +160,7 @@ git_pager() {
 	else
 		GIT_PAGER=cat
 	fi
-	: ${LESS=-FRSX}
+	: ${LESS=-FRX}
 	: ${LV=-c}
 	export LESS LV
 
@@ -345,7 +345,7 @@ then
 		echo >&2 "Unable to determine absolute path of git directory"
 		exit 1
 	}
-	: ${GIT_OBJECT_DIRECTORY="$GIT_DIR/objects"}
+	: ${GIT_OBJECT_DIRECTORY="$(git rev-parse --git-path objects)"}
 fi
 
 peel_committish () {

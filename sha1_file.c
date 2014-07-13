@@ -315,7 +315,8 @@ static int link_alt_odb_entry(const char *entry, const char *relative_base, int 
 	 * thing twice, or object directory itself.
 	 */
 	for (alt = alt_odb_list; alt; alt = alt->next) {
-		if (!memcmp(ent->base, alt->base, pfxlen)) {
+		if (pfxlen == alt->name - alt->base - 1 &&
+		    !memcmp(ent->base, alt->base, pfxlen)) {
 			free(ent);
 			return -1;
 		}
@@ -401,7 +402,7 @@ void add_to_alternates_file(const char *reference)
 {
 	struct lock_file *lock = xcalloc(1, sizeof(struct lock_file));
 	int fd = hold_lock_file_for_append(lock, git_path("objects/info/alternates"), LOCK_DIE_ON_ERROR);
-	char *alt = mkpath("%s\n", reference);
+	const char *alt = mkpath("%s\n", reference);
 	write_or_die(fd, alt, strlen(alt));
 	if (commit_lock_file(lock))
 		die("could not close alternates file");

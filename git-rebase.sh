@@ -201,9 +201,9 @@ run_specific_rebase () {
 
 run_pre_rebase_hook () {
 	if test -z "$ok_to_skip_pre_rebase" &&
-	   test -x "$GIT_DIR/hooks/pre-rebase"
+	   test -x "$(git rev-parse --git-path hooks/pre-rebase)"
 	then
-		"$GIT_DIR/hooks/pre-rebase" ${1+"$@"} ||
+		"$(git rev-parse --git-path hooks/pre-rebase)" ${1+"$@"} ||
 		die "$(gettext "The pre-rebase hook refused to rebase.")"
 	fi
 }
@@ -466,8 +466,8 @@ then
 else
 	if test -z "$onto"
 	then
-		empty_tree=`git hash-object -t tree /dev/null`
-		onto=`git commit-tree $empty_tree </dev/null`
+		empty_tree=$(git hash-object -t tree /dev/null)
+		onto=$(git commit-tree $empty_tree </dev/null)
 		squash_onto="$onto"
 	fi
 	unset upstream_name
@@ -525,10 +525,10 @@ case "$#" in
 	;;
 0)
 	# Do not need to switch branches, we are already on it.
-	if branch_name=`git symbolic-ref -q HEAD`
+	if branch_name=$(git symbolic-ref -q HEAD)
 	then
 		head_name=$branch_name
-		branch_name=`expr "z$branch_name" : 'zrefs/heads/\(.*\)'`
+		branch_name=$(expr "z$branch_name" : 'zrefs/heads/\(.*\)')
 	else
 		head_name="detached HEAD"
 		branch_name=HEAD ;# detached

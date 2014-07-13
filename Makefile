@@ -30,6 +30,8 @@ all::
 # Define LIBPCREDIR=/foo/bar if your libpcre header and library files are in
 # /foo/bar/include and /foo/bar/lib directories.
 #
+# Define HAVE_ALLOCA_H if you have working alloca(3) defined in that header.
+#
 # Define NO_CURL if you do not have libcurl installed.  git-http-fetch and
 # git-http-push are not built, and you cannot use http:// and https://
 # transports (neither smart nor dumb).
@@ -727,6 +729,7 @@ LIB_H += transport.h
 LIB_H += tree-walk.h
 LIB_H += tree.h
 LIB_H += unpack-trees.h
+LIB_H += unicode_width.h
 LIB_H += url.h
 LIB_H += urlmatch.h
 LIB_H += userdiff.h
@@ -996,6 +999,7 @@ BUILTIN_OBJS += builtin/update-ref.o
 BUILTIN_OBJS += builtin/update-server-info.o
 BUILTIN_OBJS += builtin/upload-archive.o
 BUILTIN_OBJS += builtin/var.o
+BUILTIN_OBJS += builtin/verify-commit.o
 BUILTIN_OBJS += builtin/verify-pack.o
 BUILTIN_OBJS += builtin/verify-tag.o
 BUILTIN_OBJS += builtin/write-tree.o
@@ -1106,6 +1110,10 @@ ifdef USE_LIBPCRE
 		EXTLIBS += -L$(LIBPCREDIR)/$(lib) $(CC_LD_DYNPATH)$(LIBPCREDIR)/$(lib)
 	endif
 	EXTLIBS += -lpcre
+endif
+
+ifdef HAVE_ALLOCA_H
+	BASIC_CFLAGS += -DHAVE_ALLOCA_H
 endif
 
 ifdef NO_CURL

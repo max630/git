@@ -250,9 +250,7 @@ static struct string_list branch_list;
 
 static const char *abbrev_ref(const char *name, const char *prefix)
 {
-	const char *abbrev = skip_prefix(name, prefix);
-	if (abbrev)
-		return abbrev;
+	skip_prefix(name, prefix, &name);
 	return name;
 }
 #define abbrev_branch(name) abbrev_ref((name), "refs/heads/")
@@ -282,7 +280,7 @@ static int config_read_branches(const char *key, const char *value, void *cb)
 		item = string_list_insert(&branch_list, name);
 
 		if (!item->util)
-			item->util = xcalloc(sizeof(struct branch_info), 1);
+			item->util = xcalloc(1, sizeof(struct branch_info));
 		info = item->util;
 		if (type == REMOTE) {
 			if (info->remote_name)
@@ -398,7 +396,7 @@ static int get_push_ref_states(const struct ref *remote_refs,
 
 		item = string_list_append(&states->push,
 					  abbrev_branch(ref->peer_ref->name));
-		item->util = xcalloc(sizeof(struct push_info), 1);
+		item->util = xcalloc(1, sizeof(struct push_info));
 		info = item->util;
 		info->forced = ref->force;
 		info->dest = xstrdup(abbrev_branch(ref->name));
@@ -433,7 +431,7 @@ static int get_push_ref_states_noquery(struct ref_states *states)
 	states->push.strdup_strings = 1;
 	if (!remote->push_refspec_nr) {
 		item = string_list_append(&states->push, _("(matching)"));
-		info = item->util = xcalloc(sizeof(struct push_info), 1);
+		info = item->util = xcalloc(1, sizeof(struct push_info));
 		info->status = PUSH_STATUS_NOTQUERIED;
 		info->dest = xstrdup(item->string);
 	}
@@ -446,7 +444,7 @@ static int get_push_ref_states_noquery(struct ref_states *states)
 		else
 			item = string_list_append(&states->push, _("(delete)"));
 
-		info = item->util = xcalloc(sizeof(struct push_info), 1);
+		info = item->util = xcalloc(1, sizeof(struct push_info));
 		info->forced = spec->force;
 		info->status = PUSH_STATUS_NOTQUERIED;
 		info->dest = xstrdup(spec->dst ? spec->dst : item->string);
@@ -582,7 +580,7 @@ static int migrate_file(struct remote *remote)
 {
 	struct strbuf buf = STRBUF_INIT;
 	int i;
-	char *path = NULL;
+	const char *path = NULL;
 
 	strbuf_addf(&buf, "remote.%s.url", remote->name);
 	for (i = 0; i < remote->url_nr; i++)

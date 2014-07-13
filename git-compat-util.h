@@ -267,6 +267,10 @@ extern char *gitbasename(char *);
 #define has_dos_drive_prefix(path) 0
 #endif
 
+#ifndef offset_1st_component
+#define offset_1st_component(path) (is_dir_sep((path)[0]))
+#endif
+
 #ifndef is_dir_sep
 #define is_dir_sep(c) ((c) == '/')
 #endif
@@ -330,8 +334,12 @@ extern void warning(const char *err, ...) __attribute__((format (printf, 1, 2)))
  * trying to help gcc, anyway, it's OK; other compilers will fall back to
  * using the function as usual.
  */
-#if defined(__GNUC__) && ! defined(__clang__)
-#define error(...) (error(__VA_ARGS__), -1)
+#if defined(__GNUC__)
+static inline int const_error(void)
+{
+	return -1;
+}
+#define error(...) (error(__VA_ARGS__), const_error())
 #endif
 
 extern void set_die_routine(NORETURN_PTR void (*routine)(const char *err, va_list params));
@@ -341,13 +349,32 @@ extern void set_die_is_recursing_routine(int (*routine)(void));
 extern int starts_with(const char *str, const char *prefix);
 extern int ends_with(const char *str, const char *suffix);
 
-static inline const char *skip_prefix(const char *str, const char *prefix)
+/*
+ * If the string "str" begins with the string found in "prefix", return 1.
+ * The "out" parameter is set to "str + strlen(prefix)" (i.e., to the point in
+ * the string right after the prefix).
+ *
+ * Otherwise, return 0 and leave "out" untouched.
+ *
+ * Examples:
+ *
+ *   [extract branch name, fail if not a branch]
+ *   if (!skip_prefix(ref, "refs/heads/", &branch)
+ *	return -1;
+ *
+ *   [skip prefix if present, otherwise use whole string]
+ *   skip_prefix(name, "refs/heads/", &name);
+ */
+static inline int skip_prefix(const char *str, const char *prefix,
+			      const char **out)
 {
 	do {
-		if (!*prefix)
-			return str;
+		if (!*prefix) {
+			*out = str;
+			return 1;
+		}
 	} while (*str++ == *prefix++);
-	return NULL;
+	return 0;
 }
 
 #if defined(NO_MMAP) || defined(USE_WIN32_MMAP)
@@ -521,6 +548,14 @@ extern void release_pack_memory(size_t);
 typedef void (*try_to_free_t)(size_t);
 extern try_to_free_t set_try_to_free_routine(try_to_free_t);
 
+#ifdef HAVE_ALLOCA_H
+# include <alloca.h>
+# define xalloca(size)      (alloca(size))
+# define xalloca_free(p)    do {} while (0)
+#else
+# define xalloca(size)      (xmalloc(size))
+# define xalloca_free(p)    (free(p))
+#endif
 extern char *xstrdup(const char *str);
 extern void *xmalloc(size_t size);
 extern void *xmallocz(size_t size);
@@ -666,6 +701,17 @@ void git_qsort(void *base, size_t nmemb, size_t size,
 #else
 #define ST_CTIME_NSEC(st) ((unsigned int)((st).st_ctim.tv_nsec))
 #define ST_MTIME_NSEC(st) ((unsigned int)((st).st_mtim.tv_nsec))
+#endif
+#endif
+
+#if defined(__GNUC__) && defined(__x86_64__)
+#include <emmintrin.h>
+/*
+ * This is the system memory page size; it's used so that we can read
+ * outside the bounds of an allocation without segfaulting.
+ */
+#ifndef PAGE_SIZE
+#define PAGE_SIZE 4096
 #endif
 #endif
 

@@ -280,7 +280,7 @@ static void check_notes_merge_worktree(struct notes_merge_options *o)
 				    "(%s exists).", git_path("NOTES_MERGE_*"));
 		}
 
-		if (safe_create_leading_directories(git_path(
+		if (safe_create_leading_directories_const(git_path(
 				NOTES_MERGE_WORKTREE "/.test")))
 			die_errno("unable to create directory %s",
 				  git_path(NOTES_MERGE_WORKTREE));
@@ -295,8 +295,8 @@ static void write_buf_to_worktree(const unsigned char *obj,
 				  const char *buf, unsigned long size)
 {
 	int fd;
-	char *path = git_path(NOTES_MERGE_WORKTREE "/%s", sha1_to_hex(obj));
-	if (safe_create_leading_directories(path))
+	const char *path = git_path(NOTES_MERGE_WORKTREE "/%s", sha1_to_hex(obj));
+	if (safe_create_leading_directories_const(path))
 		die_errno("unable to create directory for '%s'", path);
 	if (file_exists(path))
 		die("found existing file at '%s'", path);
@@ -644,7 +644,8 @@ int notes_merge(struct notes_merge_options *o,
 		struct commit_list *parents = NULL;
 		commit_list_insert(remote, &parents); /* LIFO order */
 		commit_list_insert(local, &parents);
-		create_notes_commit(local_tree, parents, &o->commit_msg,
+		create_notes_commit(local_tree, parents,
+				    o->commit_msg.buf, o->commit_msg.len,
 				    result_sha1);
 	}
 
@@ -671,8 +672,8 @@ int notes_merge_commit(struct notes_merge_options *o,
 	DIR *dir;
 	struct dirent *e;
 	struct strbuf path = STRBUF_INIT;
-	char *msg = strstr(partial_commit->buffer, "\n\n");
-	struct strbuf sb_msg = STRBUF_INIT;
+	const char *buffer = get_commit_buffer(partial_commit, NULL);
+	const char *msg = strstr(buffer, "\n\n");
 	int baselen;
 
 	strbuf_addstr(&path, git_path(NOTES_MERGE_WORKTREE));
@@ -719,9 +720,9 @@ int notes_merge_commit(struct notes_merge_options *o,
 		strbuf_setlen(&path, baselen);
 	}
 
-	strbuf_attach(&sb_msg, msg, strlen(msg), strlen(msg) + 1);
-	create_notes_commit(partial_tree, partial_commit->parents, &sb_msg,
-			    result_sha1);
+	create_notes_commit(partial_tree, partial_commit->parents,
+			    msg, strlen(msg), result_sha1);
+	unuse_commit_buffer(partial_commit, buffer);
 	if (o->verbosity >= 4)
 		printf("Finalized notes merge commit: %s\n",
 			sha1_to_hex(result_sha1));
