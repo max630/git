@@ -300,11 +300,13 @@ static int fuzzy_matchlines(const char *s1, size_t n1,
 	while ((*last2 == '\r') || (*last2 == '\n'))
 		last2--;
 
-	/* skip leading whitespace */
-	while (isspace(*s1) && (s1 <= last1))
-		s1++;
-	while (isspace(*s2) && (s2 <= last2))
-		s2++;
+	/* skip leading whitespaces, if both begin with whitespace */
+	if (s1 <= last1 && s2 <= last2 && isspace(*s1) && isspace(*s2)) {
+		while (isspace(*s1) && (s1 <= last1))
+			s1++;
+		while (isspace(*s2) && (s2 <= last2))
+			s2++;
+	}
 	/* early return if both lines are empty */
 	if ((s1 > last1) && (s2 > last2))
 		return 1;
@@ -1279,9 +1281,7 @@ static int parse_git_header(const char *line, int len, unsigned int size, struct
 	 */
 	patch->def_name = git_header_name(line, len);
 	if (patch->def_name && root) {
-		char *s = xmalloc(root_len + strlen(patch->def_name) + 1);
-		strcpy(s, root);
-		strcpy(s + root_len, patch->def_name);
+		char *s = xstrfmt("%s%s", root, patch->def_name);
 		free(patch->def_name);
 		patch->def_name = s;
 	}
@@ -3845,9 +3845,10 @@ static void add_index_file(const char *path, unsigned mode, void *buf, unsigned 
 	ce->ce_flags = create_ce_flags(0);
 	ce->ce_namelen = namelen;
 	if (S_ISGITLINK(mode)) {
-		const char *s = buf;
+		const char *s;
 
-		if (get_sha1_hex(s + strlen("Subproject commit "), ce->sha1))
+		if (!skip_prefix(buf, "Subproject commit ", &s) ||
+		    get_sha1_hex(s, ce->sha1))
 			die(_("corrupt patch for submodule %s"), path);
 	} else {
 		if (!cached) {

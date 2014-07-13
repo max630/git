@@ -521,7 +521,7 @@ static void write_followtags(const struct ref *refs, const char *msg)
 		if (!has_sha1_file(ref->old_sha1))
 			continue;
 		update_ref(msg, ref->name, ref->old_sha1,
-			   NULL, 0, DIE_ON_ERR);
+			   NULL, 0, UPDATE_REFS_DIE_ON_ERR);
 	}
 }
 
@@ -584,19 +584,20 @@ static void update_remote_refs(const struct ref *refs,
 static void update_head(const struct ref *our, const struct ref *remote,
 			const char *msg)
 {
-	if (our && starts_with(our->name, "refs/heads/")) {
+	const char *head;
+	if (our && skip_prefix(our->name, "refs/heads/", &head)) {
 		/* Local default branch link */
 		create_symref("HEAD", our->name, NULL);
 		if (!option_bare) {
-			const char *head = skip_prefix(our->name, "refs/heads/");
-			update_ref(msg, "HEAD", our->old_sha1, NULL, 0, DIE_ON_ERR);
+			update_ref(msg, "HEAD", our->old_sha1, NULL, 0,
+				   UPDATE_REFS_DIE_ON_ERR);
 			install_branch_config(0, head, option_origin, our->name);
 		}
 	} else if (our) {
 		struct commit *c = lookup_commit_reference(our->old_sha1);
 		/* --branch specifies a non-branch (i.e. tags), detach HEAD */
 		update_ref(msg, "HEAD", c->object.sha1,
-			   NULL, REF_NODEREF, DIE_ON_ERR);
+			   NULL, REF_NODEREF, UPDATE_REFS_DIE_ON_ERR);
 	} else if (remote) {
 		/*
 		 * We know remote HEAD points to a non-branch, or
@@ -604,7 +605,7 @@ static void update_head(const struct ref *our, const struct ref *remote,
 		 * Detach HEAD in all these cases.
 		 */
 		update_ref(msg, "HEAD", remote->old_sha1,
-			   NULL, REF_NODEREF, DIE_ON_ERR);
+			   NULL, REF_NODEREF, UPDATE_REFS_DIE_ON_ERR);
 	}
 }
 
@@ -702,9 +703,12 @@ static void write_refspec_config(const char* src_ref_prefix,
 					strbuf_addf(&value, "+%s:%s%s", our_head_points_at->name,
 						branch_top->buf, option_branch);
 			} else if (remote_head_points_at) {
+				const char *head = remote_head_points_at->name;
+				if (!skip_prefix(head, "refs/heads/", &head))
+					die("BUG: remote HEAD points at non-head?");
+
 				strbuf_addf(&value, "+%s:%s%s", remote_head_points_at->name,
-						branch_top->buf,
-						skip_prefix(remote_head_points_at->name, "refs/heads/"));
+						branch_top->buf, head);
 			}
 			/*
 			 * otherwise, the next "git fetch" will

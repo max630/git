@@ -542,7 +542,7 @@ test_must_fail () {
 	if test $exit_code = 0; then
 		echo >&2 "test_must_fail: command succeeded: $*"
 		return 1
-	elif test $exit_code -gt 129 -a $exit_code -le 192; then
+	elif test $exit_code -gt 129 && test $exit_code -le 192; then
 		echo >&2 "test_must_fail: died by signal: $*"
 		return 1
 	elif test $exit_code = 127; then
@@ -569,7 +569,7 @@ test_must_fail () {
 test_might_fail () {
 	"$@"
 	exit_code=$?
-	if test $exit_code -gt 129 -a $exit_code -le 192; then
+	if test $exit_code -gt 129 && test $exit_code -le 192; then
 		echo >&2 "test_might_fail: died by signal: $*"
 		return 1
 	elif test $exit_code = 127; then
@@ -723,6 +723,11 @@ test_ln_s_add () {
 		ln_s_obj=$(git hash-object -w "$2") &&
 		git update-index --add --cacheinfo 120000 $ln_s_obj "$2"
 	fi
+}
+
+# This function writes out its parameters, one per line
+test_write_lines () {
+	printf "%s\n" "$@"
 }
 
 perl () {
