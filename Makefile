@@ -162,10 +162,6 @@ all::
 # Notably on Solaris hstrerror resides in libresolv and on Solaris 7
 # inet_ntop and inet_pton additionally reside there.
 #
-# Define USE_SRV_RR if you want git to pay attention to SRV resource records
-# when looking up servers to contact over git protocol.  This implies
-# NEEDS_RESOLV.
-#
 # Define NO_MMAP if you want to avoid mmap.
 #
 # Define NO_SYS_POLL_H if you don't have sys/poll.h.
@@ -720,14 +716,12 @@ LIB_H += sha1-lookup.h
 LIB_H += shortlog.h
 LIB_H += sideband.h
 LIB_H += sigchain.h
-LIB_H += srv.h
 LIB_H += strbuf.h
 LIB_H += streaming.h
 LIB_H += string-list.h
 LIB_H += submodule.h
 LIB_H += tag.h
 LIB_H += tar.h
-LIB_H += tcp.h
 LIB_H += thread-utils.h
 LIB_H += transport.h
 LIB_H += tree-walk.h
@@ -884,7 +878,6 @@ LIB_OBJS += string-list.o
 LIB_OBJS += submodule.o
 LIB_OBJS += symlinks.o
 LIB_OBJS += tag.o
-LIB_OBJS += tcp.o
 LIB_OBJS += trace.o
 LIB_OBJS += transport.o
 LIB_OBJS += transport-helper.o
@@ -1222,11 +1215,6 @@ endif
 ifdef NEEDS_NSL
 	EXTLIBS += -lnsl
 endif
-ifdef USE_SRV_RR
-	BASIC_CFLAGS += -DUSE_SRV_RR
-	LIB_OBJS += srv.o
-	NEEDS_RESOLV = YesPlease
-endif
 ifdef NEEDS_RESOLV
 	EXTLIBS += -lresolv
 endif
@@ -1357,11 +1345,6 @@ ifdef NO_TRUSTABLE_FILEMODE
 endif
 ifdef NO_IPV6
 	BASIC_CFLAGS += -DNO_IPV6
-	LIB_OBJS += dns-ipv4.o
-	LIB_H += dns-ipv4.h
-else
-	LIB_OBJS += dns-ipv6.o
-	LIB_H += dns-ipv6.h
 endif
 ifdef NO_INTPTR_T
 	COMPAT_CFLAGS += -DNO_INTPTR_T
