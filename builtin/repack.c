@@ -83,16 +83,15 @@ static void get_non_kept_pack_filenames(struct string_list *fname_list)
 	DIR *dir;
 	struct dirent *e;
 	char *fname;
-	size_t len;
 
 	if (!(dir = opendir(packdir)))
 		return;
 
 	while ((e = readdir(dir)) != NULL) {
-		if (!ends_with(e->d_name, ".pack"))
+		size_t len;
+		if (!strip_suffix(e->d_name, ".pack", &len))
 			continue;
 
-		len = strlen(e->d_name) - strlen(".pack");
 		fname = xmemdupz(e->d_name, len);
 
 		if (!file_exists(mkpath("%s/%s.keep", packdir, fname)))
@@ -285,7 +284,8 @@ int cmd_repack(int argc, const char **argv, const char *prefix)
 	failed = 0;
 	for_each_string_list_item(item, &names) {
 		for (ext = 0; ext < ARRAY_SIZE(exts); ext++) {
-			char *fname, *fname_old;
+			const char *fname_old;
+			char *fname;
 			fname = mkpathdup("%s/pack-%s%s", packdir,
 						item->string, exts[ext].name);
 			if (!file_exists(fname)) {
@@ -313,7 +313,8 @@ int cmd_repack(int argc, const char **argv, const char *prefix)
 	if (failed) {
 		struct string_list rollback_failure = STRING_LIST_INIT_DUP;
 		for_each_string_list_item(item, &rollback) {
-			char *fname, *fname_old;
+			const char *fname_old;
+			char *fname;
 			fname = mkpathdup("%s/%s", packdir, item->string);
 			fname_old = mkpath("%s/old-%s", packdir, item->string);
 			if (rename(fname_old, fname))
@@ -366,7 +367,7 @@ int cmd_repack(int argc, const char **argv, const char *prefix)
 	/* Remove the "old-" files */
 	for_each_string_list_item(item, &names) {
 		for (ext = 0; ext < ARRAY_SIZE(exts); ext++) {
-			char *fname;
+			const char *fname;
 			fname = mkpath("%s/old-%s%s",
 					packdir,
 					item->string,

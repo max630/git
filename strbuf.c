@@ -11,15 +11,6 @@ int starts_with(const char *str, const char *prefix)
 			return 0;
 }
 
-int ends_with(const char *str, const char *suffix)
-{
-	int len = strlen(str), suflen = strlen(suffix);
-	if (len < suflen)
-		return 0;
-	else
-		return !strcmp(str + len - suflen, suffix);
-}
-
 /*
  * Used as the default ->buf value, so that people can always assume
  * buf is non NULL and ->buf is NUL terminated even for a freshly
@@ -415,6 +406,27 @@ int strbuf_readlink(struct strbuf *sb, const char *path, size_t hint)
 	return -1;
 }
 
+int strbuf_getcwd(struct strbuf *sb)
+{
+	size_t oldalloc = sb->alloc;
+	size_t guessed_len = 128;
+
+	for (;; guessed_len *= 2) {
+		strbuf_grow(sb, guessed_len);
+		if (getcwd(sb->buf, sb->alloc)) {
+			strbuf_setlen(sb, strlen(sb->buf));
+			return 0;
+		}
+		if (errno != ERANGE)
+			break;
+	}
+	if (oldalloc == 0)
+		strbuf_release(sb);
+	else
+		strbuf_reset(sb);
+	return -1;
+}
+
 int strbuf_getwholeline(struct strbuf *sb, FILE *fp, int term)
 {
 	int ch;
@@ -562,6 +574,31 @@ void strbuf_humanise_bytes(struct strbuf *buf, off_t bytes)
 	} else {
 		strbuf_addf(buf, "%u bytes", (int)bytes);
 	}
+}
+
+void strbuf_add_absolute_path(struct strbuf *sb, const char *path)
+{
+	if (!*path)
+		die("The empty string is not a valid path");
+	if (!is_absolute_path(path)) {
+		struct stat cwd_stat, pwd_stat;
+		size_t orig_len = sb->len;
+		char *cwd = xgetcwd();
+		char *pwd = getenv("PWD");
+		if (pwd && strcmp(pwd, cwd) &&
+		    !stat(cwd, &cwd_stat) &&
+		    (cwd_stat.st_dev || cwd_stat.st_ino) &&
+		    !stat(pwd, &pwd_stat) &&
+		    pwd_stat.st_dev == cwd_stat.st_dev &&
+		    pwd_stat.st_ino == cwd_stat.st_ino)
+			strbuf_addstr(sb, pwd);
+		else
+			strbuf_addstr(sb, cwd);
+		if (sb->len > orig_len && !is_dir_sep(sb->buf[sb->len - 1]))
+			strbuf_addch(sb, '/');
+		free(cwd);
+	}
+	strbuf_addstr(sb, path);
 }
 
 int printf_ln(const char *fmt, ...)

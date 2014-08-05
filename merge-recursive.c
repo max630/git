@@ -171,7 +171,7 @@ static void output(struct merge_options *o, int v, const char *fmt, ...)
 	strbuf_vaddf(&o->obuf, fmt, ap);
 	va_end(ap);
 
-	strbuf_add(&o->obuf, "\n", 1);
+	strbuf_addch(&o->obuf, '\n');
 	if (!o->buffer_output)
 		flush_output(o);
 }
@@ -267,9 +267,7 @@ struct tree *write_tree_from_memory(struct merge_options *o)
 		active_cache_tree = cache_tree();
 
 	if (!cache_tree_fully_valid(active_cache_tree) &&
-	    cache_tree_update(active_cache_tree,
-			      (const struct cache_entry * const *)active_cache,
-			      active_nr, 0) < 0)
+	    cache_tree_update(&the_index, 0) < 0)
 		die(_("error building trees"));
 
 	result = lookup_tree(active_cache_tree->sha1);
@@ -2001,7 +1999,7 @@ int merge_recursive_generic(struct merge_options *o,
 			    const unsigned char **base_list,
 			    struct commit **result)
 {
-	int clean, index_fd;
+	int clean;
 	struct lock_file *lock = xcalloc(1, sizeof(struct lock_file));
 	struct commit *head_commit = get_ref(head, o->branch1);
 	struct commit *next_commit = get_ref(merge, o->branch2);
@@ -2018,12 +2016,11 @@ int merge_recursive_generic(struct merge_options *o,
 		}
 	}
 
-	index_fd = hold_locked_index(lock, 1);
+	hold_locked_index(lock, 1);
 	clean = merge_recursive(o, head_commit, next_commit, ca,
 			result);
 	if (active_cache_changed &&
-			(write_cache(index_fd, active_cache, active_nr) ||
-			 commit_locked_index(lock)))
+	    write_locked_index(&the_index, lock, COMMIT_LOCK))
 		return error(_("Unable to write index."));
 
 	return clean ? 0 : 1;
@@ -2062,12 +2059,9 @@ void init_merge_options(struct merge_options *o)
 	if (o->verbosity >= 5)
 		o->buffer_output = 0;
 	strbuf_init(&o->obuf, 0);
-	memset(&o->current_file_set, 0, sizeof(struct string_list));
-	o->current_file_set.strdup_strings = 1;
-	memset(&o->current_directory_set, 0, sizeof(struct string_list));
-	o->current_directory_set.strdup_strings = 1;
-	memset(&o->df_conflict_file_set, 0, sizeof(struct string_list));
-	o->df_conflict_file_set.strdup_strings = 1;
+	string_list_init(&o->current_file_set, 1);
+	string_list_init(&o->current_directory_set, 1);
+	string_list_init(&o->df_conflict_file_set, 1);
 }
 
 int parse_merge_opt(struct merge_options *o, const char *s)

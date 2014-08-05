@@ -330,19 +330,18 @@ int set_git_dir_init(const char *git_dir, const char *real_git_dir,
 		 * moving the target repo later on in separate_git_dir()
 		 */
 		git_link = xstrdup(real_path(git_dir));
+		set_git_dir(real_path(real_git_dir));
 	}
 	else {
-		real_git_dir = real_path(git_dir);
+		set_git_dir(real_path(git_dir));
 		git_link = NULL;
 	}
-	set_git_dir(real_path(real_git_dir));
 	return 0;
 }
 
 static void separate_git_dir(const char *git_dir)
 {
 	struct stat st;
-	FILE *fp;
 
 	if (!stat(git_link, &st)) {
 		const char *src;
@@ -358,11 +357,7 @@ static void separate_git_dir(const char *git_dir)
 			die_errno(_("unable to move %s to %s"), src, git_dir);
 	}
 
-	fp = fopen(git_link, "w");
-	if (!fp)
-		die(_("Could not create git link %s"), git_link);
-	fprintf(fp, "gitdir: %s\n", git_dir);
-	fclose(fp);
+	write_file(git_link, 1, "gitdir: %s\n", git_dir);
 }
 
 int init_db(const char *template_dir, unsigned int flags)
@@ -426,8 +421,9 @@ int init_db(const char *template_dir, unsigned int flags)
 
 static int guess_repository_type(const char *git_dir)
 {
-	char cwd[PATH_MAX];
 	const char *slash;
+	char *cwd;
+	int cwd_is_git_dir;
 
 	/*
 	 * "GIT_DIR=. git init" is always bare.
@@ -435,9 +431,10 @@ static int guess_repository_type(const char *git_dir)
 	 */
 	if (!strcmp(".", git_dir))
 		return 1;
-	if (!getcwd(cwd, sizeof(cwd)))
-		die_errno(_("cannot tell cwd"));
-	if (!strcmp(git_dir, cwd))
+	cwd = xgetcwd();
+	cwd_is_git_dir = !strcmp(git_dir, cwd);
+	free(cwd);
+	if (cwd_is_git_dir)
 		return 1;
 	/*
 	 * "GIT_DIR=.git or GIT_DIR=something/.git is usually not.
@@ -535,10 +532,9 @@ int cmd_init_db(int argc, const char **argv, const char *prefix)
 		usage(init_db_usage[0]);
 	}
 	if (is_bare_repository_cfg == 1) {
-		static char git_dir[PATH_MAX+1];
-
-		setenv(GIT_DIR_ENVIRONMENT,
-			getcwd(git_dir, sizeof(git_dir)), argc > 0);
+		char *cwd = xgetcwd();
+		setenv(GIT_DIR_ENVIRONMENT, cwd, argc > 0);
+		free(cwd);
 	}
 
 	if (init_shared_repository != -1)
@@ -572,13 +568,10 @@ int cmd_init_db(int argc, const char **argv, const char *prefix)
 			git_work_tree_cfg = xstrdup(real_path(rel));
 			free(rel);
 		}
-		if (!git_work_tree_cfg) {
-			git_work_tree_cfg = xcalloc(PATH_MAX, 1);
-			if (!getcwd(git_work_tree_cfg, PATH_MAX))
-				die_errno (_("Cannot access current working directory"));
-		}
+		if (!git_work_tree_cfg)
+			git_work_tree_cfg = xgetcwd();
 		if (work_tree)
-			set_git_work_tree(real_path(work_tree));
+			set_git_work_tree(work_tree);
 		else
 			set_git_work_tree(git_work_tree_cfg);
 		if (access(get_git_work_tree(), X_OK))
@@ -587,7 +580,7 @@ int cmd_init_db(int argc, const char **argv, const char *prefix)
 	}
 	else {
 		if (work_tree)
-			set_git_work_tree(real_path(work_tree));
+			set_git_work_tree(work_tree);
 	}
 
 	set_git_dir_init(git_dir, real_git_dir, 1);

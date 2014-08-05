@@ -7,6 +7,7 @@
 #include "advice.h"
 #include "gettext.h"
 #include "convert.h"
+#include "trace.h"
 
 #include SHA1_HEADER
 #ifndef git_SHA_CTX
@@ -150,6 +151,7 @@ struct cache_entry {
 	unsigned int ce_mode;
 	unsigned int ce_flags;
 	unsigned int ce_namelen;
+	unsigned int index;	/* for link extension */
 	unsigned char sha1[20];
 	char name[FLEX_ARRAY]; /* more */
 };
@@ -160,7 +162,7 @@ struct cache_entry {
 #define CE_STAGESHIFT 12
 
 /*
- * Range 0xFFFF0000 in ce_flags is divided into
+ * Range 0xFFFF0FFF in ce_flags is divided into
  * two parts: in-memory flags and on-disk ones.
  * Flags in CE_EXTENDED_FLAGS will get saved on-disk
  * if you want to save a new flag, add it in
@@ -182,6 +184,9 @@ struct cache_entry {
 
 /* used to temporarily mark paths matched by pathspecs */
 #define CE_MATCHED           (1 << 26)
+
+#define CE_UPDATE_IN_BASE    (1 << 27)
+#define CE_STRIP_NAME        (1 << 28)
 
 /*
  * Extended on-disk flags
@@ -283,12 +288,22 @@ static inline unsigned int canon_mode(unsigned int mode)
 
 #define cache_entry_size(len) (offsetof(struct cache_entry,name) + (len) + 1)
 
+#define SOMETHING_CHANGED	(1 << 0) /* unclassified changes go here */
+#define CE_ENTRY_CHANGED	(1 << 1)
+#define CE_ENTRY_REMOVED	(1 << 2)
+#define CE_ENTRY_ADDED		(1 << 3)
+#define RESOLVE_UNDO_CHANGED	(1 << 4)
+#define CACHE_TREE_CHANGED	(1 << 5)
+#define SPLIT_INDEX_ORDERED	(1 << 6)
+
+struct split_index;
 struct index_state {
 	struct cache_entry **cache;
 	unsigned int version;
 	unsigned int cache_nr, cache_alloc, cache_changed;
 	struct string_list *resolve_undo;
 	struct cache_tree *cache_tree;
+	struct split_index *split_index;
 	struct cache_time timestamp;
 	unsigned name_hash_initialized : 1,
 		 initialized : 1;
@@ -317,7 +332,6 @@ extern void free_name_hash(struct index_state *istate);
 #define read_cache_preload(pathspec) read_index_preload(&the_index, (pathspec))
 #define is_cache_unborn() is_index_unborn(&the_index)
 #define read_cache_unmerged() read_index_unmerged(&the_index)
-#define write_cache(newfd, cache, entries) write_index(&the_index, (newfd))
 #define discard_cache() discard_index(&the_index)
 #define unmerged_cache() unmerged_index(&the_index)
 #define cache_name_pos(name, namelen) index_name_pos(&the_index,(name),(namelen))
@@ -362,6 +376,7 @@ static inline enum object_type object_type(unsigned int mode)
 
 /* Double-check local_repo_env below if you add to this list. */
 #define GIT_DIR_ENVIRONMENT "GIT_DIR"
+#define GIT_COMMON_DIR_ENVIRONMENT "GIT_COMMON_DIR"
 #define GIT_NAMESPACE_ENVIRONMENT "GIT_NAMESPACE"
 #define GIT_WORK_TREE_ENVIRONMENT "GIT_WORK_TREE"
 #define GIT_PREFIX_ENVIRONMENT "GIT_PREFIX"
@@ -415,11 +430,13 @@ extern int is_inside_git_dir(void);
 extern char *git_work_tree_cfg;
 extern int is_inside_work_tree(void);
 extern const char *get_git_dir(void);
+extern const char *get_git_common_dir(void);
 extern int is_git_directory(const char *path);
 extern char *get_object_directory(void);
 extern char *get_index_file(void);
 extern char *get_graft_file(void);
 extern int set_git_dir(const char *path);
+extern int get_common_dir(struct strbuf *sb, const char *gitdir);
 extern const char *get_git_namespace(void);
 extern const char *strip_namespace(const char *namespaced_ref);
 extern const char *get_git_work_tree(void);
@@ -472,12 +489,17 @@ extern int daemonize(void);
 	} while (0)
 
 /* Initialize and use the cache information */
+struct lock_file;
 extern int read_index(struct index_state *);
 extern int read_index_preload(struct index_state *, const struct pathspec *pathspec);
+extern int do_read_index(struct index_state *istate, const char *path,
+			 int must_exist); /* for testting only! */
 extern int read_index_from(struct index_state *, const char *path);
 extern int is_index_unborn(struct index_state *);
 extern int read_index_unmerged(struct index_state *);
-extern int write_index(struct index_state *, int newfd);
+#define COMMIT_LOCK		(1 << 0)
+#define CLOSE_LOCK		(1 << 1)
+extern int write_locked_index(struct index_state *, struct lock_file *lock, unsigned flags);
 extern int discard_index(struct index_state *);
 extern int unmerged_index(const struct index_state *);
 extern int verify_path(const char *path);
@@ -489,6 +511,7 @@ extern int index_name_pos(const struct index_state *, const char *name, int name
 #define ADD_CACHE_SKIP_DFCHECK 4	/* Ok to skip DF conflict checks */
 #define ADD_CACHE_JUST_APPEND 8		/* Append only; tree.c::read_tree() */
 #define ADD_CACHE_NEW_ONLY 16		/* Do not replace existing ones */
+#define ADD_CACHE_KEEP_CACHE_TREE 32	/* Do not invalidate cache-tree */
 extern int add_index_entry(struct index_state *, struct cache_entry *ce, int option);
 extern void rename_index_entry_at(struct index_state *, int pos, const char *new_name);
 extern int remove_index_entry_at(struct index_state *, int pos);
@@ -559,14 +582,16 @@ struct lock_file {
 #define LOCK_DIE_ON_ERROR 1
 #define LOCK_NODEREF 2
 extern int unable_to_lock_error(const char *path, int err);
+extern void unable_to_lock_message(const char *path, int err,
+				   struct strbuf *buf);
 extern NORETURN void unable_to_lock_index_die(const char *path, int err);
 extern int hold_lock_file_for_update(struct lock_file *, const char *path, int);
 extern int hold_lock_file_for_append(struct lock_file *, const char *path, int);
 extern int commit_lock_file(struct lock_file *);
+extern int reopen_lock_file(struct lock_file *);
 extern void update_index_if_able(struct index_state *, struct lock_file *);
 
 extern int hold_locked_index(struct lock_file *, int);
-extern int commit_locked_index(struct lock_file *);
 extern void set_alternate_index_output(const char *);
 extern int close_lock_file(struct lock_file *);
 extern void rollback_lock_file(struct lock_file *);
@@ -612,6 +637,7 @@ extern int fsync_object_files;
 extern int core_preload_index;
 extern int core_apply_sparse_checkout;
 extern int precomposed_unicode;
+extern int git_db_env, git_index_env, git_graft_env, git_common_dir_env;
 
 /*
  * The character that begins a commented line in user-editable file
@@ -674,18 +700,19 @@ extern int check_repository_format(void);
 
 extern char *mksnpath(char *buf, size_t n, const char *fmt, ...)
 	__attribute__((format (printf, 3, 4)));
-extern char *git_snpath(char *buf, size_t n, const char *fmt, ...)
-	__attribute__((format (printf, 3, 4)));
+extern void strbuf_git_path(struct strbuf *sb, const char *fmt, ...)
+	__attribute__((format (printf, 2, 3)));
 extern char *git_pathdup(const char *fmt, ...)
 	__attribute__((format (printf, 1, 2)));
 extern char *mkpathdup(const char *fmt, ...)
 	__attribute__((format (printf, 1, 2)));
 
 /* Return a statically allocated filename matching the sha1 signature */
-extern char *mkpath(const char *fmt, ...) __attribute__((format (printf, 1, 2)));
-extern char *git_path(const char *fmt, ...) __attribute__((format (printf, 1, 2)));
-extern char *git_path_submodule(const char *path, const char *fmt, ...)
+extern const char *mkpath(const char *fmt, ...) __attribute__((format (printf, 1, 2)));
+extern const char *git_path(const char *fmt, ...) __attribute__((format (printf, 1, 2)));
+extern const char *git_path_submodule(const char *path, const char *fmt, ...)
 	__attribute__((format (printf, 2, 3)));
+extern void report_linked_checkout_garbage(void);
 
 /*
  * Return the name of the file in the local object database that would
@@ -977,7 +1004,7 @@ extern int read_ref(const char *refname, unsigned char *sha1);
  * NULL.  If more than MAXDEPTH recursive symbolic lookups are needed,
  * give up and return NULL.
  *
- * errno is sometimes set on errors, but not always.
+ * errno is set to something meaningful on error.
  */
 extern const char *resolve_ref_unsafe(const char *ref, unsigned char *sha1, int reading, int *flag);
 extern char *resolve_refdup(const char *ref, unsigned char *sha1, int reading, int *flag);
@@ -1040,6 +1067,7 @@ extern const char *git_author_info(int);
 extern const char *git_committer_info(int);
 extern const char *fmt_ident(const char *name, const char *email, const char *date_str, int);
 extern const char *fmt_name(const char *name, const char *email);
+extern const char *ident_default_name(void);
 extern const char *ident_default_email(void);
 extern const char *git_editor(void);
 extern const char *git_pager(int stdout_is_tty);
@@ -1078,6 +1106,7 @@ const char *show_ident_date(const struct ident_split *id, enum date_mode mode);
 extern int ident_cmp(const struct ident_split *, const struct ident_split *);
 
 struct checkout {
+	struct index_state *istate;
 	const char *base_dir;
 	int base_dir_len;
 	unsigned force:1,
@@ -1090,12 +1119,16 @@ struct checkout {
 extern int checkout_entry(struct cache_entry *ce, const struct checkout *state, char *topath);
 
 struct cache_def {
-	char path[PATH_MAX + 1];
-	int len;
+	struct strbuf path;
 	int flags;
 	int track_flags;
 	int prefix_len_stat_func;
 };
+#define CACHE_DEF_INIT { STRBUF_INIT, 0, 0, 0 }
+static inline void cache_def_clear(struct cache_def *cache)
+{
+	strbuf_release(&cache->path);
+}
 
 extern int has_symlink_leading_path(const char *name, int len);
 extern int threaded_has_symlink_leading_path(struct cache_def *, const char *, int);
@@ -1351,6 +1384,8 @@ static inline ssize_t write_str_in_full(int fd, const char *str)
 {
 	return write_in_full(fd, str, strlen(str));
 }
+__attribute__((format (printf,3,4)))
+extern int write_file(const char *path, int fatal, const char *fmt, ...);
 
 /* pager.c */
 extern void setup_pager(void);
@@ -1376,18 +1411,9 @@ extern void *alloc_commit_node(void);
 extern void *alloc_tag_node(void);
 extern void *alloc_object_node(void);
 extern void alloc_report(void);
+extern unsigned int alloc_commit_index(void);
 
-/* trace.c */
-__attribute__((format (printf, 1, 2)))
-extern void trace_printf(const char *format, ...);
-__attribute__((format (printf, 2, 3)))
-extern void trace_argv_printf(const char **argv, const char *format, ...);
-extern void trace_repo_setup(const char *prefix);
-extern int trace_want(const char *key);
-__attribute__((format (printf, 2, 3)))
-extern void trace_printf_key(const char *key, const char *fmt, ...);
-extern void trace_strbuf(const char *key, const struct strbuf *buf);
-
+/* pkt-line.c */
 void packet_trace_identity(const char *prog);
 
 /* add */

@@ -11,6 +11,7 @@
 #include "parse-options.h"
 #include "diff.h"
 #include "revision.h"
+#include "split-index.h"
 
 #define DO_REVS		1
 #define DO_NOREV	2
@@ -150,6 +151,7 @@ static void show_rev(int type, const unsigned char *sha1, const char *name)
 				error("refname '%s' is ambiguous", name);
 				break;
 			}
+			free(full);
 		} else {
 			show_with_type(type, name);
 		}
@@ -529,6 +531,13 @@ int cmd_rev_parse(int argc, const char **argv, const char *prefix)
 	for (i = 1; i < argc; i++) {
 		const char *arg = argv[i];
 
+		if (!strcmp(arg, "--git-path")) {
+			if (!argv[i + 1])
+				die("--git-path requires an argument");
+			puts(git_path("%s", argv[i + 1]));
+			i++;
+			continue;
+		}
 		if (as_is) {
 			if (show_file(arg, output_prefix) && as_is < 2)
 				verify_filename(prefix, arg, 0);
@@ -734,7 +743,7 @@ int cmd_rev_parse(int argc, const char **argv, const char *prefix)
 			}
 			if (!strcmp(arg, "--git-dir")) {
 				const char *gitdir = getenv(GIT_DIR_ENVIRONMENT);
-				static char cwd[PATH_MAX];
+				char *cwd;
 				int len;
 				if (gitdir) {
 					puts(gitdir);
@@ -744,10 +753,14 @@ int cmd_rev_parse(int argc, const char **argv, const char *prefix)
 					puts(".git");
 					continue;
 				}
-				if (!getcwd(cwd, PATH_MAX))
-					die_errno("unable to get current working directory");
+				cwd = xgetcwd();
 				len = strlen(cwd);
 				printf("%s%s.git\n", cwd, len && cwd[len-1] != '/' ? "/" : "");
+				free(cwd);
+				continue;
+			}
+			if (!strcmp(arg, "--git-common-dir")) {
+				puts(get_git_common_dir());
 				continue;
 			}
 			if (!strcmp(arg, "--resolve-git-dir")) {
@@ -773,6 +786,15 @@ int cmd_rev_parse(int argc, const char **argv, const char *prefix)
 			if (!strcmp(arg, "--is-bare-repository")) {
 				printf("%s\n", is_bare_repository() ? "true"
 						: "false");
+				continue;
+			}
+			if (!strcmp(arg, "--shared-index-path")) {
+				if (read_cache() < 0)
+					die(_("Could not read the index"));
+				if (the_index.split_index) {
+					const unsigned char *sha1 = the_index.split_index->base_sha1;
+					puts(git_path("sharedindex.%s", sha1_to_hex(sha1)));
+				}
 				continue;
 			}
 			if (starts_with(arg, "--since=")) {

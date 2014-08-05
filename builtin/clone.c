@@ -289,16 +289,17 @@ static void copy_alternates(struct strbuf *src, struct strbuf *dst,
 	struct strbuf line = STRBUF_INIT;
 
 	while (strbuf_getline(&line, in, '\n') != EOF) {
-		char *abs_path, abs_buf[PATH_MAX];
+		char *abs_path;
 		if (!line.len || line.buf[0] == '#')
 			continue;
 		if (is_absolute_path(line.buf)) {
 			add_to_alternates_file(line.buf);
 			continue;
 		}
-		abs_path = mkpath("%s/objects/%s", src_repo, line.buf);
-		normalize_path_copy(abs_buf, abs_path);
-		add_to_alternates_file(abs_buf);
+		abs_path = mkpathdup("%s/objects/%s", src_repo, line.buf);
+		normalize_path_copy(abs_path, abs_path);
+		add_to_alternates_file(abs_path);
+		free(abs_path);
 	}
 	strbuf_release(&line);
 	fclose(in);
@@ -617,7 +618,7 @@ static int checkout(void)
 	struct unpack_trees_options opts;
 	struct tree *tree;
 	struct tree_desc t;
-	int err = 0, fd;
+	int err = 0;
 
 	if (option_no_checkout)
 		return 0;
@@ -641,7 +642,7 @@ static int checkout(void)
 	setup_work_tree();
 
 	lock_file = xcalloc(1, sizeof(struct lock_file));
-	fd = hold_locked_index(lock_file, 1);
+	hold_locked_index(lock_file, 1);
 
 	memset(&opts, 0, sizeof opts);
 	opts.update = 1;
@@ -657,8 +658,7 @@ static int checkout(void)
 	if (unpack_trees(1, &t, &opts) < 0)
 		die(_("unable to checkout working tree"));
 
-	if (write_cache(fd, active_cache, active_nr) ||
-	    commit_locked_index(lock_file))
+	if (write_locked_index(&the_index, lock_file, COMMIT_LOCK))
 		die(_("unable to write new index file"));
 
 	err |= run_hook_le(NULL, "post-checkout", sha1_to_hex(null_sha1),
@@ -696,7 +696,7 @@ static void write_refspec_config(const char* src_ref_prefix,
 	if (option_mirror || !option_bare) {
 		if (option_single_branch && !option_mirror) {
 			if (option_branch) {
-				if (strstr(our_head_points_at->name, "refs/tags/"))
+				if (starts_with(our_head_points_at->name, "refs/tags/"))
 					strbuf_addf(&value, "+%s:%s", our_head_points_at->name,
 						our_head_points_at->name);
 				else
@@ -800,18 +800,6 @@ int cmd_clone(int argc, const char **argv, const char *prefix)
 		die(_("repository '%s' does not exist"), repo_name);
 	else
 		repo = repo_name;
-	is_local = option_local != 0 && path && !is_bundle;
-	if (is_local) {
-		if (option_depth)
-			warning(_("--depth is ignored in local clones; use file:// instead."));
-		if (!access(mkpath("%s/shallow", path), F_OK)) {
-			if (option_local > 0)
-				warning(_("source repository is shallow, ignoring --local"));
-			is_local = 0;
-		}
-	}
-	if (option_local > 0 && !is_local)
-		warning(_("--local is ignored"));
 
 	/* no need to be strict, transport_set_option() will validate it again */
 	if (option_depth && atoi(option_depth) < 1)
@@ -904,6 +892,19 @@ int cmd_clone(int argc, const char **argv, const char *prefix)
 
 	remote = remote_get(option_origin);
 	transport = transport_get(remote, remote->url[0]);
+	path = get_repo_path(remote->url[0], &is_bundle);
+	is_local = option_local != 0 && path && !is_bundle;
+	if (is_local) {
+		if (option_depth)
+			warning(_("--depth is ignored in local clones; use file:// instead."));
+		if (!access(mkpath("%s/shallow", path), F_OK)) {
+			if (option_local > 0)
+				warning(_("source repository is shallow, ignoring --local"));
+			is_local = 0;
+		}
+	}
+	if (option_local > 0 && !is_local)
+		warning(_("--local is ignored"));
 	transport->cloning = 1;
 
 	if (!transport->get_refs_list || (!is_local && !transport->fetch))

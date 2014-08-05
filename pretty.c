@@ -273,7 +273,7 @@ static void add_rfc822_quoted(struct strbuf *out, const char *s, int len)
 
 enum rfc2047_type {
 	RFC2047_SUBJECT,
-	RFC2047_ADDRESS,
+	RFC2047_ADDRESS
 };
 
 static int is_rfc2047_special(char ch, enum rfc2047_type type)
@@ -1376,7 +1376,7 @@ static size_t format_and_pad_commit(struct strbuf *sb, /* in UTF-8 */
 		case trunc_none:
 			break;
 		}
-		strbuf_addstr(sb, local_sb.buf);
+		strbuf_addbuf(sb, &local_sb);
 	} else {
 		int sb_len = sb->len, offset = 0;
 		if (c->flush_type == flush_left)
@@ -1520,8 +1520,6 @@ void format_commit_message(const struct commit *commit,
 
 	free(context.commit_encoding);
 	unuse_commit_buffer(commit, context.message);
-	free(context.signature_check.gpg_output);
-	free(context.signature_check.signer);
 }
 
 static void pp_header(struct pretty_print_context *pp,
@@ -1556,12 +1554,7 @@ static void pp_header(struct pretty_print_context *pp,
 		}
 
 		if (!parents_shown) {
-			struct commit_list *parent;
-			int num;
-			for (parent = commit->parents, num = 0;
-			     parent;
-			     parent = parent->next, num++)
-				;
+			unsigned num = commit_list_count(commit->parents);
 			/* with enough slop */
 			strbuf_grow(sb, num * 50 + 20);
 			add_merge_info(pp, sb, commit);
