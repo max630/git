@@ -1,8 +1,152 @@
-Version next; changes since v2.0.1:
------------------------------------
+Version next; changes since v2.1.0-rc1:
+---------------------------------------
 
-Abbaad Haider (1):
-      http-push.c: make CURLOPT_IOCTLDATA a usable pointer
+David Turner (4):
+      cache-tree: create/update cache-tree on checkout
+      test-dump-cache-tree: invalid trees are not errors
+      cache-tree: subdirectory tests
+      cache-tree: Write updated cache-tree after commit
+
+Dennis Kaarsemaker (1):
+      checkout: don't require a work tree when checking out into a new one
+
+Heiko Voigt (4):
+      implement submodule config cache for lookup of submodule names
+      extract functions for submodule config set and lookup
+      use new config API for worktree configurations of submodules
+      do not die on error of parsing fetchrecursesubmodules option
+
+Junio C Hamano (2):
+      Revert "dir: remove PATH_MAX limitation"
+      lockfile: allow reopening a closed but still locked file
+
+Karsten Blees (1):
+      dir: remove PATH_MAX limitation
+
+Matthieu Moy (3):
+      config --global --edit: create a template file if needed
+      home_config_paths(): let the caller ignore xdg path
+      commit: advertise config --global --edit on guessed identity
+
+Nguyễn Thái Ngọc Duy (30):
+      path.c: make get_pathname() return strbuf instead of static buffer
+      path.c: make get_pathname() call sites return const char *
+      git_snpath(): retire and replace with strbuf_git_path()
+      path.c: rename vsnpath() to do_git_path()
+      path.c: group git_path(), git_pathdup() and strbuf_git_path() together
+      git_path(): be aware of file relocation in $GIT_DIR
+      *.sh: respect $GIT_INDEX_FILE
+      reflog: avoid constructing .lock path with git_path
+      fast-import: use git_path() for accessing .git dir instead of get_git_dir()
+      commit: use SEQ_DIR instead of hardcoding "sequencer"
+      $GIT_COMMON_DIR: a new environment variable
+      git-sh-setup.sh: use rev-parse --git-path to get $GIT_DIR/objects
+      *.sh: avoid hardcoding $GIT_DIR/hooks/...
+      git-stash: avoid hardcoding $GIT_DIR/logs/....
+      setup.c: convert is_git_directory() to use strbuf
+      setup.c: detect $GIT_COMMON_DIR in is_git_directory()
+      setup.c: convert check_repository_format_gently to use strbuf
+      setup.c: detect $GIT_COMMON_DIR check_repository_format_gently()
+      setup.c: support multi-checkout repo setup
+      wrapper.c: wrapper to open a file, fprintf then close
+      use new wrapper write_file() for simple file writing
+      checkout: support checking out into a new working directory
+      checkout: clean up half-prepared directories in --to mode
+      checkout: detach if the branch is already checked out elsewhere
+      prune: strategies for linked checkouts
+      gc: style change -- no SP before closing parenthesis
+      gc: factor out gc.pruneexpire parsing code
+      gc: support prune --repos
+      count-objects: report unused files in $GIT_DIR/repos/...
+      git_path(): keep "info/sparse-checkout" per work-tree
+
+René Scharfe (11):
+      strbuf: add strbuf_getcwd()
+      unix-sockets: use strbuf_getcwd()
+      setup: convert setup_git_directory_gently_1 et al. to strbuf
+      abspath: use strbuf_getcwd() to remember original working directory
+      init: avoid superfluous real_path() calls
+      abspath: convert real_path_internal() to strbuf
+      wrapper: add xgetcwd()
+      use xgetcwd() to get the current directory or die
+      use xgetcwd() to set $GIT_DIR
+      abspath: convert absolute_path() to strbuf
+      use strbuf_add_absolute_path() to add absolute paths
+
+
+Version v2.1.0-rc1; changes since v2.1.0-rc0:
+---------------------------------------------
+
+Fabian Ruch (1):
+      commit --amend: test specifies authorship but forgets to check
+
+Jeff King (14):
+      receive-pack: don't copy "dir" parameter
+      free ref string returned by dwim_ref
+      transport: fix leaks in refs_from_alternate_cb
+      fix memory leak parsing core.commentchar
+      apply: avoid possible bogus pointer
+      alloc: write out allocator definitions
+      move setting of object->type to alloc_* functions
+      parse_object_buffer: do not set object type
+      add object_as_type helper for casting objects
+      alloc: factor out commit index
+      object_as_type: set commit index
+      diff-tree: avoid lookup_unknown_object
+      t1402: check for refs ending with a dot
+      t4013: test diff-tree's --stdin commit formatting
+
+Johannes Schindelin (1):
+      MinGW: Skip test redirecting to fd 4
+
+John Keeping (3):
+      completion: complete "unstuck" `git push --recurse-submodules`
+      completion: add some missing options to `git push`
+      completion: complete `git push --force-with-lease=`
+
+Junio C Hamano (6):
+      t9814: fix misconversion from test $a -o $b to test $a || test $b
+      Revert "Merge branch 'dt/refs-check-refname-component-sse-fix'"
+      Revert "Merge branch 'dt/refs-check-refname-component-sse'"
+      Git 2.0.4
+      Update draft release notes to 2.1
+      Git 2.1.0-rc1
+
+Karsten Blees (16):
+      Revert "Windows: teach getenv to do a case-sensitive search"
+      Win32: Unicode environment (outgoing)
+      Win32: Unicode environment (incoming)
+      Win32: fix environment memory leaks
+      Win32: unify environment case-sensitivity
+      Win32: unify environment function names
+      Win32: factor out environment block creation
+      Win32: don't copy the environment twice when spawning child processes
+      Win32: reduce environment array reallocations
+      Win32: use low-level memory allocation during initialization
+      Win32: keep the environment sorted
+      Win32: patch Windows environment on startup
+      Win32: enable color output in Windows cmd.exe
+      t0110/MinGW: skip tests that pass arbitrary bytes on the command line
+      MinGW: disable legacy encoding tests
+      t800[12]: work around MSys limitation
+
+Pat Thoyts (3):
+      tests: do not pass iso8859-1 encoded parameter
+      t4210: skip command-line encoding tests on mingw
+      t9902: mingw-specific fix for gitfile link files
+
+Ramsay Allan Jones (1):
+      alloc.c: remove the alloc_raw_commit_node() function
+
+Tanay Abhra (1):
+      add documentation for writing config files
+
+Tony Finch (1):
+      git-push: fix link in man page
+
+
+Version v2.1.0-rc0; changes since v2.0.4:
+-----------------------------------------
 
 Anders Kaseorg (1):
       gitk: Allow displaying time zones from author and commit dates timestamps
@@ -16,31 +160,14 @@ Andi Kleen (4):
 Andreas Schwab (1):
       grep: add grep.fullName config variable
 
-Ben Walton (1):
-      compat/bswap.h: fix endianness detection
-
-Brian Gesiak (14):
+Brian Gesiak (2):
       strbuf: use _rtrim and _ltrim in strbuf_trim
       api-strbuf.txt: add docs for _trim and _ltrim
-      builtin/ls-remote.c: rearrange xcalloc arguments
-      builtin/remote.c: rearrange xcalloc arguments
-      commit.c: rearrange xcalloc arguments
-      config.c: rearrange xcalloc arguments
-      diff.c: rearrange xcalloc arguments
-      http-push.c: rearrange xcalloc arguments
-      imap-send.c: rearrange xcalloc arguments
-      notes.c: rearrange xcalloc arguments
-      pack-revindex.c: rearrange xcalloc arguments
-      reflog-walk.c: rearrange xcalloc arguments
-      remote.c: rearrange xcalloc arguments
-      transport-helper.c: rearrange xcalloc arguments
 
 Cezary Zawadka (1):
       Windows: allow using UNC path for git repository
 
-Charles Bailey (3):
-      compat/bswap.h: detect endianness on more platforms that don't use BYTE_ORDER
-      filter-branch: eliminate duplicate mapped parents
+Charles Bailey (1):
       Fix contrib/subtree Makefile to patch #! line
 
 Christian Couder (16):
@@ -73,21 +200,14 @@ David Kastrup (2):
       blame: large-scale performance rewrite
       Bump core.deltaBaseCacheLimit to 96m
 
-David Turner (9):
+David Turner (5):
       docs: document RUN_SETUP_GENTLY and clarify RUN_SETUP
       refs.c: optimize check_refname_component()
       refs.c: SSE2 optimizations for check_refname_component
       refs.c: handle REFNAME_REFSPEC_PATTERN at end of page
-      cache-tree: create/update cache-tree on checkout
-      test-dump-cache-tree: invalid trees are not errors
       refs: fix valgrind suppression file
-      cache-tree: subdirectory tests
-      cache-tree: Write updated cache-tree after commit
 
-Dennis Kaarsemaker (1):
-      checkout: don't require a work tree when checking out into a new one
-
-Elia Pinto (62):
+Elia Pinto (61):
       t9365-continuing-queries.sh: use the $( ... ) construct for command substitution
       test-gitmw-lib.sh: use the $( ... ) construct for command substitution
       t7900-subtree.sh: use the $( ... ) construct for command substitution
@@ -129,7 +249,6 @@ Elia Pinto (62):
       t4119-apply-config.sh: use the $( ... ) construct for command substitution
       t4204-patch-id.sh: use the $( ... ) construct for command substitution
       t5000-tar-tree.sh: use the $( ... ) construct for command substitution
-      scripts: "export VAR=VALUE" construct is not portable
       check_bindir: avoid "test <cond> -a/-o <cond>"
       contrib/examples/git-clone.sh: avoid "test <cond> -a/-o <cond>"
       contrib/examples/git-commit.sh: avoid "test <cond> -a/-o <cond>"
@@ -160,9 +279,8 @@ Eric Wong (1):
 Erik Faye-Lund (1):
       send-email: recognize absolute path on Windows
 
-Fabian Ruch (2):
+Fabian Ruch (1):
       sequencer: signal failed ff as an aborted, not a conflicted merge
-      commit --amend: test specifies authorship but forgets to check
 
 Felipe Contreras (12):
       fast-export: improve argument parsing
@@ -177,12 +295,6 @@ Felipe Contreras (12):
       mergetool: run prompt only if guessed tool
       merge: enable defaulttoupstream by default
       silence a bunch of format-zero-length warnings
-
-Heiko Voigt (4):
-      implement submodule config cache for lookup of submodule names
-      extract functions for submodule config set and lookup
-      use new config API for worktree configurations of submodules
-      do not die on error of parsing fetchrecursesubmodules option
 
 Ilya Bobyr (4):
       test-lib: document short options in t/README
@@ -208,7 +320,7 @@ Jason St. John (1):
 Jean-Jacques Lafay (1):
       git tag --contains: avoid stack overflow
 
-Jeff King (138):
+Jeff King (97):
       run_external_diff: use an argv_array for the environment
       run_external_diff: clean up error handling
       run_external_diff: drop fflush(NULL)
@@ -247,35 +359,10 @@ Jeff King (138):
       http: default text charset to iso-8859-1
       error_resolve_conflict: rewrap advice message
       error_resolve_conflict: drop quotations around operation
-      repack: do not accidentally pack kept objects by default
-      repack: respect pack.writebitmaps
-      repack: s/write_bitmap/&s/ in code
       pack-objects: stop respecting pack.writebitmaps
       repack: simplify handling of --write-bitmap-index
       repack: introduce repack.writeBitmaps config option
-      commit_tree: take a pointer/len pair rather than a const strbuf
-      replace dangerous uses of strbuf_attach
-      alloc: include any-object allocations in alloc_report
-      commit: push commit_index update into alloc_commit_node
-      do not create "struct commit" with xcalloc
-      logmsg_reencode: return const buffer
-      sequencer: use logmsg_reencode in get_message
       t7700: drop explicit --no-pack-kept-objects from .keep test
-      provide a helper to free commit buffer
-      provide a helper to set the commit buffer
-      provide helpers to access the commit buffer
-      use get_cached_commit_buffer where appropriate
-      use get_commit_buffer to avoid duplicate code
-      convert logmsg_reencode to get_commit_buffer
-      use get_commit_buffer everywhere
-      commit-slab: provide a static initializer
-      commit: convert commit->buffer to a slab
-      commit: record buffer length in cache
-      reuse cached commit buffer when parsing signatures
-      t7510: stop referring to master in later tests
-      t7510: test a commit signed by an unknown key
-      t7510: check %G* pretty-format output
-      pretty: avoid reading past end-of-string with "%G"
       parse_diff_color_slot: drop ofs parameter
       daemon: mark some strings as const
       avoid using skip_prefix as a boolean
@@ -304,7 +391,6 @@ Jeff King (138):
       use skip_prefix to avoid repeated calculations
       http-push: refactor parsing of remote object names
       setup_git_env(): introduce git_path_from_env() helper
-      move "%G" format test from t7510 to t6006
       replace: replace spaces with tabs in indentation
       avoid double close of descriptors handed to run_command
       replace: use argv_array in export_object
@@ -317,7 +403,6 @@ Jeff King (138):
       strbuf: implement strbuf_strip_suffix
       verify-pack: use strbuf_strip_suffix
       prepare_packed_git_one: refactor duplicate-pack check
-      t7300: repair filesystem permissions with test_when_finished
       remote-curl: do not complain on EOF from parent git
       remote-curl: use error instead of fprintf(stderr)
       remote-curl: mark helper-protocol errors more clearly
@@ -333,20 +418,6 @@ Jeff King (138):
       prio-queue: make output stable with respect to insertion
       paint_down_to_common: use prio_queue
       t5539: update a flaky test
-      receive-pack: don't copy "dir" parameter
-      free ref string returned by dwim_ref
-      transport: fix leaks in refs_from_alternate_cb
-      fix memory leak parsing core.commentchar
-      apply: avoid possible bogus pointer
-      alloc: write out allocator definitions
-      move setting of object->type to alloc_* functions
-      parse_object_buffer: do not set object type
-      add object_as_type helper for casting objects
-      alloc: factor out commit index
-      object_as_type: set commit index
-      diff-tree: avoid lookup_unknown_object
-      t1402: check for refs ending with a dot
-      t4013: test diff-tree's --stdin commit formatting
 
 Jens Lehmann (19):
       git-gui: show staged submodules regardless of ignore config
@@ -369,31 +440,18 @@ Jens Lehmann (19):
       stash: add t3906 for submodule updates
       revert: add t3513 for submodule updates
 
-Jeremiah Mahler (7):
+Jeremiah Mahler (4):
       format-patch: add "--signature-file=<file>" option
       t9138-git-svn-authors-prog.sh fixups
-      Documentation: wording fixes in the user manual and glossary
-      t/t7810-grep.sh: remove duplicate test_config()
-      api-strbuf.txt minor typos
       name-hash.c: replace cache_name_compare() with memcmp(3)
       cleanup duplicate name_compare() functions
 
-Johannes Schindelin (2):
+Johannes Schindelin (1):
       Win32: let mingw_execve() return an int
-      MinGW: Skip test redirecting to fd 4
 
-Johannes Sixt (1):
-      fix brown paper bag breakage in t5150-request-pull.sh
-
-John Keeping (5):
+John Keeping (2):
       rebase--am: use --cherry-pick instead of --ignore-if-in-upstream
       rebase: omit patch-identical commits with --fork-point
-      completion: complete "unstuck" `git push --recurse-submodules`
-      completion: add some missing options to `git push`
-      completion: complete `git push --force-with-lease=`
-
-Jonathan McCrohan (1):
-      git-instaweb: add support for Apache 2.4
 
 Jonathan Nieder (4):
       contrib: remove vim support instructions
@@ -401,10 +459,9 @@ Jonathan Nieder (4):
       test-lint: find unportable sed, echo, test, and export usage after &&
       test doc: test_write_lines does not split its arguments
 
-Junio C Hamano (52):
+Junio C Hamano (37):
       send-email: windows drive prefix (e.g. C:) appears only at the beginning
       mergetool: document the default for --[no-]prompt
-      compat/bswap.h: restore preference __BIG_ENDIAN over BIG_ENDIAN
       CodingGuidelines: once it is in, it is not worth the code churn
       CodingGuidelines: give an example for case/esac statement
       CodingGuidelines: give an example for redirection
@@ -414,7 +471,6 @@ Junio C Hamano (52):
       CodingGuidelines: on comparison
       CodingGuidelines: on splitting a long line
       CodingGuidelines: avoid "test <cond> -a/-o <cond>"
-      scripts: more "export VAR=VALUE" fixes
       fetch doc: update introductory part for clarity
       fetch doc: update note on '+' in front of the refspec
       fetch doc: remove notes on outdated "mixed layout"
@@ -432,30 +488,17 @@ Junio C Hamano (52):
       t3302: do not chdir around in the primary test process
       t3302: drop unnecessary NOT_EXPENSIVE pseudo-prerequisite
       t3419: drop unnecessary NOT_EXPENSIVE pseudo-prerequisite
-      t0008: do not depend on 'echo' handling backslashes specially
       Third batch for 2.1
       git-submodule.sh: avoid "echo" path-like values
       Fourth batch for 2.1
-      builtin/clone.c: detect a clone starting at a tag correctly
       Fifth batch for 2.1
-      Revert "dir: remove PATH_MAX limitation"
       Sixth batch for 2.1
-      Start preparing for 2.0.2
       Seventh batch for 2.1
-      lockfile: allow reopening a closed but still locked file
-      Git 2.0.2
       Eighth batch for 2.1
       Ninth batch for 2.1
-      Git 2.0.3
-      t9814: fix misconversion from test $a -o $b to test $a || test $b
       Git 2.1.0-rc0
-      Revert "Merge branch 'dt/refs-check-refname-component-sse-fix'"
-      Revert "Merge branch 'dt/refs-check-refname-component-sse'"
-      Git 2.0.4
-      Update draft release notes to 2.1
-      Git 2.1.0-rc1
 
-Karsten Blees (63):
+Karsten Blees (46):
       MSVC: link dynamically to the CRT
       Win32 dirent: remove unused dirent.d_ino member
       Win32 dirent: remove unused dirent.d_reclen member
@@ -479,7 +522,6 @@ Karsten Blees (63):
       trace: consistently name the format parameter
       trace: remove redundant printf format attribute
       symlinks: remove PATH_MAX limitation
-      dir: remove PATH_MAX limitation
       hashmap: factor out getting a hash code from a SHA1
       hashmap: improve struct hashmap member documentation
       hashmap: add simplified hashmap_get_from_hash() API
@@ -503,22 +545,6 @@ Karsten Blees (63):
       Win32: Unicode file name support (dirent)
       MinGW: fix compile error due to missing ELOOP
       config: use chmod() instead of fchmod()
-      Revert "Windows: teach getenv to do a case-sensitive search"
-      Win32: Unicode environment (outgoing)
-      Win32: Unicode environment (incoming)
-      Win32: fix environment memory leaks
-      Win32: unify environment case-sensitivity
-      Win32: unify environment function names
-      Win32: factor out environment block creation
-      Win32: don't copy the environment twice when spawning child processes
-      Win32: reduce environment array reallocations
-      Win32: use low-level memory allocation during initialization
-      Win32: keep the environment sorted
-      Win32: patch Windows environment on startup
-      Win32: enable color output in Windows cmd.exe
-      t0110/MinGW: skip tests that pass arbitrary bytes on the command line
-      MinGW: disable legacy encoding tests
-      t800[12]: work around MSys limitation
 
 Kirill Smelkov (20):
       combine-diff: move show_log_first logic/action out of paths scanning
@@ -552,16 +578,10 @@ Marc Branchaud (2):
       fetch doc: move FETCH_HEAD material lower and add an example
       docs: Explain the purpose of fetch's and pull's <refspec> parameter.
 
-Matthew Chen (1):
-      submodule: document "sync --recursive"
-
-Matthieu Moy (6):
+Matthieu Moy (3):
       git-remote-mediawiki: allow stop/start-ing the test server
       git-remote-mediawiki: fix encoding issue for UTF-8 media files
       pager: remove 'S' from $LESS by default
-      config --global --edit: create a template file if needed
-      home_config_paths(): let the caller ignore xdg path
-      commit: advertise config --global --edit on guessed identity
 
 Max Kirillov (4):
       gitk: Switch to patch mode when searching for line origin
@@ -605,14 +625,12 @@ Michael Haggerty (27):
       struct ref_update: add a type field
       ref_transaction_commit(): work with transaction->updates in place
 
-Michael J Gruber (7):
-      t7510: use consistent &&-chains in loop
+Michael J Gruber (5):
       gpg-interface: provide clear helper for struct signature_check
       gpg-interface: provide access to the payload
       verify-commit: scriptable commit signature verification
       t7510: exit for loop with test result
       t7510: test verify-commit
-      log: correctly identify mergetag signature verification status
 
 Michael S. Tsirkin (6):
       git-send-email: two new options: to-cover, cc-cover
@@ -622,7 +640,7 @@ Michael S. Tsirkin (6):
       patch-id: make it stable against hunk reordering
       patch-id-test: test stable and unstable behaviour
 
-Nguyễn Thái Ngọc Duy (68):
+Nguyễn Thái Ngọc Duy (38):
       ewah: fix constness of ewah_read_mmap
       ewah: delete unused ewah_read_mmap_native declaration
       sequencer: do not update/refresh index if the lock cannot be held
@@ -658,66 +676,25 @@ Nguyễn Thái Ngọc Duy (68):
       read-cache: force split index mode with GIT_TEST_SPLIT_INDEX
       t2104: make sure split index mode is off for the version test
       t1700: new tests for split-index mode
-      path.c: make get_pathname() return strbuf instead of static buffer
-      path.c: make get_pathname() call sites return const char *
-      git_snpath(): retire and replace with strbuf_git_path()
-      path.c: rename vsnpath() to do_git_path()
-      path.c: group git_path(), git_pathdup() and strbuf_git_path() together
-      git_path(): be aware of file relocation in $GIT_DIR
-      *.sh: respect $GIT_INDEX_FILE
-      reflog: avoid constructing .lock path with git_path
-      fast-import: use git_path() for accessing .git dir instead of get_git_dir()
-      commit: use SEQ_DIR instead of hardcoding "sequencer"
-      $GIT_COMMON_DIR: a new environment variable
-      git-sh-setup.sh: use rev-parse --git-path to get $GIT_DIR/objects
-      *.sh: avoid hardcoding $GIT_DIR/hooks/...
-      git-stash: avoid hardcoding $GIT_DIR/logs/....
-      setup.c: convert is_git_directory() to use strbuf
-      setup.c: detect $GIT_COMMON_DIR in is_git_directory()
-      setup.c: convert check_repository_format_gently to use strbuf
-      setup.c: detect $GIT_COMMON_DIR check_repository_format_gently()
-      setup.c: support multi-checkout repo setup
-      wrapper.c: wrapper to open a file, fprintf then close
-      use new wrapper write_file() for simple file writing
       dir.c: coding style fix
       dir.h: move struct exclude declaration to top level
       prep_exclude: remove the artificial PATH_MAX limit
-      checkout: support checking out into a new working directory
-      checkout: clean up half-prepared directories in --to mode
-      checkout: detach if the branch is already checked out elsewhere
-      prune: strategies for linked checkouts
-      gc: style change -- no SP before closing parenthesis
-      gc: factor out gc.pruneexpire parsing code
-      gc: support prune --repos
-      count-objects: report unused files in $GIT_DIR/repos/...
-      git_path(): keep "info/sparse-checkout" per work-tree
 
-Pasha Bolokhov (1):
-      dir.c:trim_trailing_spaces(): fix for " \ " sequence
-
-Pat Thoyts (5):
+Pat Thoyts (2):
       wincred: add install target
       wincred: avoid overwriting configured variables
-      tests: do not pass iso8859-1 encoded parameter
-      t4210: skip command-line encoding tests on mingw
-      t9902: mingw-specific fix for gitfile link files
 
-Philip Oakley (1):
-      doc: give some guidelines for error messages
-
-Ramsay Allan Jones (3):
+Ramsay Allan Jones (2):
       t0000-*.sh: fix the GIT_SKIP_TESTS sub-tests
       alloc.c: remove the alloc_raw_commit_node() function
-      alloc.c: remove the alloc_raw_commit_node() function
 
-René Scharfe (37):
+René Scharfe (22):
       Use starts_with() for C strings instead of memcmp()
       blame: factor out get_next_line()
       blame: simplify prepare_lines()
       wt-status: use argv_array for environment
       wt-status: simplify building of summary limit argument
       sha1_file: replace PATH_MAX buffer with strbuf in prepare_packed_git_one()
-      sha1_file: avoid overrunning alternate object base string
       t5000, t5003: simplify commit
       diff-tree: call free_commit_list() instead of duplicating its code
       line-log: use commit_list_append() instead of duplicating its code
@@ -726,7 +703,6 @@ René Scharfe (37):
       merge: simplify merge_trivial() by using commit_list_append()
       commit: use commit_list_append() instead of duplicating its code
       fsck: simplify fsck_commit_buffer() by using commit_list_count()
-      annotate: use argv_array
       strbuf: use strbuf_addstr() for adding C strings
       use commit_list_count() to count the members of commit_lists
       run-command: use internal argv_array of struct child_process in run_hook_ve()
@@ -735,30 +711,16 @@ René Scharfe (37):
       bundle: use internal argv_array of struct child_process in create_bundle()
       remote-testsvn: use internal argv_array of struct child_process in cmd_import()
       unix-socket: remove stale socket before calling chdir()
-      use xcalloc() to allocate zero-initialized memory
-      use xmemdupz() to allocate copies of strings given by start and length
-      strbuf: add strbuf_getcwd()
-      unix-sockets: use strbuf_getcwd()
-      setup: convert setup_git_directory_gently_1 et al. to strbuf
-      abspath: use strbuf_getcwd() to remember original working directory
-      init: avoid superfluous real_path() calls
-      abspath: convert real_path_internal() to strbuf
-      wrapper: add xgetcwd()
-      use xgetcwd() to get the current directory or die
-      use xgetcwd() to set $GIT_DIR
-      abspath: convert absolute_path() to strbuf
-      use strbuf_add_absolute_path() to add absolute paths
 
 RomanBelinsky (1):
       SVN.pm::parse_svn_date: allow timestamps with a single-digit hour
 
-Ronnie Sahlberg (27):
+Ronnie Sahlberg (26):
       sequencer.c: check for lock failure and bail early in fast_forward_to
       commit.c: check for lock error and return early
       refs.c: add new functions reflog_exists and delete_reflog
       checkout.c: use ref_exists instead of file_exist
       refs.c: change read_ref_at to use the reflog iterators
-      enums: remove trailing ',' after last item in enum
       enums: remove trailing ',' after last item in enum
       refs.c: remove ref_transaction_rollback
       refs.c: ref_transaction_commit should not free the transaction
@@ -781,17 +743,14 @@ Ronnie Sahlberg (27):
       refs.c: change ref_transaction_update() to do error checking and return status
       refs.c: add a public is_branch function
 
-Stefan Beller (3):
+Stefan Beller (1):
       .mailmap: map different names with the same email address together
-      git.1: switch homepage for stats
-      .mailmap: combine Stefan Beller's emails
 
 Steffen Prohaska (1):
       completion: handle '!f() { ... }; f' and "!sh -c '...' -" aliases
 
-Stepan Kasal (3):
+Stepan Kasal (2):
       Revert "submodules: fix ambiguous absolute paths under Windows"
-      t5000, t5003: do not use test_cmp to compare binary files
       mingw: avoid const warning
 
 Stephen P. Smith (1):
@@ -800,21 +759,17 @@ Stephen P. Smith (1):
 Steve Hoelzer (1):
       environment.c: enable core.preloadindex by default
 
-Tanay Abhra (5):
+Tanay Abhra (4):
       string-list: spell all values out that are given to a string_list initializer
       imap-send: use skip_prefix instead of using magic numbers
       string-list: add string_list initializer helper function
       replace memset with string-list initializers
-      add documentation for writing config files
 
 Theodore Leblond (1):
       compat/poll: sleep 1 millisecond to avoid busy wait
 
 Thorsten Glaser (1):
       builtin/tag.c: show tag name to hint in the message editor
-
-Tony Finch (1):
-      git-push: fix link in man page
 
 Torsten Bögershausen (7):
       utf8.c: use a table for double_width
@@ -834,19 +789,165 @@ W. Trevor King (1):
 William Giokas (1):
       svn-fe: conform to pep8
 
-Yi EungJun (2):
-      http-protocol.txt: Basic Auth is defined in RFC 2617, not RFC 2616
+Yi EungJun (1):
       http: fix charset detection of extract_content_type()
+
+Øyvind A. Holm (1):
+      .gitignore: "git-verify-commit" is a generated file
+
+
+Version v2.0.4; changes since v2.0.3:
+-------------------------------------
+
+Fabian Ruch (1):
+      commit --amend: test specifies authorship but forgets to check
+
+Jeff King (8):
+      alloc: write out allocator definitions
+      move setting of object->type to alloc_* functions
+      parse_object_buffer: do not set object type
+      add object_as_type helper for casting objects
+      alloc: factor out commit index
+      object_as_type: set commit index
+      diff-tree: avoid lookup_unknown_object
+      t4013: test diff-tree's --stdin commit formatting
+
+Junio C Hamano (1):
+      Git 2.0.4
+
+Ramsay Allan Jones (1):
+      alloc.c: remove the alloc_raw_commit_node() function
+
+
+Version v2.0.3; changes since v2.0.2:
+-------------------------------------
+
+Abbaad Haider (1):
+      http-push.c: make CURLOPT_IOCTLDATA a usable pointer
+
+Ben Walton (1):
+      compat/bswap.h: fix endianness detection
+
+Brian Gesiak (12):
+      builtin/ls-remote.c: rearrange xcalloc arguments
+      builtin/remote.c: rearrange xcalloc arguments
+      commit.c: rearrange xcalloc arguments
+      config.c: rearrange xcalloc arguments
+      diff.c: rearrange xcalloc arguments
+      http-push.c: rearrange xcalloc arguments
+      imap-send.c: rearrange xcalloc arguments
+      notes.c: rearrange xcalloc arguments
+      pack-revindex.c: rearrange xcalloc arguments
+      reflog-walk.c: rearrange xcalloc arguments
+      remote.c: rearrange xcalloc arguments
+      transport-helper.c: rearrange xcalloc arguments
+
+Charles Bailey (2):
+      compat/bswap.h: detect endianness on more platforms that don't use BYTE_ORDER
+      filter-branch: eliminate duplicate mapped parents
+
+Elia Pinto (1):
+      scripts: "export VAR=VALUE" construct is not portable
+
+Jeremiah Mahler (3):
+      Documentation: wording fixes in the user manual and glossary
+      t/t7810-grep.sh: remove duplicate test_config()
+      api-strbuf.txt minor typos
+
+Johannes Sixt (1):
+      fix brown paper bag breakage in t5150-request-pull.sh
+
+Jonathan McCrohan (1):
+      git-instaweb: add support for Apache 2.4
+
+Junio C Hamano (3):
+      compat/bswap.h: restore preference __BIG_ENDIAN over BIG_ENDIAN
+      scripts: more "export VAR=VALUE" fixes
+      Git 2.0.3
+
+Michael J Gruber (1):
+      log: correctly identify mergetag signature verification status
+
+Philip Oakley (1):
+      doc: give some guidelines for error messages
+
+René Scharfe (2):
+      use xcalloc() to allocate zero-initialized memory
+      use xmemdupz() to allocate copies of strings given by start and length
+
+Stefan Beller (2):
+      git.1: switch homepage for stats
+      .mailmap: combine Stefan Beller's emails
+
+Stepan Kasal (1):
+      t5000, t5003: do not use test_cmp to compare binary files
+
+Yi EungJun (1):
+      http-protocol.txt: Basic Auth is defined in RFC 2617, not RFC 2616
 
 Zoltan Klinger (1):
       log: fix indentation for --graph --show-signature
 
-brian m. carlson (2):
-      rebase--merge: fix --skip with two conflicts in a row
+brian m. carlson (1):
       Documentation: fix missing text for rev-parse --verify
 
-Øyvind A. Holm (1):
-      .gitignore: "git-verify-commit" is a generated file
+
+Version v2.0.2; changes since v2.0.1:
+-------------------------------------
+
+Jeff King (27):
+      repack: do not accidentally pack kept objects by default
+      repack: respect pack.writebitmaps
+      repack: s/write_bitmap/&s/ in code
+      commit_tree: take a pointer/len pair rather than a const strbuf
+      replace dangerous uses of strbuf_attach
+      alloc: include any-object allocations in alloc_report
+      commit: push commit_index update into alloc_commit_node
+      do not create "struct commit" with xcalloc
+      logmsg_reencode: return const buffer
+      sequencer: use logmsg_reencode in get_message
+      provide a helper to free commit buffer
+      provide a helper to set the commit buffer
+      provide helpers to access the commit buffer
+      use get_cached_commit_buffer where appropriate
+      use get_commit_buffer to avoid duplicate code
+      convert logmsg_reencode to get_commit_buffer
+      use get_commit_buffer everywhere
+      commit-slab: provide a static initializer
+      commit: convert commit->buffer to a slab
+      commit: record buffer length in cache
+      reuse cached commit buffer when parsing signatures
+      t7510: stop referring to master in later tests
+      t7510: test a commit signed by an unknown key
+      t7510: check %G* pretty-format output
+      pretty: avoid reading past end-of-string with "%G"
+      move "%G" format test from t7510 to t6006
+      t7300: repair filesystem permissions with test_when_finished
+
+Junio C Hamano (4):
+      t0008: do not depend on 'echo' handling backslashes specially
+      builtin/clone.c: detect a clone starting at a tag correctly
+      Start preparing for 2.0.2
+      Git 2.0.2
+
+Matthew Chen (1):
+      submodule: document "sync --recursive"
+
+Michael J Gruber (1):
+      t7510: use consistent &&-chains in loop
+
+Pasha Bolokhov (1):
+      dir.c:trim_trailing_spaces(): fix for " \ " sequence
+
+René Scharfe (2):
+      sha1_file: avoid overrunning alternate object base string
+      annotate: use argv_array
+
+Ronnie Sahlberg (1):
+      enums: remove trailing ',' after last item in enum
+
+brian m. carlson (1):
+      rebase--merge: fix --skip with two conflicts in a row
 
 
 Version v2.0.1; changes since v2.0.0:
