@@ -1,4 +1,4 @@
-From f05b05cf5778e11fcdcf5eda77da841c5002588d Mon Sep 17 00:00:00 2001
+From a60c51da23578cef5a635745b55a3e7d4da09e34 Mon Sep 17 00:00:00 2001
 From: Jens Lehmann <Jens.Lehmann@web.de>
 Date: Wed, 13 Jun 2012 18:50:10 +0200
 Subject: Teach checkout to recursively checkout submodules
@@ -7,23 +7,30 @@ commit d4fa852597ffab711675528f2baccb1a0fb3bc82 upstream.
 
 Signed-off-by: Jens Lehmann <Jens.Lehmann@web.de>
 Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
-Signed-off-by: Junio C Hamano <gitster@pobox.com>
-Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
 ---
  Documentation/git-checkout.txt |   8 ++
  builtin/checkout.c             |  14 +++
- submodule.c                    |  14 +++
- submodule.h                    |   3 +
- t/t2013-checkout-submodule.sh  | 215 ++++++++++++++++++++++++++++++++++++++++-
- 5 files changed, 251 insertions(+), 3 deletions(-)
+ submodule-config.c             |  15 +++
+ submodule-config.h             |   4 +
+ t/lib-submodule-update.sh      |  16 ++-
+ t/t1013-read-tree-submodule.sh |   2 +
+ t/t2013-checkout-submodule.sh  | 217 ++++++++++++++++++++++++++++++++++++++++-
+ t/t3426-rebase-submodule.sh    |   2 +
+ t/t3513-revert-submodule.sh    |   1 +
+ t/t3906-stash-submodule.sh     |   1 +
+ t/t5572-pull-submodule.sh      |   3 +
+ t/t6041-bisect-submodule.sh    |   1 +
+ t/t7112-reset-submodule.sh     |   2 +
+ t/t7613-merge-submodule.sh     |   3 +
+ 14 files changed, 284 insertions(+), 5 deletions(-)
 
 diff --git a/Documentation/git-checkout.txt b/Documentation/git-checkout.txt
-index 33ad2ad..bcf1c4d 100644
+index 38c70c5..2ffa010 100644
 --- a/Documentation/git-checkout.txt
 +++ b/Documentation/git-checkout.txt
-@@ -225,6 +225,14 @@ This means that you can use `git checkout -p` to selectively discard
- edits from your current working tree. See the ``Interactive Mode''
- section of linkgit:git-add[1] to learn how to operate the `--patch` mode.
+@@ -232,6 +232,14 @@ section of linkgit:git-add[1] to learn how to operate the `--patch` mode.
+ 	specific files such as HEAD, index... See "MULTIPLE CHECKOUT
+ 	MODE" section for more information.
  
 +--[no-]recurse-submodules::
 +	Using --recurse-submodules will update the content of all initialized
@@ -37,12 +44,12 @@ index 33ad2ad..bcf1c4d 100644
  	Branch to checkout; if it refers to a branch (i.e., a name that,
  	when prepended with "refs/heads/", is a valid ref), then that
 diff --git a/builtin/checkout.c b/builtin/checkout.c
-index f1dc56e..4213326 100644
+index 6b14a3f..8fd5c91 100644
 --- a/builtin/checkout.c
 +++ b/builtin/checkout.c
-@@ -21,6 +21,9 @@
- #include "submodule.h"
+@@ -23,6 +23,9 @@
  #include "argv-array.h"
+ #include "sigchain.h"
  
 +static const char *recurse_submodules_default = "off";
 +static int recurse_submodules = RECURSE_SUBMODULES_DEFAULT;
@@ -50,10 +57,10 @@ index f1dc56e..4213326 100644
  static const char * const checkout_usage[] = {
  	N_("git checkout [options] <branch>"),
  	N_("git checkout [options] [<branch>] -- <file>..."),
-@@ -1106,6 +1109,12 @@ int cmd_checkout(int argc, const char **argv, const char *prefix)
- 			 N_("do not limit pathspecs to sparse entries only")),
- 		OPT_HIDDEN_BOOL(0, "guess", &dwim_new_local_branch,
+@@ -1338,6 +1341,12 @@ int cmd_checkout(int argc, const char **argv, const char *prefix)
  				N_("second guess 'git checkout no-such-branch'")),
+ 		OPT_STRING(0, "to", &opts.new_worktree, N_("path"),
+ 			   N_("check a branch out in a separate working directory")),
 +		{ OPTION_CALLBACK, 0, "recurse-submodules", &recurse_submodules,
 +			    "checkout", "control recursive updating of submodules",
 +			    PARSE_OPT_OPTARG, option_parse_update_submodules },
@@ -63,7 +70,7 @@ index f1dc56e..4213326 100644
  		OPT_END(),
  	};
  
-@@ -1127,6 +1136,11 @@ int cmd_checkout(int argc, const char **argv, const char *prefix)
+@@ -1370,6 +1379,11 @@ int cmd_checkout(int argc, const char **argv, const char *prefix)
  		git_xmerge_config("merge.conflictstyle", conflict_style, NULL);
  	}
  
@@ -75,11 +82,19 @@ index f1dc56e..4213326 100644
  	if ((!!opts.new_branch + !!opts.new_branch_force + !!opts.new_orphan_branch) > 1)
  		die(_("-b, -B and --orphan are mutually exclusive"));
  
-diff --git a/submodule.c b/submodule.c
-index f376e68..33ac946 100644
---- a/submodule.c
-+++ b/submodule.c
-@@ -375,6 +375,20 @@ int parse_update_recurse_submodules_arg(const char *opt, const char *arg)
+diff --git a/submodule-config.c b/submodule-config.c
+index b8e5cc1..af77982 100644
+--- a/submodule-config.c
++++ b/submodule-config.c
+@@ -1,6 +1,7 @@
+ #include "cache.h"
+ #include "submodule-config.h"
+ #include "submodule.h"
++#include "parse-options.h"
+ #include "string-list.h"
+ #include "strbuf.h"
+ 
+@@ -238,6 +239,20 @@ int parse_update_recurse_submodules_arg(const char *opt, const char *arg)
  	}
  }
  
@@ -97,37 +112,87 @@ index f376e68..33ac946 100644
 +	return 0;
 +}
 +
- int submodule_needs_update(const char *path)
+ static void warn_multiple_config(const unsigned char *commit_sha1,
+ 				 const char *name, const char *option)
  {
- 	struct string_list_item *path_option;
-diff --git a/submodule.h b/submodule.h
-index b42ae91..9841da3 100644
---- a/submodule.h
-+++ b/submodule.h
-@@ -3,6 +3,7 @@
+diff --git a/submodule-config.h b/submodule-config.h
+index d032375..8787864 100644
+--- a/submodule-config.h
++++ b/submodule-config.h
+@@ -4,6 +4,8 @@
+ #include "hashmap.h"
+ #include "strbuf.h"
  
- struct diff_options;
- struct argv_array;
 +struct option;
++
+ /*
+  * Submodule entry containing the information about a certain submodule
+  * in a certain revision.
+@@ -20,6 +22,8 @@ struct submodule {
  
- enum {
- 	RECURSE_SUBMODULES_ON_DEMAND = -1,
-@@ -23,6 +24,8 @@ int parse_submodule_config_option(const char *var, const char *value);
- void handle_ignore_submodules_arg(struct diff_options *diffopt, const char *);
  int parse_fetch_recurse_submodules_arg(const char *opt, const char *arg);
  int parse_update_recurse_submodules_arg(const char *opt, const char *arg);
 +int option_parse_update_submodules(const struct option *opt,
 +		const char *arg, int unset);
- int submodule_needs_update(const char *path);
- int populate_submodule(const char *path, unsigned char sha1[20], int force);
- int depopulate_submodule(const char *path);
+ int parse_submodule_config_option(const char *var, const char *value);
+ const struct submodule *submodule_from_name(const unsigned char *commit_sha1,
+ 		const char *name);
+diff --git a/t/lib-submodule-update.sh b/t/lib-submodule-update.sh
+index 711f55b..0db601e 100755
+--- a/t/lib-submodule-update.sh
++++ b/t/lib-submodule-update.sh
+@@ -350,7 +350,19 @@ test_submodule_switch () {
+ 	'
+ 	# Replacing a submodule with files in a directory must fail as the
+ 	# submodule work tree isn't removed ...
+-	test_expect_failure "$command: replace submodule with a directory must fail" '
++	if test "$KNOWN_FAILURE_NOFF_MERGE_ATTEMPTS_TO_MERGE_REMOVED_SUBMODULE_FILES" = 1
++	then
++		# Non fast-forward merges attempt to merge the former
++		# submodule files with the newly checked out ones in the
++		# directory of the same name while it shouldn't.
++		RESULT="failure"
++	elif test "$KNOWN_FAILURE_RECURSE_SUBMODULE_SERIES_BREAKS_REPLACE_SUBMODULE_TEST" = 1
++	then
++		RESULT="failure"
++	else
++		RESULT="success"
++	fi
++	test_expect_$RESULT "$command: replace submodule with a directory must fail" '
+ 		prolog &&
+ 		reset_work_tree_to add_sub1 &&
+ 		(
+@@ -362,7 +374,7 @@ test_submodule_switch () {
+ 		)
+ 	'
+ 	# ... especially when it contains a .git directory.
+-	test_expect_failure "$command: replace submodule containing a .git directory with a directory must fail" '
++	test_expect_$RESULT "$command: replace submodule containing a .git directory with a directory must fail" '
+ 		prolog &&
+ 		reset_work_tree_to add_sub1 &&
+ 		(
+diff --git a/t/t1013-read-tree-submodule.sh b/t/t1013-read-tree-submodule.sh
+index 20526ae..5e65e3c 100755
+--- a/t/t1013-read-tree-submodule.sh
++++ b/t/t1013-read-tree-submodule.sh
+@@ -5,8 +5,10 @@ test_description='read-tree can handle submodules'
+ . ./test-lib.sh
+ . "$TEST_DIRECTORY"/lib-submodule-update.sh
+ 
++KNOWN_FAILURE_RECURSE_SUBMODULE_SERIES_BREAKS_REPLACE_SUBMODULE_TEST=1
+ test_submodule_switch "git read-tree -u -m"
+ 
++KNOWN_FAILURE_RECURSE_SUBMODULE_SERIES_BREAKS_REPLACE_SUBMODULE_TEST=
+ test_submodule_forced_switch "git read-tree -u --reset"
+ 
+ test_done
 diff --git a/t/t2013-checkout-submodule.sh b/t/t2013-checkout-submodule.sh
-index 06b18f8..bc3e1ca 100755
+index 6847f75..4b419c1 100755
 --- a/t/t2013-checkout-submodule.sh
 +++ b/t/t2013-checkout-submodule.sh
-@@ -4,17 +4,57 @@ test_description='checkout can handle submodules'
- 
+@@ -5,17 +5,57 @@ test_description='checkout can handle submodules'
  . ./test-lib.sh
+ . "$TEST_DIRECTORY"/lib-submodule-update.sh
  
 +submodule_creation_must_succeed() {
 +	# checkout base ($1)
@@ -185,7 +250,7 @@ index 06b18f8..bc3e1ca 100755
  	test_tick &&
  	git commit -m updated.superproject
  '
-@@ -36,7 +76,8 @@ test_expect_success '"checkout <submodule>" updates the index only' '
+@@ -37,7 +77,8 @@ test_expect_success '"checkout <submodule>" updates the index only' '
  	git checkout HEAD^ submodule &&
  	test_must_fail git diff-files --quiet &&
  	git checkout HEAD submodule &&
@@ -195,7 +260,7 @@ index 06b18f8..bc3e1ca 100755
  '
  
  test_expect_success '"checkout <submodule>" honors diff.ignoreSubmodules' '
-@@ -62,4 +103,172 @@ test_expect_success '"checkout <submodule>" honors submodule.*.ignore from .git/
+@@ -63,8 +104,178 @@ test_expect_success '"checkout <submodule>" honors submodule.*.ignore from .git/
  	! test -s actual
  '
  
@@ -367,7 +432,121 @@ index 06b18f8..bc3e1ca 100755
 +	git checkout --recurse-submodules -f master
 +'
 +
++KNOWN_FAILURE_RECURSE_SUBMODULE_SERIES_BREAKS_REPLACE_SUBMODULE_TEST=1
+ test_submodule_switch "git checkout"
+ 
++KNOWN_FAILURE_RECURSE_SUBMODULE_SERIES_BREAKS_REPLACE_SUBMODULE_TEST=
+ test_submodule_forced_switch "git checkout -f"
+ 
+ test_done
+diff --git a/t/t3426-rebase-submodule.sh b/t/t3426-rebase-submodule.sh
+index d5b896d..d6ab06b 100755
+--- a/t/t3426-rebase-submodule.sh
++++ b/t/t3426-rebase-submodule.sh
+@@ -6,6 +6,8 @@ test_description='rebase can handle submodules'
+ . "$TEST_DIRECTORY"/lib-submodule-update.sh
+ . "$TEST_DIRECTORY"/lib-rebase.sh
+ 
++KNOWN_FAILURE_RECURSE_SUBMODULE_SERIES_BREAKS_REPLACE_SUBMODULE_TEST=1
++
+ git_rebase () {
+ 	git status -su >expect &&
+ 	ls -1pR * >>expect &&
+diff --git a/t/t3513-revert-submodule.sh b/t/t3513-revert-submodule.sh
+index a1c4e02..fffe6e2 100755
+--- a/t/t3513-revert-submodule.sh
++++ b/t/t3513-revert-submodule.sh
+@@ -27,6 +27,7 @@ git_revert () {
+ 
+ KNOWN_FAILURE_CHERRY_PICK_SEES_EMPTY_COMMIT=1
+ KNOWN_FAILURE_NOFF_MERGE_DOESNT_CREATE_EMPTY_SUBMODULE_DIR=1
++KNOWN_FAILURE_RECURSE_SUBMODULE_SERIES_BREAKS_REPLACE_SUBMODULE_TEST=1
+ test_submodule_switch "git_revert"
+ 
+ test_done
+diff --git a/t/t3906-stash-submodule.sh b/t/t3906-stash-submodule.sh
+index d7219d6..8818111 100755
+--- a/t/t3906-stash-submodule.sh
++++ b/t/t3906-stash-submodule.sh
+@@ -19,6 +19,7 @@ git_stash () {
+ KNOWN_FAILURE_STASH_DOES_IGNORE_SUBMODULE_CHANGES=1
+ KNOWN_FAILURE_CHERRY_PICK_SEES_EMPTY_COMMIT=1
+ KNOWN_FAILURE_NOFF_MERGE_DOESNT_CREATE_EMPTY_SUBMODULE_DIR=1
++KNOWN_FAILURE_RECURSE_SUBMODULE_SERIES_BREAKS_REPLACE_SUBMODULE_TEST=1
+ test_submodule_switch "git_stash"
+ 
+ test_done
+diff --git a/t/t5572-pull-submodule.sh b/t/t5572-pull-submodule.sh
+index accfa5c..3e5ed5d 100755
+--- a/t/t5572-pull-submodule.sh
++++ b/t/t5572-pull-submodule.sh
+@@ -5,6 +5,8 @@ test_description='pull can handle submodules'
+ . ./test-lib.sh
+ . "$TEST_DIRECTORY"/lib-submodule-update.sh
+ 
++KNOWN_FAILURE_RECURSE_SUBMODULE_SERIES_BREAKS_REPLACE_SUBMODULE_TEST=1
++
+ reset_branch_to_HEAD () {
+ 	git branch -D "$1" &&
+ 	git checkout -b "$1" HEAD &&
+@@ -40,6 +42,7 @@ git_pull_noff () {
+ 
+ KNOWN_FAILURE_NOFF_MERGE_DOESNT_CREATE_EMPTY_SUBMODULE_DIR=1
+ KNOWN_FAILURE_NOFF_MERGE_ATTEMPTS_TO_MERGE_REMOVED_SUBMODULE_FILES=1
++KNOWN_FAILURE_RECURSE_SUBMODULE_SERIES_BREAKS_REPLACE_SUBMODULE_TEST=
+ test_submodule_switch "git_pull_noff"
+ 
+ test_done
+diff --git a/t/t6041-bisect-submodule.sh b/t/t6041-bisect-submodule.sh
+index c6b7aa6..a5e0136 100755
+--- a/t/t6041-bisect-submodule.sh
++++ b/t/t6041-bisect-submodule.sh
+@@ -27,6 +27,7 @@ git_bisect () {
+ 	git bisect bad $BAD
+ }
+ 
++KNOWN_FAILURE_RECURSE_SUBMODULE_SERIES_BREAKS_REPLACE_SUBMODULE_TEST=1
+ test_submodule_switch "git_bisect"
+ 
+ test_done
+diff --git a/t/t7112-reset-submodule.sh b/t/t7112-reset-submodule.sh
+index 2eda6ad..32fc5ad 100755
+--- a/t/t7112-reset-submodule.sh
++++ b/t/t7112-reset-submodule.sh
+@@ -5,10 +5,12 @@ test_description='reset can handle submodules'
+ . ./test-lib.sh
+ . "$TEST_DIRECTORY"/lib-submodule-update.sh
+ 
++KNOWN_FAILURE_RECURSE_SUBMODULE_SERIES_BREAKS_REPLACE_SUBMODULE_TEST=1
+ test_submodule_switch "git reset --keep"
+ 
+ test_submodule_switch "git reset --merge"
+ 
++KNOWN_FAILURE_RECURSE_SUBMODULE_SERIES_BREAKS_REPLACE_SUBMODULE_TEST=
+ test_submodule_forced_switch "git reset --hard"
+ 
+ test_done
+diff --git a/t/t7613-merge-submodule.sh b/t/t7613-merge-submodule.sh
+index d1e9fcc..39ff7b3 100755
+--- a/t/t7613-merge-submodule.sh
++++ b/t/t7613-merge-submodule.sh
+@@ -5,6 +5,8 @@ test_description='merge can handle submodules'
+ . ./test-lib.sh
+ . "$TEST_DIRECTORY"/lib-submodule-update.sh
+ 
++KNOWN_FAILURE_RECURSE_SUBMODULE_SERIES_BREAKS_REPLACE_SUBMODULE_TEST=1
++
+ # merges without conflicts
+ test_submodule_switch "git merge"
+ 
+@@ -14,6 +16,7 @@ test_submodule_switch "git merge --ff-only"
+ 
+ KNOWN_FAILURE_NOFF_MERGE_DOESNT_CREATE_EMPTY_SUBMODULE_DIR=1
+ KNOWN_FAILURE_NOFF_MERGE_ATTEMPTS_TO_MERGE_REMOVED_SUBMODULE_FILES=1
++KNOWN_FAILURE_RECURSE_SUBMODULE_SERIES_BREAKS_REPLACE_SUBMODULE_TEST=
+ test_submodule_switch "git merge --no-ff"
+ 
  test_done
 -- 
-1.9.1.423.g4596e3a
+2.0.0.526.g5318336
 

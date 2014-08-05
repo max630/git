@@ -1,4 +1,4 @@
-From f7333b3a9731182d1b59369816c7073f08025a52 Mon Sep 17 00:00:00 2001
+From 071b9fc54a3d8ba4b83c51715f810d03801f84bb Mon Sep 17 00:00:00 2001
 From: Jonathan Nieder <jrnieder@gmail.com>
 Date: Mon, 6 Jun 2011 04:37:14 -0500
 Subject: transport: expose git_tcp_connect() and friends in new tcp.h
@@ -21,10 +21,10 @@ Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
  create mode 100644 tcp.h
 
 diff --git a/Makefile b/Makefile
-index 07ea105..c1884b5 100644
+index 63a210d..e2fb101 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -724,6 +724,7 @@ LIB_H += string-list.h
+@@ -728,6 +728,7 @@ LIB_H += string-list.h
  LIB_H += submodule.h
  LIB_H += tag.h
  LIB_H += tar.h
@@ -32,8 +32,8 @@ index 07ea105..c1884b5 100644
  LIB_H += thread-utils.h
  LIB_H += transport.h
  LIB_H += tree-walk.h
-@@ -881,6 +882,7 @@ LIB_OBJS += string-list.o
- LIB_OBJS += submodule.o
+@@ -887,6 +888,7 @@ LIB_OBJS += submodule.o
+ LIB_OBJS += submodule-config.o
  LIB_OBJS += symlinks.o
  LIB_OBJS += tag.o
 +LIB_OBJS += tcp.o
@@ -41,7 +41,7 @@ index 07ea105..c1884b5 100644
  LIB_OBJS += transport.o
  LIB_OBJS += transport-helper.o
 diff --git a/connect.c b/connect.c
-index 37ff018..26c7370 100644
+index 5047402..adaab12 100644
 --- a/connect.c
 +++ b/connect.c
 @@ -6,6 +6,7 @@
@@ -52,7 +52,7 @@ index 37ff018..26c7370 100644
  #include "url.h"
  #include "string-list.h"
  #include "sha1-array.h"
-@@ -280,278 +281,6 @@ static enum protocol get_protocol(const char *name)
+@@ -278,278 +279,6 @@ static enum protocol get_protocol(const char *name)
  	die("I don't handle protocol '%s'", name);
  }
  
