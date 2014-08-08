@@ -1,4 +1,4 @@
-Version next; changes since v2.1.0-rc1:
+Version next; changes since v2.1.0-rc2:
 ---------------------------------------
 
 David Turner (4):
@@ -72,6 +72,20 @@ René Scharfe (11):
       use xgetcwd() to set $GIT_DIR
       abspath: convert absolute_path() to strbuf
       use strbuf_add_absolute_path() to add absolute paths
+
+
+Version v2.1.0-rc2; changes since v2.1.0-rc1:
+---------------------------------------------
+
+Junio C Hamano (2):
+      RelNotes: no more check_ref_format micro-optimization
+      Git 2.1-rc2
+
+Marc Branchaud (1):
+      Release notes: grammatical fixes
+
+Stefan Beller (1):
+      various contrib: Fix links in man pages
 
 
 Version v2.1.0-rc1; changes since v2.1.0-rc0:

@@ -1,3 +1,10 @@
+git (1:2.1.0~rc2+next.20140808-1) experimental; urgency=low
+
+  * new snapshot, taken from upstream commit edb03e5a.
+  * new upstream release candidate.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Fri, 08 Aug 2014 16:40:49 -0700
+
 git (1:2.1.0~rc1+next.20140804-1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit ae8bc8de.
