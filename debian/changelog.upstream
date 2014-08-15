@@ -1,8 +1,5 @@
-Version next; changes since v2.1.0-rc2:
----------------------------------------
-
-Alexander Shopov (1):
-      gitk: Updated Bulgarian translation (302t,0f,0u)
+Version next; changes since v2.1.0:
+-----------------------------------
 
 David Turner (4):
       cache-tree: create/update cache-tree on checkout
@@ -24,13 +21,9 @@ Jeff King (3):
       pretty: treat "--format=" as an empty userformat
       pretty: make empty userformats truly empty
 
-Johannes Sixt (1):
-      tests: fix negated test_i18ngrep calls
-
-Junio C Hamano (3):
+Junio C Hamano (2):
       Revert "dir: remove PATH_MAX limitation"
       lockfile: allow reopening a closed but still locked file
-      Git 2.1
 
 Karsten Blees (1):
       dir: remove PATH_MAX limitation
@@ -39,9 +32,6 @@ Matthieu Moy (3):
       config --global --edit: create a template file if needed
       home_config_paths(): let the caller ignore xdg path
       commit: advertise config --global --edit on guessed identity
-
-Max Kirillov (1):
-      gitk: Add keybinding to switch to parent commit
 
 Nguyễn Thái Ngọc Duy (38):
       path.c: make get_pathname() return strbuf instead of static buffer
@@ -106,6 +96,22 @@ Tanay Abhra (3):
 
 brian m. carlson (1):
       archive: honor tar.umask even for pax headers
+
+
+Version v2.1.0; changes since v2.1.0-rc2:
+-----------------------------------------
+
+Alexander Shopov (1):
+      gitk: Updated Bulgarian translation (302t,0f,0u)
+
+Johannes Sixt (1):
+      tests: fix negated test_i18ngrep calls
+
+Junio C Hamano (1):
+      Git 2.1
+
+Max Kirillov (1):
+      gitk: Add keybinding to switch to parent commit
 
 
 Version v2.1.0-rc2; changes since v2.1.0-rc1:
