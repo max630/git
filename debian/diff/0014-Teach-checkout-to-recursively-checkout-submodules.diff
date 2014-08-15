@@ -1,4 +1,4 @@
-From a60c51da23578cef5a635745b55a3e7d4da09e34 Mon Sep 17 00:00:00 2001
+From fc3716c6305b97cd73cb1f823a3c8a4d969c924d Mon Sep 17 00:00:00 2001
 From: Jens Lehmann <Jens.Lehmann@web.de>
 Date: Wed, 13 Jun 2012 18:50:10 +0200
 Subject: Teach checkout to recursively checkout submodules
@@ -44,7 +44,7 @@ index 38c70c5..2ffa010 100644
  	Branch to checkout; if it refers to a branch (i.e., a name that,
  	when prepended with "refs/heads/", is a valid ref), then that
 diff --git a/builtin/checkout.c b/builtin/checkout.c
-index 6b14a3f..8fd5c91 100644
+index f865ed4..7d51dfd 100644
 --- a/builtin/checkout.c
 +++ b/builtin/checkout.c
 @@ -23,6 +23,9 @@
@@ -57,9 +57,9 @@ index 6b14a3f..8fd5c91 100644
  static const char * const checkout_usage[] = {
  	N_("git checkout [options] <branch>"),
  	N_("git checkout [options] [<branch>] -- <file>..."),
-@@ -1338,6 +1341,12 @@ int cmd_checkout(int argc, const char **argv, const char *prefix)
+@@ -1351,6 +1354,12 @@ int cmd_checkout(int argc, const char **argv, const char *prefix)
  				N_("second guess 'git checkout no-such-branch'")),
- 		OPT_STRING(0, "to", &opts.new_worktree, N_("path"),
+ 		OPT_FILENAME(0, "to", &opts.new_worktree,
  			   N_("check a branch out in a separate working directory")),
 +		{ OPTION_CALLBACK, 0, "recurse-submodules", &recurse_submodules,
 +			    "checkout", "control recursive updating of submodules",
@@ -70,7 +70,7 @@ index 6b14a3f..8fd5c91 100644
  		OPT_END(),
  	};
  
-@@ -1370,6 +1379,11 @@ int cmd_checkout(int argc, const char **argv, const char *prefix)
+@@ -1383,6 +1392,11 @@ int cmd_checkout(int argc, const char **argv, const char *prefix)
  		git_xmerge_config("merge.conflictstyle", conflict_style, NULL);
  	}
  
@@ -548,5 +548,5 @@ index d1e9fcc..39ff7b3 100755
  
  test_done
 -- 
-2.0.0.526.g5318336
+2.1.0.rc2.206.gedb03e5
 

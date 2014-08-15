@@ -1,6 +1,9 @@
 Version next; changes since v2.1.0-rc2:
 ---------------------------------------
 
+Alexander Shopov (1):
+      gitk: Updated Bulgarian translation (302t,0f,0u)
+
 David Turner (4):
       cache-tree: create/update cache-tree on checkout
       test-dump-cache-tree: invalid trees are not errors
@@ -16,9 +19,18 @@ Heiko Voigt (4):
       use new config API for worktree configurations of submodules
       do not die on error of parsing fetchrecursesubmodules option
 
-Junio C Hamano (2):
+Jeff King (3):
+      revision: drop useless string offset when parsing "--pretty"
+      pretty: treat "--format=" as an empty userformat
+      pretty: make empty userformats truly empty
+
+Johannes Sixt (1):
+      tests: fix negated test_i18ngrep calls
+
+Junio C Hamano (3):
       Revert "dir: remove PATH_MAX limitation"
       lockfile: allow reopening a closed but still locked file
+      Git 2.1
 
 Karsten Blees (1):
       dir: remove PATH_MAX limitation
@@ -28,7 +40,10 @@ Matthieu Moy (3):
       home_config_paths(): let the caller ignore xdg path
       commit: advertise config --global --edit on guessed identity
 
-Nguyễn Thái Ngọc Duy (30):
+Max Kirillov (1):
+      gitk: Add keybinding to switch to parent commit
+
+Nguyễn Thái Ngọc Duy (38):
       path.c: make get_pathname() return strbuf instead of static buffer
       path.c: make get_pathname() call sites return const char *
       git_snpath(): retire and replace with strbuf_git_path()
@@ -59,6 +74,17 @@ Nguyễn Thái Ngọc Duy (30):
       gc: support prune --repos
       count-objects: report unused files in $GIT_DIR/repos/...
       git_path(): keep "info/sparse-checkout" per work-tree
+      gitrepository-layout.txt: s/ignored/ignored if/
+      checkout: no need to call check_linked_checkouts if head_ref is NULL
+      prune --repos: fix uninitialized access
+      checkout: no auto-detach if the ref is already checked out
+      checkout --to: fix dangling pointers in remove_junk()
+      environment.c: fix incorrect git_graft_file initialization
+      checkout: prefix --to argument properly when cwd is moved
+      checkout --to: do not touch existing target directory
+
+Patrick Reynolds (1):
+      use a hashmap to make remotes faster
 
 René Scharfe (11):
       strbuf: add strbuf_getcwd()
@@ -72,6 +98,14 @@ René Scharfe (11):
       use xgetcwd() to set $GIT_DIR
       abspath: convert absolute_path() to strbuf
       use strbuf_add_absolute_path() to add absolute paths
+
+Tanay Abhra (3):
+      add `config_set` API for caching config-like files
+      test-config: add tests for the config_set API
+      pretty.c: make git_pretty_formats_config return -1 on git_config_string failure
+
+brian m. carlson (1):
+      archive: honor tar.umask even for pax headers
 
 
 Version v2.1.0-rc2; changes since v2.1.0-rc1:
