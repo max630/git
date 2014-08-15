@@ -1,3 +1,33 @@
+Version v2.1.0; changes since v2.1.0-rc2:
+-----------------------------------------
+
+Alexander Shopov (1):
+      gitk: Updated Bulgarian translation (302t,0f,0u)
+
+Johannes Sixt (1):
+      tests: fix negated test_i18ngrep calls
+
+Junio C Hamano (1):
+      Git 2.1
+
+Max Kirillov (1):
+      gitk: Add keybinding to switch to parent commit
+
+
+Version v2.1.0-rc2; changes since v2.1.0-rc1:
+---------------------------------------------
+
+Junio C Hamano (2):
+      RelNotes: no more check_ref_format micro-optimization
+      Git 2.1-rc2
+
+Marc Branchaud (1):
+      Release notes: grammatical fixes
+
+Stefan Beller (1):
+      various contrib: Fix links in man pages
+
+
 Version v2.1.0-rc1; changes since v2.1.0-rc0:
 ---------------------------------------------
 
