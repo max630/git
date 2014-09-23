@@ -1,3 +1,78 @@
+Version v2.1.1; changes since v2.1.0:
+-------------------------------------
+
+Alex Henrie (2):
+      l10n: Add Catalan translation
+      po/TEAMS: Add Catalan team
+
+Alexander Shopov (3):
+      l10n: Updated Bulgarian translation of git (2228t,0f,0u)
+      l10n: Updated Bulgarian translation of git (2247t,0f,0u)
+      l10n: Updated Bulgarian translation of git (2257t,0f,0u)
+
+Edward Thomson (1):
+      upload-pack: keep poll(2)'s timeout to -1
+
+Jean-Noel Avila (1):
+      l10n: fr.po (2257t) update for version 2.1.0
+
+Jeff King (10):
+      revision: drop useless string offset when parsing "--pretty"
+      pretty: treat "--format=" as an empty userformat
+      pretty: make empty userformats truly empty
+      pack-objects: turn off bitmaps when we see --shallow lines
+      Makefile: make perf tests optional for profile build
+      intersect_paths: respect mode in git's tree-sort
+      pack-refs: prune top-level refs like "refs/foo"
+      fast-import: clean up pack_data pointer in end_packfile
+      fast-import: fix buffer overflow in dump_tags
+      git-prompt: do not look for refs/stash in $GIT_DIR
+
+Jiang Xin (2):
+      l10n: git.pot: v2.1.0 round 1 (38 new, 9 removed)
+      l10n: zh_CN: translations for git v2.1.0-rc0
+
+Jonathan Nieder (2):
+      unpack-trees: use 'cuddled' style for if-else cascade
+      checkout -m: attempt merge when deletion of path was staged
+
+Junio C Hamano (5):
+      config: teach "git -c" to recognize an empty string
+      apply: use the right attribute for paths in non-Git patches
+      apply: hoist use_patch() helper for path exclusion up
+      apply: omit ws check for excluded paths
+      Git 2.1.1
+
+Lukas Fleischer (1):
+      bundle: fix exclusion of annotated tags
+
+Nguyễn Thái Ngọc Duy (2):
+      fetch: convert argv_gc_auto to struct argv_array
+      fetch: silence git-gc if --quiet is given
+
+Peter Krefting (2):
+      l10n: Fix more typos in the Swedish translations
+      l10n: sv.po: Update Swedish translation (2257t0f0u)
+
+Ralf Thielow (4):
+      l10n: de.po: fix typo
+      l10n: de.po: improve message when switching branches
+      l10n: de.po: translate 38 new messages
+      po/TEAMS: add new members to German translation team
+
+René Scharfe (1):
+      read-cache: check for leading symlinks when refreshing index
+
+Shawn O. Pearce (1):
+      Document LF appearing in shallow command during send-pack/receive-pack
+
+Stefan Beller (1):
+      unpack-trees: simplify 'all other failures' case
+
+Trần Ngọc Quân (1):
+      l10n: vi.po (2257t): Update translation
+
+
 Version v2.1.0; changes since v2.1.0-rc2:
 -----------------------------------------
 
