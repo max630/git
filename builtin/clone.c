@@ -289,17 +289,16 @@ static void copy_alternates(struct strbuf *src, struct strbuf *dst,
 	struct strbuf line = STRBUF_INIT;
 
 	while (strbuf_getline(&line, in, '\n') != EOF) {
-		char *abs_path;
+		char *abs_path, abs_buf[PATH_MAX];
 		if (!line.len || line.buf[0] == '#')
 			continue;
 		if (is_absolute_path(line.buf)) {
 			add_to_alternates_file(line.buf);
 			continue;
 		}
-		abs_path = mkpathdup("%s/objects/%s", src_repo, line.buf);
-		normalize_path_copy(abs_path, abs_path);
-		add_to_alternates_file(abs_path);
-		free(abs_path);
+		abs_path = mkpath("%s/objects/%s", src_repo, line.buf);
+		normalize_path_copy(abs_buf, abs_path);
+		add_to_alternates_file(abs_buf);
 	}
 	strbuf_release(&line);
 	fclose(in);
@@ -686,9 +685,10 @@ static void write_config(struct string_list *config)
 	}
 }
 
-static void write_refspec_config(const char* src_ref_prefix,
-		const struct ref* our_head_points_at,
-		const struct ref* remote_head_points_at, struct strbuf* branch_top)
+static void write_refspec_config(const char *src_ref_prefix,
+		const struct ref *our_head_points_at,
+		const struct ref *remote_head_points_at,
+		struct strbuf *branch_top)
 {
 	struct strbuf key = STRBUF_INIT;
 	struct strbuf value = STRBUF_INIT;
@@ -1005,5 +1005,7 @@ int cmd_clone(int argc, const char **argv, const char *prefix)
 	strbuf_release(&key);
 	strbuf_release(&value);
 	junk_mode = JUNK_LEAVE_ALL;
+
+	free(refspec);
 	return err;
 }

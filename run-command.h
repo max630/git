@@ -44,11 +44,14 @@ struct child_process {
 	unsigned clean_on_exit:1;
 };
 
+#define CHILD_PROCESS_INIT { NULL, ARGV_ARRAY_INIT }
+void child_process_init(struct child_process *);
+
 int start_command(struct child_process *);
 int finish_command(struct child_process *);
 int run_command(struct child_process *);
 
-extern const char *find_hook(const char *name);
+extern char *find_hook(const char *name);
 LAST_ARG_MUST_BE_NULL
 extern int run_hook_le(const char *const *env, const char *name, ...);
 extern int run_hook_ve(const char *const *env, const char *name, va_list args);

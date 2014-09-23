@@ -25,6 +25,11 @@ static unsigned char refname_disposition[256] = {
 };
 
 /*
+ * Used as a flag to ref_transaction_delete when a loose ref is being
+ * pruned.
+ */
+#define REF_ISPRUNING	0x0100
+/*
  * Try to read one refname component from the front of refname.
  * Return the length of the component found, or -1 if the component is
  * not legal.  It is legal if it is something reasonable to have under
@@ -779,37 +784,32 @@ static void prime_ref_dir(struct ref_dir *dir)
 			prime_ref_dir(get_ref_dir(entry));
 	}
 }
-/*
- * Return true iff refname1 and refname2 conflict with each other.
- * Two reference names conflict if one of them exactly matches the
- * leading components of the other; e.g., "foo/bar" conflicts with
- * both "foo" and with "foo/bar/baz" but not with "foo/bar" or
- * "foo/barbados".
- */
-static int names_conflict(const char *refname1, const char *refname2)
+
+static int entry_matches(struct ref_entry *entry, const char *refname)
 {
-	for (; *refname1 && *refname1 == *refname2; refname1++, refname2++)
-		;
-	return (*refname1 == '\0' && *refname2 == '/')
-		|| (*refname1 == '/' && *refname2 == '\0');
+	return refname && !strcmp(entry->name, refname);
 }
 
-struct name_conflict_cb {
-	const char *refname;
-	const char *oldrefname;
-	const char *conflicting_refname;
+struct nonmatching_ref_data {
+	const char *skip;
+	struct ref_entry *found;
 };
 
-static int name_conflict_fn(struct ref_entry *entry, void *cb_data)
+static int nonmatching_ref_fn(struct ref_entry *entry, void *vdata)
 {
-	struct name_conflict_cb *data = (struct name_conflict_cb *)cb_data;
-	if (data->oldrefname && !strcmp(data->oldrefname, entry->name))
+	struct nonmatching_ref_data *data = vdata;
+
+	if (entry_matches(entry, data->skip))
 		return 0;
-	if (names_conflict(data->refname, entry->name)) {
-		data->conflicting_refname = entry->name;
-		return 1;
-	}
-	return 0;
+
+	data->found = entry;
+	return 1;
+}
+
+static void report_refname_conflict(struct ref_entry *entry,
+				    const char *refname)
+{
+	error("'%s' exists; cannot create '%s'", entry->name, refname);
 }
 
 /*
@@ -818,21 +818,84 @@ static int name_conflict_fn(struct ref_entry *entry, void *cb_data)
  * oldrefname is non-NULL, ignore potential conflicts with oldrefname
  * (e.g., because oldrefname is scheduled for deletion in the same
  * operation).
+ *
+ * Two reference names conflict if one of them exactly matches the
+ * leading components of the other; e.g., "foo/bar" conflicts with
+ * both "foo" and with "foo/bar/baz" but not with "foo/bar" or
+ * "foo/barbados".
  */
 static int is_refname_available(const char *refname, const char *oldrefname,
 				struct ref_dir *dir)
 {
-	struct name_conflict_cb data;
-	data.refname = refname;
-	data.oldrefname = oldrefname;
-	data.conflicting_refname = NULL;
+	const char *slash;
+	size_t len;
+	int pos;
+	char *dirname;
 
-	sort_ref_dir(dir);
-	if (do_for_each_entry_in_dir(dir, 0, name_conflict_fn, &data)) {
-		error("'%s' exists; cannot create '%s'",
-		      data.conflicting_refname, refname);
+	for (slash = strchr(refname, '/'); slash; slash = strchr(slash + 1, '/')) {
+		/*
+		 * We are still at a leading dir of the refname; we are
+		 * looking for a conflict with a leaf entry.
+		 *
+		 * If we find one, we still must make sure it is
+		 * not "oldrefname".
+		 */
+		pos = search_ref_dir(dir, refname, slash - refname);
+		if (pos >= 0) {
+			struct ref_entry *entry = dir->entries[pos];
+			if (entry_matches(entry, oldrefname))
+				return 1;
+			report_refname_conflict(entry, refname);
+			return 0;
+		}
+
+
+		/*
+		 * Otherwise, we can try to continue our search with
+		 * the next component; if we come up empty, we know
+		 * there is nothing under this whole prefix.
+		 */
+		pos = search_ref_dir(dir, refname, slash + 1 - refname);
+		if (pos < 0)
+			return 1;
+
+		dir = get_ref_dir(dir->entries[pos]);
+	}
+
+	/*
+	 * We are at the leaf of our refname; we want to
+	 * make sure there are no directories which match it.
+	 */
+	len = strlen(refname);
+	dirname = xmallocz(len + 1);
+	sprintf(dirname, "%s/", refname);
+	pos = search_ref_dir(dir, dirname, len + 1);
+	free(dirname);
+
+	if (pos >= 0) {
+		/*
+		 * We found a directory named "refname". It is a
+		 * problem iff it contains any ref that is not
+		 * "oldrefname".
+		 */
+		struct ref_entry *entry = dir->entries[pos];
+		struct ref_dir *dir = get_ref_dir(entry);
+		struct nonmatching_ref_data data;
+
+		data.skip = oldrefname;
+		sort_ref_dir(dir);
+		if (!do_for_each_entry_in_dir(dir, 0, nonmatching_ref_fn, &data))
+			return 1;
+
+		report_refname_conflict(data.found, refname);
 		return 0;
 	}
+
+	/*
+	 * There is no point in searching for another leaf
+	 * node which matches it; such an entry would be the
+	 * ref we are looking for, not a conflict.
+	 */
 	return 1;
 }
 
@@ -1243,7 +1306,7 @@ static int resolve_gitlink_ref_recursive(struct ref_cache *refs,
 {
 	int fd, len;
 	char buffer[128], *p;
-	const char *path;
+	char *path;
 
 	if (recursion > MAXDEPTH || strlen(refname) > MAXREFLEN)
 		return -1;
@@ -1337,12 +1400,10 @@ static const char *handle_missing_loose_ref(const char *refname,
 /* This function needs to return a meaningful errno on failure */
 const char *resolve_ref_unsafe(const char *refname, unsigned char *sha1, int reading, int *flag)
 {
-	struct strbuf sb_path = STRBUF_INIT;
 	int depth = MAXDEPTH;
 	ssize_t len;
 	char buffer[256];
 	static char refname_buffer[256];
-	const char *ret;
 
 	if (flag)
 		*flag = 0;
@@ -1353,19 +1414,17 @@ const char *resolve_ref_unsafe(const char *refname, unsigned char *sha1, int rea
 	}
 
 	for (;;) {
-		const char *path;
+		char path[PATH_MAX];
 		struct stat st;
 		char *buf;
 		int fd;
 
 		if (--depth < 0) {
 			errno = ELOOP;
-			goto fail;
+			return NULL;
 		}
 
-		strbuf_reset(&sb_path);
-		strbuf_git_path(&sb_path, "%s", refname);
-		path = sb_path.buf;
+		git_snpath(path, sizeof(path), "%s", refname);
 
 		/*
 		 * We might have to loop back here to avoid a race
@@ -1379,11 +1438,10 @@ const char *resolve_ref_unsafe(const char *refname, unsigned char *sha1, int rea
 	stat_ref:
 		if (lstat(path, &st) < 0) {
 			if (errno == ENOENT)
-				ret = handle_missing_loose_ref(refname, sha1,
-							       reading, flag);
+				return handle_missing_loose_ref(refname, sha1,
+								reading, flag);
 			else
-				ret = NULL;
-			goto done;
+				return NULL;
 		}
 
 		/* Follow "normalized" - ie "refs/.." symlinks by hand */
@@ -1394,7 +1452,7 @@ const char *resolve_ref_unsafe(const char *refname, unsigned char *sha1, int rea
 					/* inconsistent with lstat; retry */
 					goto stat_ref;
 				else
-					goto fail;
+					return NULL;
 			}
 			buffer[len] = 0;
 			if (starts_with(buffer, "refs/") &&
@@ -1410,7 +1468,7 @@ const char *resolve_ref_unsafe(const char *refname, unsigned char *sha1, int rea
 		/* Is it a directory? */
 		if (S_ISDIR(st.st_mode)) {
 			errno = EISDIR;
-			goto fail;
+			return NULL;
 		}
 
 		/*
@@ -1423,15 +1481,14 @@ const char *resolve_ref_unsafe(const char *refname, unsigned char *sha1, int rea
 				/* inconsistent with lstat; retry */
 				goto stat_ref;
 			else
-				goto fail;
+				return NULL;
 		}
-
 		len = read_in_full(fd, buffer, sizeof(buffer)-1);
 		if (len < 0) {
 			int save_errno = errno;
 			close(fd);
 			errno = save_errno;
-			goto fail;
+			return NULL;
 		}
 		close(fd);
 		while (len && isspace(buffer[len-1]))
@@ -1451,10 +1508,9 @@ const char *resolve_ref_unsafe(const char *refname, unsigned char *sha1, int rea
 				if (flag)
 					*flag |= REF_ISBROKEN;
 				errno = EINVAL;
-				goto fail;
+				return NULL;
 			}
-			ret = refname;
-			goto done;
+			return refname;
 		}
 		if (flag)
 			*flag |= REF_ISSYMREF;
@@ -1465,15 +1521,10 @@ const char *resolve_ref_unsafe(const char *refname, unsigned char *sha1, int rea
 			if (flag)
 				*flag |= REF_ISBROKEN;
 			errno = EINVAL;
-			goto fail;
+			return NULL;
 		}
 		refname = strcpy(refname_buffer, buf);
 	}
-fail:
-	ret = NULL;
-done:
-	strbuf_release(&sb_path);
-	return ret;
 }
 
 char *resolve_refdup(const char *ref, unsigned char *sha1, int reading, int *flag)
@@ -2080,12 +2131,15 @@ int dwim_log(const char *str, int len, unsigned char *sha1, char **log)
 	return logs_found;
 }
 
-/* This function should make sure errno is meaningful on error */
+/*
+ * Locks a "refs/" ref returning the lock on success and NULL on failure.
+ * On failure errno is set to something meaningful.
+ */
 static struct ref_lock *lock_ref_sha1_basic(const char *refname,
 					    const unsigned char *old_sha1,
 					    int flags, int *type_p)
 {
-	const char *ref_file;
+	char *ref_file;
 	const char *orig_refname = refname;
 	struct ref_lock *lock;
 	int last_errno = 0;
@@ -2148,7 +2202,7 @@ static struct ref_lock *lock_ref_sha1_basic(const char *refname,
 		lock->force_write = 1;
 
  retry:
-	switch (safe_create_leading_directories_const(ref_file)) {
+	switch (safe_create_leading_directories(ref_file)) {
 	case SCLD_OK:
 		break; /* success */
 	case SCLD_VANISHED:
@@ -2181,15 +2235,6 @@ static struct ref_lock *lock_ref_sha1_basic(const char *refname,
 	return NULL;
 }
 
-struct ref_lock *lock_ref_sha1(const char *refname, const unsigned char *old_sha1)
-{
-	char refpath[PATH_MAX];
-	if (check_refname_format(refname, 0))
-		return NULL;
-	strcpy(refpath, mkpath("refs/%s", refname));
-	return lock_ref_sha1_basic(refpath, old_sha1, 0, NULL);
-}
-
 struct ref_lock *lock_any_ref_for_update(const char *refname,
 					 const unsigned char *old_sha1,
 					 int flags, int *type_p)
@@ -2203,25 +2248,12 @@ struct ref_lock *lock_any_ref_for_update(const char *refname,
  * Write an entry to the packed-refs file for the specified refname.
  * If peeled is non-NULL, write it as the entry's peeled value.
  */
-static void write_packed_entry(int fd, char *refname, unsigned char *sha1,
+static void write_packed_entry(FILE *fh, char *refname, unsigned char *sha1,
 			       unsigned char *peeled)
 {
-	char line[PATH_MAX + 100];
-	int len;
-
-	len = snprintf(line, sizeof(line), "%s %s\n",
-		       sha1_to_hex(sha1), refname);
-	/* this should not happen but just being defensive */
-	if (len > sizeof(line))
-		die("too long a refname '%s'", refname);
-	write_or_die(fd, line, len);
-
-	if (peeled) {
-		if (snprintf(line, sizeof(line), "^%s\n",
-			     sha1_to_hex(peeled)) != PEELED_LINE_LENGTH)
-			die("internal error");
-		write_or_die(fd, line, PEELED_LINE_LENGTH);
-	}
+	fprintf_or_die(fh, "%s %s\n", sha1_to_hex(sha1), refname);
+	if (peeled)
+		fprintf_or_die(fh, "^%s\n", sha1_to_hex(peeled));
 }
 
 /*
@@ -2229,13 +2261,12 @@ static void write_packed_entry(int fd, char *refname, unsigned char *sha1,
  */
 static int write_packed_entry_fn(struct ref_entry *entry, void *cb_data)
 {
-	int *fd = cb_data;
 	enum peel_status peel_status = peel_entry(entry, 0);
 
 	if (peel_status != PEEL_PEELED && peel_status != PEEL_NON_TAG)
 		error("internal error: %s is not a valid packed reference!",
 		      entry->name);
-	write_packed_entry(*fd, entry->name, entry->u.value.sha1,
+	write_packed_entry(cb_data, entry->name, entry->u.value.sha1,
 			   peel_status == PEEL_PEELED ?
 			   entry->u.value.peeled : NULL);
 	return 0;
@@ -2271,15 +2302,22 @@ int commit_packed_refs(void)
 		get_packed_ref_cache(&ref_cache);
 	int error = 0;
 	int save_errno = 0;
+	FILE *out;
 
 	if (!packed_ref_cache->lock)
 		die("internal error: packed-refs not locked");
-	write_or_die(packed_ref_cache->lock->fd,
-		     PACKED_REFS_HEADER, strlen(PACKED_REFS_HEADER));
 
+	out = fdopen(packed_ref_cache->lock->fd, "w");
+	if (!out)
+		die_errno("unable to fdopen packed-refs descriptor");
+
+	fprintf_or_die(out, "%s", PACKED_REFS_HEADER);
 	do_for_each_entry_in_dir(get_packed_ref_dir(packed_ref_cache),
-				 0, write_packed_entry_fn,
-				 &packed_ref_cache->lock->fd);
+				 0, write_packed_entry_fn, out);
+	if (fclose(out))
+		die_errno("write error");
+	packed_ref_cache->lock->fd = -1;
+
 	if (commit_lock_file(packed_ref_cache->lock)) {
 		save_errno = errno;
 		error = -1;
@@ -2399,13 +2437,25 @@ static void try_remove_empty_parents(char *name)
 /* make sure nobody touched the ref, and unlink */
 static void prune_ref(struct ref_to_prune *r)
 {
-	struct ref_lock *lock = lock_ref_sha1(r->name + 5, r->sha1);
+	struct ref_transaction *transaction;
+	struct strbuf err = STRBUF_INIT;
 
-	if (lock) {
-		unlink_or_warn(git_path("%s", r->name));
-		unlock_ref(lock);
-		try_remove_empty_parents(r->name);
+	if (check_refname_format(r->name, 0))
+		return;
+
+	transaction = ref_transaction_begin(&err);
+	if (!transaction ||
+	    ref_transaction_delete(transaction, r->name, r->sha1,
+				   REF_ISPRUNING, 1, &err) ||
+	    ref_transaction_commit(transaction, NULL, &err)) {
+		ref_transaction_free(transaction);
+		error("%s", err.buf);
+		strbuf_release(&err);
+		return;
 	}
+	ref_transaction_free(transaction);
+	strbuf_release(&err);
+	try_remove_empty_parents(r->name);
 }
 
 static void prune_refs(struct ref_to_prune *r)
@@ -2548,11 +2598,6 @@ int repack_without_refs(const char **refnames, int n, struct strbuf *err)
 	return ret;
 }
 
-static int repack_without_ref(const char *refname)
-{
-	return repack_without_refs(&refname, 1, NULL);
-}
-
 static int delete_ref_loose(struct ref_lock *lock, int flag)
 {
 	if (!(flag & REF_ISPACKED) || flag & REF_ISSYMREF) {
@@ -2570,24 +2615,22 @@ static int delete_ref_loose(struct ref_lock *lock, int flag)
 
 int delete_ref(const char *refname, const unsigned char *sha1, int delopt)
 {
-	struct ref_lock *lock;
-	int ret = 0, flag = 0;
+	struct ref_transaction *transaction;
+	struct strbuf err = STRBUF_INIT;
 
-	lock = lock_ref_sha1_basic(refname, sha1, delopt, &flag);
-	if (!lock)
+	transaction = ref_transaction_begin(&err);
+	if (!transaction ||
+	    ref_transaction_delete(transaction, refname, sha1, delopt,
+				   sha1 && !is_null_sha1(sha1), &err) ||
+	    ref_transaction_commit(transaction, NULL, &err)) {
+		error("%s", err.buf);
+		ref_transaction_free(transaction);
+		strbuf_release(&err);
 		return 1;
-	ret |= delete_ref_loose(lock, flag);
-
-	/* removing the loose one could have resurrected an earlier
-	 * packed one.  Also, if it was not loose we need to repack
-	 * without it.
-	 */
-	ret |= repack_without_ref(lock->ref_name);
-
-	unlink_or_warn(git_path("logs/%s", lock->ref_name));
-	clear_loose_ref_cache(&ref_cache);
-	unlock_ref(lock);
-	return ret;
+	}
+	ref_transaction_free(transaction);
+	strbuf_release(&err);
+	return 0;
 }
 
 /*
@@ -2604,7 +2647,7 @@ static int rename_tmp_log(const char *newrefname)
 	int attempts_remaining = 4;
 
  retry:
-	switch (safe_create_leading_directories_const(git_path("logs/%s", newrefname))) {
+	switch (safe_create_leading_directories(git_path("logs/%s", newrefname))) {
 	case SCLD_OK:
 		break; /* success */
 	case SCLD_VANISHED:
@@ -2789,51 +2832,51 @@ static int copy_msg(char *buf, const char *msg)
 }
 
 /* This function must set a meaningful errno on failure */
-int log_ref_setup(const char *refname, struct strbuf *logfile)
+int log_ref_setup(const char *refname, char *logfile, int bufsize)
 {
 	int logfd, oflags = O_APPEND | O_WRONLY;
 
-	strbuf_git_path(logfile, "logs/%s", refname);
+	git_snpath(logfile, bufsize, "logs/%s", refname);
 	if (log_all_ref_updates &&
 	    (starts_with(refname, "refs/heads/") ||
 	     starts_with(refname, "refs/remotes/") ||
 	     starts_with(refname, "refs/notes/") ||
 	     !strcmp(refname, "HEAD"))) {
-		if (safe_create_leading_directories(logfile->buf) < 0) {
+		if (safe_create_leading_directories(logfile) < 0) {
 			int save_errno = errno;
-			error("unable to create directory for %s", logfile->buf);
+			error("unable to create directory for %s", logfile);
 			errno = save_errno;
 			return -1;
 		}
 		oflags |= O_CREAT;
 	}
 
-	logfd = open(logfile->buf, oflags, 0666);
+	logfd = open(logfile, oflags, 0666);
 	if (logfd < 0) {
 		if (!(oflags & O_CREAT) && errno == ENOENT)
 			return 0;
 
 		if ((oflags & O_CREAT) && errno == EISDIR) {
-			if (remove_empty_directories(logfile->buf)) {
+			if (remove_empty_directories(logfile)) {
 				int save_errno = errno;
 				error("There are still logs under '%s'",
-				      logfile->buf);
+				      logfile);
 				errno = save_errno;
 				return -1;
 			}
-			logfd = open(logfile->buf, oflags, 0666);
+			logfd = open(logfile, oflags, 0666);
 		}
 
 		if (logfd < 0) {
 			int save_errno = errno;
-			error("Unable to append to %s: %s", logfile->buf,
+			error("Unable to append to %s: %s", logfile,
 			      strerror(errno));
 			errno = save_errno;
 			return -1;
 		}
 	}
 
-	adjust_shared_perm(logfile->buf);
+	adjust_shared_perm(logfile);
 	close(logfd);
 	return 0;
 }
@@ -2844,22 +2887,20 @@ static int log_ref_write(const char *refname, const unsigned char *old_sha1,
 	int logfd, result, written, oflags = O_APPEND | O_WRONLY;
 	unsigned maxlen, len;
 	int msglen;
-	struct strbuf sb_log_file = STRBUF_INIT;
-	const char *log_file;
+	char log_file[PATH_MAX];
 	char *logrec;
 	const char *committer;
 
 	if (log_all_ref_updates < 0)
 		log_all_ref_updates = !is_bare_repository();
 
-	result = log_ref_setup(refname, &sb_log_file);
+	result = log_ref_setup(refname, log_file, sizeof(log_file));
 	if (result)
-		goto done;
-	log_file = sb_log_file.buf;
+		return result;
 
 	logfd = open(log_file, oflags);
 	if (logfd < 0)
-		goto done;
+		return 0;
 	msglen = msg ? strlen(msg) : 0;
 	committer = git_committer_info(0);
 	maxlen = strlen(committer) + msglen + 100;
@@ -2877,17 +2918,15 @@ static int log_ref_write(const char *refname, const unsigned char *old_sha1,
 		close(logfd);
 		error("Unable to append to %s", log_file);
 		errno = save_errno;
-		result = -1;
+		return -1;
 	}
 	if (close(logfd)) {
 		int save_errno = errno;
 		error("Unable to append to %s", log_file);
 		errno = save_errno;
-		result = -1;
+		return -1;
 	}
-done:
-	strbuf_release(&sb_log_file);
-	return result;
+	return 0;
 }
 
 int is_branch(const char *refname)
@@ -3348,43 +3387,6 @@ int for_each_reflog(each_ref_fn fn, void *cb_data)
 	return retval;
 }
 
-static struct ref_lock *update_ref_lock(const char *refname,
-					const unsigned char *oldval,
-					int flags, int *type_p,
-					enum action_on_err onerr)
-{
-	struct ref_lock *lock;
-	lock = lock_any_ref_for_update(refname, oldval, flags, type_p);
-	if (!lock) {
-		const char *str = "Cannot lock the ref '%s'.";
-		switch (onerr) {
-		case UPDATE_REFS_MSG_ON_ERR: error(str, refname); break;
-		case UPDATE_REFS_DIE_ON_ERR: die(str, refname); break;
-		case UPDATE_REFS_QUIET_ON_ERR: break;
-		}
-	}
-	return lock;
-}
-
-static int update_ref_write(const char *action, const char *refname,
-			    const unsigned char *sha1, struct ref_lock *lock,
-			    struct strbuf *err, enum action_on_err onerr)
-{
-	if (write_ref_sha1(lock, sha1, action) < 0) {
-		const char *str = "Cannot update the ref '%s'.";
-		if (err)
-			strbuf_addf(err, str, refname);
-
-		switch (onerr) {
-		case UPDATE_REFS_MSG_ON_ERR: error(str, refname); break;
-		case UPDATE_REFS_DIE_ON_ERR: die(str, refname); break;
-		case UPDATE_REFS_QUIET_ON_ERR: break;
-		}
-		return 1;
-	}
-	return 0;
-}
-
 /**
  * Information needed for a single ref update.  Set new_sha1 to the
  * new value or to zero to delete the ref.  To check the old value
@@ -3402,6 +3404,21 @@ struct ref_update {
 };
 
 /*
+ * Transaction states.
+ * OPEN:   The transaction is in a valid state and can accept new updates.
+ *         An OPEN transaction can be committed.
+ * CLOSED: A closed transaction is no longer active and no other operations
+ *         than free can be used on it in this state.
+ *         A transaction can either become closed by successfully committing
+ *         an active transaction or if there is a failure while building
+ *         the transaction thus rendering it failed/inactive.
+ */
+enum ref_transaction_state {
+	REF_TRANSACTION_OPEN   = 0,
+	REF_TRANSACTION_CLOSED = 1
+};
+
+/*
  * Data structure for holding a reference transaction, which can
  * consist of checks and updates to multiple references, carried out
  * as atomically as possible.  This structure is opaque to callers.
@@ -3410,9 +3427,10 @@ struct ref_transaction {
 	struct ref_update **updates;
 	size_t alloc;
 	size_t nr;
+	enum ref_transaction_state state;
 };
 
-struct ref_transaction *ref_transaction_begin(void)
+struct ref_transaction *ref_transaction_begin(struct strbuf *err)
 {
 	return xcalloc(1, sizeof(struct ref_transaction));
 }
@@ -3452,6 +3470,9 @@ int ref_transaction_update(struct ref_transaction *transaction,
 {
 	struct ref_update *update;
 
+	if (transaction->state != REF_TRANSACTION_OPEN)
+		die("BUG: update called for transaction that is not open");
+
 	if (have_old && !old_sha1)
 		die("BUG: have_old is true but old_sha1 is NULL");
 
@@ -3464,44 +3485,84 @@ int ref_transaction_update(struct ref_transaction *transaction,
 	return 0;
 }
 
-void ref_transaction_create(struct ref_transaction *transaction,
-			    const char *refname,
-			    const unsigned char *new_sha1,
-			    int flags)
+int ref_transaction_create(struct ref_transaction *transaction,
+			   const char *refname,
+			   const unsigned char *new_sha1,
+			   int flags,
+			   struct strbuf *err)
 {
-	struct ref_update *update = add_update(transaction, refname);
+	struct ref_update *update;
 
-	assert(!is_null_sha1(new_sha1));
+	if (transaction->state != REF_TRANSACTION_OPEN)
+		die("BUG: create called for transaction that is not open");
+
+	if (!new_sha1 || is_null_sha1(new_sha1))
+		die("BUG: create ref with null new_sha1");
+
+	update = add_update(transaction, refname);
+
 	hashcpy(update->new_sha1, new_sha1);
 	hashclr(update->old_sha1);
 	update->flags = flags;
 	update->have_old = 1;
+	return 0;
 }
 
-void ref_transaction_delete(struct ref_transaction *transaction,
-			    const char *refname,
-			    const unsigned char *old_sha1,
-			    int flags, int have_old)
+int ref_transaction_delete(struct ref_transaction *transaction,
+			   const char *refname,
+			   const unsigned char *old_sha1,
+			   int flags, int have_old,
+			   struct strbuf *err)
 {
-	struct ref_update *update = add_update(transaction, refname);
+	struct ref_update *update;
 
+	if (transaction->state != REF_TRANSACTION_OPEN)
+		die("BUG: delete called for transaction that is not open");
+
+	if (have_old && !old_sha1)
+		die("BUG: have_old is true but old_sha1 is NULL");
+
+	update = add_update(transaction, refname);
 	update->flags = flags;
 	update->have_old = have_old;
 	if (have_old) {
 		assert(!is_null_sha1(old_sha1));
 		hashcpy(update->old_sha1, old_sha1);
 	}
+	return 0;
 }
 
 int update_ref(const char *action, const char *refname,
 	       const unsigned char *sha1, const unsigned char *oldval,
 	       int flags, enum action_on_err onerr)
 {
-	struct ref_lock *lock;
-	lock = update_ref_lock(refname, oldval, flags, NULL, onerr);
-	if (!lock)
+	struct ref_transaction *t;
+	struct strbuf err = STRBUF_INIT;
+
+	t = ref_transaction_begin(&err);
+	if (!t ||
+	    ref_transaction_update(t, refname, sha1, oldval, flags,
+				   !!oldval, &err) ||
+	    ref_transaction_commit(t, action, &err)) {
+		const char *str = "update_ref failed for ref '%s': %s";
+
+		ref_transaction_free(t);
+		switch (onerr) {
+		case UPDATE_REFS_MSG_ON_ERR:
+			error(str, refname, err.buf);
+			break;
+		case UPDATE_REFS_DIE_ON_ERR:
+			die(str, refname, err.buf);
+			break;
+		case UPDATE_REFS_QUIET_ON_ERR:
+			break;
+		}
+		strbuf_release(&err);
 		return 1;
-	return update_ref_write(action, refname, sha1, lock, NULL, onerr);
+	}
+	strbuf_release(&err);
+	ref_transaction_free(t);
+	return 0;
 }
 
 static int ref_update_compare(const void *r1, const void *r2)
@@ -3535,8 +3596,13 @@ int ref_transaction_commit(struct ref_transaction *transaction,
 	int n = transaction->nr;
 	struct ref_update **updates = transaction->updates;
 
-	if (!n)
+	if (transaction->state != REF_TRANSACTION_OPEN)
+		die("BUG: commit called for transaction that is not open");
+
+	if (!n) {
+		transaction->state = REF_TRANSACTION_CLOSED;
 		return 0;
+	}
 
 	/* Allocate work space */
 	delnames = xmalloc(sizeof(*delnames) * n);
@@ -3551,12 +3617,12 @@ int ref_transaction_commit(struct ref_transaction *transaction,
 	for (i = 0; i < n; i++) {
 		struct ref_update *update = updates[i];
 
-		update->lock = update_ref_lock(update->refname,
-					       (update->have_old ?
-						update->old_sha1 : NULL),
-					       update->flags,
-					       &update->type,
-					       UPDATE_REFS_QUIET_ON_ERR);
+		update->lock = lock_any_ref_for_update(update->refname,
+						       (update->have_old ?
+							update->old_sha1 :
+							NULL),
+						       update->flags,
+						       &update->type);
 		if (!update->lock) {
 			if (err)
 				strbuf_addf(err, "Cannot lock the ref '%s'.",
@@ -3571,14 +3637,15 @@ int ref_transaction_commit(struct ref_transaction *transaction,
 		struct ref_update *update = updates[i];
 
 		if (!is_null_sha1(update->new_sha1)) {
-			ret = update_ref_write(msg,
-					       update->refname,
-					       update->new_sha1,
-					       update->lock, err,
-					       UPDATE_REFS_QUIET_ON_ERR);
-			update->lock = NULL; /* freed by update_ref_write */
-			if (ret)
+			ret = write_ref_sha1(update->lock, update->new_sha1,
+					     msg);
+			update->lock = NULL; /* freed by write_ref_sha1 */
+			if (ret) {
+				if (err)
+					strbuf_addf(err, "Cannot update the ref '%s'.",
+						    update->refname);
 				goto cleanup;
+			}
 		}
 	}
 
@@ -3587,8 +3654,9 @@ int ref_transaction_commit(struct ref_transaction *transaction,
 		struct ref_update *update = updates[i];
 
 		if (update->lock) {
-			delnames[delnum++] = update->lock->ref_name;
 			ret |= delete_ref_loose(update->lock, update->type);
+			if (!(update->flags & REF_ISPRUNING))
+				delnames[delnum++] = update->lock->ref_name;
 		}
 	}
 
@@ -3598,6 +3666,8 @@ int ref_transaction_commit(struct ref_transaction *transaction,
 	clear_loose_ref_cache(&ref_cache);
 
 cleanup:
+	transaction->state = REF_TRANSACTION_CLOSED;
+
 	for (i = 0; i < n; i++)
 		if (updates[i]->lock)
 			unlock_ref(updates[i]->lock);

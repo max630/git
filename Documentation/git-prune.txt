@@ -48,9 +48,6 @@ OPTIONS
 --expire <time>::
 	Only expire loose objects older than <time>.
 
---repos::
-	Prune directories in $GIT_DIR/repos.
-
 <head>...::
 	In addition to objects
 	reachable from any of our references, keep objects

@@ -4,7 +4,6 @@
 #include "cache.h"
 #include "strbuf.h"
 #include "string-list.h"
-#include "dir.h"
 
 static int get_st_mode_bits(const char *path, int *mode)
 {
@@ -17,15 +16,11 @@ static int get_st_mode_bits(const char *path, int *mode)
 
 static char bad_path[] = "/bad-path/";
 
-static struct strbuf *get_pathname(void)
+static char *get_pathname(void)
 {
-	static struct strbuf pathname_array[4] = {
-		STRBUF_INIT, STRBUF_INIT, STRBUF_INIT, STRBUF_INIT
-	};
+	static char pathname_array[4][PATH_MAX];
 	static int index;
-	struct strbuf *sb = &pathname_array[3 & ++index];
-	strbuf_reset(sb);
-	return sb;
+	return pathname_array[3 & ++index];
 }
 
 static char *cleanup_path(char *path)
@@ -37,13 +32,6 @@ static char *cleanup_path(char *path)
 			path++;
 	}
 	return path;
-}
-
-static void strbuf_cleanup_path(struct strbuf *sb)
-{
-	char *path = cleanup_path(sb->buf);
-	if (path > sb->buf)
-		strbuf_remove(sb, 0, path - sb->buf);
 }
 
 char *mksnpath(char *buf, size_t n, const char *fmt, ...)
@@ -61,167 +49,85 @@ char *mksnpath(char *buf, size_t n, const char *fmt, ...)
 	return cleanup_path(buf);
 }
 
-static int dir_prefix(const char *buf, const char *dir)
+static char *vsnpath(char *buf, size_t n, const char *fmt, va_list args)
 {
-	int len = strlen(dir);
-	return !strncmp(buf, dir, len) &&
-		(is_dir_sep(buf[len]) || buf[len] == '\0');
+	const char *git_dir = get_git_dir();
+	size_t len;
+
+	len = strlen(git_dir);
+	if (n < len + 1)
+		goto bad;
+	memcpy(buf, git_dir, len);
+	if (len && !is_dir_sep(git_dir[len-1]))
+		buf[len++] = '/';
+	len += vsnprintf(buf + len, n - len, fmt, args);
+	if (len >= n)
+		goto bad;
+	return cleanup_path(buf);
+bad:
+	strlcpy(buf, bad_path, n);
+	return buf;
 }
 
-/* $buf =~ m|$dir/+$file| but without regex */
-static int is_dir_file(const char *buf, const char *dir, const char *file)
+char *git_snpath(char *buf, size_t n, const char *fmt, ...)
 {
-	int len = strlen(dir);
-	if (strncmp(buf, dir, len) || !is_dir_sep(buf[len]))
-		return 0;
-	while (is_dir_sep(buf[len]))
-		len++;
-	return !strcmp(buf + len, file);
-}
-
-static void replace_dir(struct strbuf *buf, int len, const char *newdir)
-{
-	int newlen = strlen(newdir);
-	int need_sep = (buf->buf[len] && !is_dir_sep(buf->buf[len])) &&
-		!is_dir_sep(newdir[newlen - 1]);
-	if (need_sep)
-		len--;	 /* keep one char, to be replaced with '/'  */
-	strbuf_splice(buf, 0, len, newdir, newlen);
-	if (need_sep)
-		buf->buf[newlen] = '/';
-}
-
-static const char *common_list[] = {
-	"/branches", "/hooks", "/info", "!/logs", "/lost-found", "/modules",
-	"/objects", "/refs", "/remotes", "/repos", "/rr-cache", "/svn",
-	"config", "!gc.pid", "packed-refs", "shallow",
-	NULL
-};
-
-static void update_common_dir(struct strbuf *buf, int git_dir_len)
-{
-	char *base = buf->buf + git_dir_len;
-	const char **p;
-
-	if (is_dir_file(base, "logs", "HEAD") ||
-	    is_dir_file(base, "info", "sparse-checkout"))
-		return;	/* keep this in $GIT_DIR */
-	for (p = common_list; *p; p++) {
-		const char *path = *p;
-		int is_dir = 0;
-		if (*path == '!')
-			path++;
-		if (*path == '/') {
-			path++;
-			is_dir = 1;
-		}
-		if (is_dir && dir_prefix(base, path)) {
-			replace_dir(buf, git_dir_len, get_git_common_dir());
-			return;
-		}
-		if (!is_dir && !strcmp(base, path)) {
-			replace_dir(buf, git_dir_len, get_git_common_dir());
-			return;
-		}
-	}
-}
-
-void report_linked_checkout_garbage(void)
-{
-	struct strbuf sb = STRBUF_INIT;
-	const char **p;
-	int len;
-
-	if (!git_common_dir_env)
-		return;
-	strbuf_addf(&sb, "%s/", get_git_dir());
-	len = sb.len;
-	for (p = common_list; *p; p++) {
-		const char *path = *p;
-		if (*path == '!')
-			continue;
-		strbuf_setlen(&sb, len);
-		strbuf_addstr(&sb, path);
-		if (file_exists(sb.buf))
-			report_garbage("unused in linked checkout", sb.buf);
-	}
-	strbuf_release(&sb);
-}
-
-static void adjust_git_path(struct strbuf *buf, int git_dir_len)
-{
-	const char *base = buf->buf + git_dir_len;
-	if (git_graft_env && is_dir_file(base, "info", "grafts"))
-		strbuf_splice(buf, 0, buf->len,
-			      get_graft_file(), strlen(get_graft_file()));
-	else if (git_index_env && !strcmp(base, "index"))
-		strbuf_splice(buf, 0, buf->len,
-			      get_index_file(), strlen(get_index_file()));
-	else if (git_db_env && dir_prefix(base, "objects"))
-		replace_dir(buf, git_dir_len + 7, get_object_directory());
-	else if (git_common_dir_env)
-		update_common_dir(buf, git_dir_len);
-}
-
-static void do_git_path(struct strbuf *buf, const char *fmt, va_list args)
-{
-	int gitdir_len;
-	strbuf_addstr(buf, get_git_dir());
-	if (buf->len && !is_dir_sep(buf->buf[buf->len - 1]))
-		strbuf_addch(buf, '/');
-	gitdir_len = buf->len;
-	strbuf_vaddf(buf, fmt, args);
-	adjust_git_path(buf, gitdir_len);
-	strbuf_cleanup_path(buf);
-}
-
-void strbuf_git_path(struct strbuf *sb, const char *fmt, ...)
-{
+	char *ret;
 	va_list args;
 	va_start(args, fmt);
-	do_git_path(sb, fmt, args);
+	ret = vsnpath(buf, n, fmt, args);
 	va_end(args);
-}
-
-const char *git_path(const char *fmt, ...)
-{
-	struct strbuf *pathname = get_pathname();
-	va_list args;
-	va_start(args, fmt);
-	do_git_path(pathname, fmt, args);
-	va_end(args);
-	return pathname->buf;
+	return ret;
 }
 
 char *git_pathdup(const char *fmt, ...)
 {
-	struct strbuf path = STRBUF_INIT;
+	char path[PATH_MAX], *ret;
 	va_list args;
 	va_start(args, fmt);
-	do_git_path(&path, fmt, args);
+	ret = vsnpath(path, sizeof(path), fmt, args);
 	va_end(args);
-	return strbuf_detach(&path, NULL);
+	return xstrdup(ret);
 }
 
 char *mkpathdup(const char *fmt, ...)
 {
+	char *path;
 	struct strbuf sb = STRBUF_INIT;
 	va_list args;
+
 	va_start(args, fmt);
 	strbuf_vaddf(&sb, fmt, args);
 	va_end(args);
-	strbuf_cleanup_path(&sb);
-	return strbuf_detach(&sb, NULL);
+	path = xstrdup(cleanup_path(sb.buf));
+
+	strbuf_release(&sb);
+	return path;
 }
 
-const char *mkpath(const char *fmt, ...)
+char *mkpath(const char *fmt, ...)
 {
 	va_list args;
-	struct strbuf *pathname = get_pathname();
+	unsigned len;
+	char *pathname = get_pathname();
+
 	va_start(args, fmt);
-	strbuf_vaddf(pathname, fmt, args);
+	len = vsnprintf(pathname, PATH_MAX, fmt, args);
 	va_end(args);
-	return cleanup_path(pathname->buf);
+	if (len >= PATH_MAX)
+		return bad_path;
+	return cleanup_path(pathname);
+}
+
+char *git_path(const char *fmt, ...)
+{
+	char *pathname = get_pathname();
+	va_list args;
+	char *ret;
+
+	va_start(args, fmt);
+	ret = vsnpath(pathname, PATH_MAX, fmt, args);
+	va_end(args);
+	return ret;
 }
 
 void home_config_paths(char **global, char **xdg, char *file)
@@ -252,29 +158,43 @@ void home_config_paths(char **global, char **xdg, char *file)
 	free(to_free);
 }
 
-const char *git_path_submodule(const char *path, const char *fmt, ...)
+char *git_path_submodule(const char *path, const char *fmt, ...)
 {
-	struct strbuf *buf = get_pathname();
+	char *pathname = get_pathname();
+	struct strbuf buf = STRBUF_INIT;
 	const char *git_dir;
 	va_list args;
+	unsigned len;
 
-	strbuf_addstr(buf, path);
-	if (buf->len && buf->buf[buf->len - 1] != '/')
-		strbuf_addch(buf, '/');
-	strbuf_addstr(buf, ".git");
+	len = strlen(path);
+	if (len > PATH_MAX-100)
+		return bad_path;
 
-	git_dir = read_gitfile(buf->buf);
+	strbuf_addstr(&buf, path);
+	if (len && path[len-1] != '/')
+		strbuf_addch(&buf, '/');
+	strbuf_addstr(&buf, ".git");
+
+	git_dir = read_gitfile(buf.buf);
 	if (git_dir) {
-		strbuf_reset(buf);
-		strbuf_addstr(buf, git_dir);
+		strbuf_reset(&buf);
+		strbuf_addstr(&buf, git_dir);
 	}
-	strbuf_addch(buf, '/');
+	strbuf_addch(&buf, '/');
+
+	if (buf.len >= PATH_MAX)
+		return bad_path;
+	memcpy(pathname, buf.buf, buf.len + 1);
+
+	strbuf_release(&buf);
+	len = strlen(pathname);
 
 	va_start(args, fmt);
-	strbuf_vaddf(buf, fmt, args);
+	len += vsnprintf(pathname + len, PATH_MAX - len, fmt, args);
 	va_end(args);
-	strbuf_cleanup_path(buf);
-	return buf->buf;
+	if (len >= PATH_MAX)
+		return bad_path;
+	return cleanup_path(pathname);
 }
 
 int validate_headref(const char *path)

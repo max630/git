@@ -216,7 +216,7 @@ void trace_argv_printf(const char **argv, const char *format, ...)
 	va_end(ap);
 }
 
-void trace_strbuf(const char *key, const struct strbuf *data)
+void trace_strbuf(struct trace_key *key, const struct strbuf *data)
 {
 	trace_strbuf_fl(NULL, 0, key, data);
 }
@@ -312,7 +312,6 @@ void trace_repo_setup(const char *prefix)
 		prefix = "(null)";
 
 	trace_printf_key(&key, "setup: git_dir: %s\n", quote_crnl(get_git_dir()));
-	trace_printf_key(&key, "setup: git_common_dir: %s\n", quote_crnl(get_git_common_dir()));
 	trace_printf_key(&key, "setup: worktree: %s\n", quote_crnl(git_work_tree));
 	trace_printf_key(&key, "setup: cwd: %s\n", quote_crnl(cwd));
 	trace_printf_key(&key, "setup: prefix: %s\n", quote_crnl(prefix));

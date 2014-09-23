@@ -225,12 +225,12 @@ static void check_unreachable_object(struct object *obj)
 			printf("dangling %s %s\n", typename(obj->type),
 			       sha1_to_hex(obj->sha1));
 		if (write_lost_and_found) {
-			const char *filename = git_path("lost-found/%s/%s",
+			char *filename = git_path("lost-found/%s/%s",
 				obj->type == OBJ_COMMIT ? "commit" : "other",
 				sha1_to_hex(obj->sha1));
 			FILE *f;
 
-			if (safe_create_leading_directories_const(filename)) {
+			if (safe_create_leading_directories(filename)) {
 				error("Could not create lost-found");
 				return;
 			}
@@ -298,7 +298,7 @@ static int fsck_obj(struct object *obj)
 
 	if (fsck_walk(obj, mark_used, NULL))
 		objerror(obj, "broken links");
-	if (fsck_object(obj, check_strict, fsck_error_func))
+	if (fsck_object(obj, NULL, 0, check_strict, fsck_error_func))
 		return -1;
 
 	if (obj->type == OBJ_TREE) {
@@ -388,7 +388,8 @@ static void fsck_sha1_list(void)
 		unsigned char *sha1 = entry->sha1;
 
 		sha1_list.entry[i] = NULL;
-		fsck_sha1(sha1);
+		if (fsck_sha1(sha1))
+			errors_found |= ERROR_OBJECT;
 		free(entry);
 	}
 	sha1_list.nr = 0;
@@ -488,6 +489,7 @@ static int fsck_handle_ref(const char *refname, const unsigned char *sha1, int f
 	obj = parse_object(sha1);
 	if (!obj) {
 		error("%s: invalid sha1 pointer %s", refname, sha1_to_hex(sha1));
+		errors_found |= ERROR_REACHABLE;
 		/* We'll continue with the rest despite the error.. */
 		return 0;
 	}
@@ -504,7 +506,7 @@ static void get_default_heads(void)
 {
 	if (head_points_at && !is_null_sha1(head_sha1))
 		fsck_handle_ref("HEAD", head_sha1, 0, NULL);
-	for_each_ref(fsck_handle_ref, NULL);
+	for_each_rawref(fsck_handle_ref, NULL);
 	if (include_reflogs)
 		for_each_reflog(fsck_handle_reflog, NULL);
 

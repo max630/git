@@ -15,6 +15,7 @@
 #include "connected.h"
 #include "argv-array.h"
 #include "version.h"
+#include "sigchain.h"
 
 static const char receive_pack_usage[] = "git receive-pack <git-dir>";
 
@@ -255,7 +256,7 @@ static int copy_to_sideband(int in, int out, void *arg)
 typedef int (*feed_fn)(void *, const char **, size_t *);
 static int run_and_feed_hook(const char *hook_name, feed_fn feed, void *feed_state)
 {
-	struct child_process proc;
+	struct child_process proc = CHILD_PROCESS_INIT;
 	struct async muxer;
 	const char *argv[2];
 	int code;
@@ -266,7 +267,6 @@ static int run_and_feed_hook(const char *hook_name, feed_fn feed, void *feed_sta
 
 	argv[1] = NULL;
 
-	memset(&proc, 0, sizeof(proc));
 	proc.argv = argv;
 	proc.in = -1;
 	proc.stdout_to_stderr = 1;
@@ -288,6 +288,8 @@ static int run_and_feed_hook(const char *hook_name, feed_fn feed, void *feed_sta
 		return code;
 	}
 
+	sigchain_push(SIGPIPE, SIG_IGN);
+
 	while (1) {
 		const char *buf;
 		size_t n;
@@ -299,6 +301,9 @@ static int run_and_feed_hook(const char *hook_name, feed_fn feed, void *feed_sta
 	close(proc.in);
 	if (use_sideband)
 		finish_async(&muxer);
+
+	sigchain_pop(SIGPIPE);
+
 	return finish_command(&proc);
 }
 
@@ -350,7 +355,7 @@ static int run_receive_hook(struct command *commands, const char *hook_name,
 static int run_update_hook(struct command *cmd)
 {
 	const char *argv[5];
-	struct child_process proc;
+	struct child_process proc = CHILD_PROCESS_INIT;
 	int code;
 
 	argv[0] = find_hook("update");
@@ -362,7 +367,6 @@ static int run_update_hook(struct command *cmd)
 	argv[3] = sha1_to_hex(cmd->new_sha1);
 	argv[4] = NULL;
 
-	memset(&proc, 0, sizeof(proc));
 	proc.no_stdin = 1;
 	proc.stdout_to_stderr = 1;
 	proc.err = use_sideband ? -1 : 0;
@@ -475,7 +479,6 @@ static const char *update(struct command *cmd, struct shallow_info *si)
 	const char *namespaced_name;
 	unsigned char *old_sha1 = cmd->old_sha1;
 	unsigned char *new_sha1 = cmd->new_sha1;
-	struct ref_lock *lock;
 
 	/* only refs/... are allowed */
 	if (!starts_with(name, "refs/") || check_refname_format(name + 5, 0)) {
@@ -576,19 +579,27 @@ static const char *update(struct command *cmd, struct shallow_info *si)
 		return NULL; /* good */
 	}
 	else {
+		struct strbuf err = STRBUF_INIT;
+		struct ref_transaction *transaction;
+
 		if (shallow_update && si->shallow_ref[cmd->index] &&
 		    update_shallow_ref(cmd, si))
 			return "shallow error";
 
-		lock = lock_any_ref_for_update(namespaced_name, old_sha1,
-					       0, NULL);
-		if (!lock) {
-			rp_error("failed to lock %s", name);
-			return "failed to lock";
+		transaction = ref_transaction_begin(&err);
+		if (!transaction ||
+		    ref_transaction_update(transaction, namespaced_name,
+					   new_sha1, old_sha1, 0, 1, &err) ||
+		    ref_transaction_commit(transaction, "push", &err)) {
+			ref_transaction_free(transaction);
+
+			rp_error("%s", err.buf);
+			strbuf_release(&err);
+			return "failed to update ref";
 		}
-		if (write_ref_sha1(lock, new_sha1, "push")) {
-			return "failed to write"; /* error() already called */
-		}
+
+		ref_transaction_free(transaction);
+		strbuf_release(&err);
 		return NULL; /* good */
 	}
 }
@@ -598,8 +609,8 @@ static void run_update_post_hook(struct command *commands)
 	struct command *cmd;
 	int argc;
 	const char **argv;
-	struct child_process proc;
-	const char *hook;
+	struct child_process proc = CHILD_PROCESS_INIT;
+	char *hook;
 
 	hook = find_hook("post-update");
 	for (argc = 0, cmd = commands; cmd; cmd = cmd->next) {
@@ -621,7 +632,6 @@ static void run_update_post_hook(struct command *commands)
 	}
 	argv[argc] = NULL;
 
-	memset(&proc, 0, sizeof(proc));
 	proc.no_stdin = 1;
 	proc.stdout_to_stderr = 1;
 	proc.err = use_sideband ? -1 : 0;
@@ -911,7 +921,7 @@ static const char *unpack(int err_fd, struct shallow_info *si)
 	const char *hdr_err;
 	int status;
 	char hdr_arg[38];
-	struct child_process child;
+	struct child_process child = CHILD_PROCESS_INIT;
 	int fsck_objects = (receive_fsck_objects >= 0
 			    ? receive_fsck_objects
 			    : transfer_fsck_objects >= 0
@@ -933,7 +943,6 @@ static const char *unpack(int err_fd, struct shallow_info *si)
 		argv_array_pushl(&av, "--shallow-file", alt_shallow_file, NULL);
 	}
 
-	memset(&child, 0, sizeof(child));
 	if (ntohl(hdr.hdr_entries) < unpack_limit) {
 		argv_array_pushl(&av, "unpack-objects", hdr_arg, NULL);
 		if (quiet)

@@ -224,36 +224,6 @@ void verify_non_filename(const char *prefix, const char *arg)
 	    "'git <command> [<revision>...] -- [<file>...]'", arg);
 }
 
-int get_common_dir(struct strbuf *sb, const char *gitdir)
-{
-	struct strbuf data = STRBUF_INIT;
-	struct strbuf path = STRBUF_INIT;
-	const char *git_common_dir = getenv(GIT_COMMON_DIR_ENVIRONMENT);
-	int ret = 0;
-	if (git_common_dir) {
-		strbuf_addstr(sb, git_common_dir);
-		return 1;
-	}
-	strbuf_addf(&path, "%s/commondir", gitdir);
-	if (file_exists(path.buf)) {
-		if (strbuf_read_file(&data, path.buf, 0) <= 0)
-			die_errno(_("failed to read %s"), path.buf);
-		while (data.len && (data.buf[data.len - 1] == '\n' ||
-				    data.buf[data.len - 1] == '\r'))
-			data.len--;
-		data.buf[data.len] = '\0';
-		strbuf_reset(&path);
-		if (!is_absolute_path(data.buf))
-			strbuf_addf(&path, "%s/", gitdir);
-		strbuf_addbuf(&path, &data);
-		strbuf_addstr(sb, real_path(path.buf));
-		ret = 1;
-	} else
-		strbuf_addstr(sb, gitdir);
-	strbuf_release(&data);
-	strbuf_release(&path);
-	return ret;
-}
 
 /*
  * Test if it looks like we're at a git directory.
@@ -268,40 +238,31 @@ int get_common_dir(struct strbuf *sb, const char *gitdir)
  */
 int is_git_directory(const char *suspect)
 {
-	struct strbuf path = STRBUF_INIT;
-	int ret = 0;
-	size_t len;
+	char path[PATH_MAX];
+	size_t len = strlen(suspect);
 
-	/* Check worktree-related signatures */
-	strbuf_addf(&path, "%s/HEAD", suspect);
-	if (validate_headref(path.buf))
-		goto done;
-
-	strbuf_reset(&path);
-	get_common_dir(&path, suspect);
-	len = path.len;
-
-	/* Check non-worktree-related signatures */
+	if (PATH_MAX <= len + strlen("/objects"))
+		die("Too long path: %.*s", 60, suspect);
+	strcpy(path, suspect);
 	if (getenv(DB_ENVIRONMENT)) {
 		if (access(getenv(DB_ENVIRONMENT), X_OK))
-			goto done;
+			return 0;
 	}
 	else {
-		strbuf_setlen(&path, len);
-		strbuf_addstr(&path, "/objects");
-		if (access(path.buf, X_OK))
-			goto done;
+		strcpy(path + len, "/objects");
+		if (access(path, X_OK))
+			return 0;
 	}
 
-	strbuf_setlen(&path, len);
-	strbuf_addstr(&path, "/refs");
-	if (access(path.buf, X_OK))
-		goto done;
+	strcpy(path + len, "/refs");
+	if (access(path, X_OK))
+		return 0;
 
-	ret = 1;
-done:
-	strbuf_release(&path);
-	return ret;
+	strcpy(path + len, "/HEAD");
+	if (validate_headref(path))
+		return 0;
+
+	return 1;
 }
 
 int is_inside_git_dir(void)
@@ -343,28 +304,9 @@ void setup_work_tree(void)
 	initialized = 1;
 }
 
-static int check_repo_format(const char *var, const char *value, void *cb)
-{
-	if (strcmp(var, "core.repositoryformatversion") == 0)
-		repository_format_version = git_config_int(var, value);
-	else if (strcmp(var, "core.sharedrepository") == 0)
-		shared_repository = git_config_perm(var, value);
-	return 0;
-}
-
 static int check_repository_format_gently(const char *gitdir, int *nongit_ok)
 {
-	struct strbuf sb = STRBUF_INIT;
-	const char *repo_config;
-	config_fn_t fn;
-	int ret = 0;
-
-	if (get_common_dir(&sb, gitdir))
-		fn = check_repo_format;
-	else
-		fn = check_repository_format_version;
-	strbuf_addstr(&sb, "/config");
-	repo_config = sb.buf;
+	char repo_config[PATH_MAX+1];
 
 	/*
 	 * git_config() can't be used here because it calls git_pathdup()
@@ -375,7 +317,8 @@ static int check_repository_format_gently(const char *gitdir, int *nongit_ok)
 	 * Use a gentler version of git_config() to check if this repo
 	 * is a good one.
 	 */
-	git_config_early(fn, NULL, repo_config);
+	snprintf(repo_config, PATH_MAX, "%s/config", gitdir);
+	git_config_early(check_repository_format_version, NULL, repo_config);
 	if (GIT_REPO_VERSION < repository_format_version) {
 		if (!nongit_ok)
 			die ("Expected git repo version <= %d, found %d",
@@ -384,21 +327,9 @@ static int check_repository_format_gently(const char *gitdir, int *nongit_ok)
 			GIT_REPO_VERSION, repository_format_version);
 		warning("Please upgrade Git");
 		*nongit_ok = -1;
-		ret = -1;
+		return -1;
 	}
-	strbuf_release(&sb);
-	return ret;
-}
-
-static void update_linked_gitdir(const char *gitfile, const char *gitdir)
-{
-	struct strbuf path = STRBUF_INIT;
-	struct stat st;
-
-	strbuf_addf(&path, "%s/gitfile", gitdir);
-	if (stat(path.buf, &st) || st.st_mtime + 24 * 3600 < time(NULL))
-		write_file(path.buf, 0, "%s\n", gitfile);
-	strbuf_release(&path);
+	return 0;
 }
 
 /*
@@ -449,8 +380,6 @@ const char *read_gitfile(const char *path)
 
 	if (!is_git_directory(dir))
 		die("Not a git repository: %s", dir);
-
-	update_linked_gitdir(path, dir);
 	path = real_path(dir);
 
 	free(buf);
@@ -734,7 +663,7 @@ static const char *setup_git_directory_gently_1(int *nongit_ok)
 		string_list_clear(&ceiling_dirs, 0);
 	}
 
-	if (ceil_offset < 0 && has_dos_drive_prefix(cwd))
+	if (ceil_offset < 0 && has_dos_drive_prefix(cwd.buf))
 		ceil_offset = 1;
 
 	/*
@@ -870,10 +799,11 @@ int git_config_perm(const char *var, const char *value)
 
 int check_repository_format_version(const char *var, const char *value, void *cb)
 {
-	int ret = check_repo_format(var, value, cb);
-	if (ret)
-		return ret;
-	if (strcmp(var, "core.bare") == 0) {
+	if (strcmp(var, "core.repositoryformatversion") == 0)
+		repository_format_version = git_config_int(var, value);
+	else if (strcmp(var, "core.sharedrepository") == 0)
+		shared_repository = git_config_perm(var, value);
+	else if (strcmp(var, "core.bare") == 0) {
 		is_bare_repository_cfg = git_config_bool(var, value);
 		if (is_bare_repository_cfg == 1)
 			inside_work_tree = -1;

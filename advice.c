@@ -15,7 +15,6 @@ int advice_detached_head = 1;
 int advice_set_upstream_failure = 1;
 int advice_object_name_warning = 1;
 int advice_rm_hints = 1;
-int advice_checkout_locked = 1;
 
 static struct {
 	const char *name;
@@ -36,7 +35,6 @@ static struct {
 	{ "setupstreamfailure", &advice_set_upstream_failure },
 	{ "objectnamewarning", &advice_object_name_warning },
 	{ "rmhints", &advice_rm_hints },
-	{ "checkoutlocked", &advice_checkout_locked },
 
 	/* make this an alias for backward compatibility */
 	{ "pushnonfastforward", &advice_push_update_rejected }
@@ -88,8 +86,7 @@ int error_resolve_conflict(const char *me)
 		 * other commands doing a merge do.
 		 */
 		advise(_("Fix them up in the work tree, and then use 'git add/rm <file>'\n"
-			 "as appropriate to mark resolution and make a commit, or use\n"
-			 "'git commit -a'."));
+			 "as appropriate to mark resolution and make a commit."));
 	return -1;
 }
 
