@@ -1,4 +1,4 @@
-From 34246fb63d7fd96f3bca79616c6b44e8c4eec039 Mon Sep 17 00:00:00 2001
+From 12af079460fe3e874871ca4c3135e6137892bb33 Mon Sep 17 00:00:00 2001
 From: Jonathan Nieder <jrnieder@gmail.com>
 Date: Mon, 6 Jun 2011 04:37:14 -0500
 Subject: transport: expose git_tcp_connect() and friends in new tcp.h
@@ -12,28 +12,20 @@ library easier to understand before adding to it.
 
 Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
 ---
- Makefile  |   2 +
- connect.c | 273 +------------------------------------------------------------
- tcp.c     | 277 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ Makefile  |   1 +
+ connect.c | 274 +------------------------------------------------------------
+ tcp.c     | 278 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  tcp.h     |   9 ++
- 4 files changed, 289 insertions(+), 272 deletions(-)
+ 4 files changed, 289 insertions(+), 273 deletions(-)
  create mode 100644 tcp.c
  create mode 100644 tcp.h
 
 diff --git a/Makefile b/Makefile
-index b0f3479..a3cfc77 100644
+index f34a2d4..cbb4dca 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -729,6 +729,7 @@ LIB_H += string-list.h
- LIB_H += submodule.h
- LIB_H += tag.h
- LIB_H += tar.h
-+LIB_H += tcp.h
- LIB_H += thread-utils.h
- LIB_H += transport.h
- LIB_H += tree-walk.h
-@@ -888,6 +889,7 @@ LIB_OBJS += submodule.o
- LIB_OBJS += submodule-config.o
+@@ -762,6 +762,7 @@ LIB_OBJS += string-list.o
+ LIB_OBJS += submodule.o
  LIB_OBJS += symlinks.o
  LIB_OBJS += tag.o
 +LIB_OBJS += tcp.o
@@ -41,7 +33,7 @@ index b0f3479..a3cfc77 100644
  LIB_OBJS += transport.o
  LIB_OBJS += transport-helper.o
 diff --git a/connect.c b/connect.c
-index 5047402..adaab12 100644
+index d47d0ec..8ee79d6 100644
 --- a/connect.c
 +++ b/connect.c
 @@ -6,6 +6,7 @@
@@ -52,7 +44,7 @@ index 5047402..adaab12 100644
  #include "url.h"
  #include "string-list.h"
  #include "sha1-array.h"
-@@ -278,278 +279,6 @@ static enum protocol get_protocol(const char *name)
+@@ -274,279 +275,6 @@ static enum protocol get_protocol(const char *name)
  	die("I don't handle protocol '%s'", name);
  }
  
@@ -315,7 +307,8 @@ index 5047402..adaab12 100644
 -
 -	get_host_and_port(&host, &port);
 -
--	proxy = xcalloc(1, sizeof(*proxy));
+-	proxy = xmalloc(sizeof(*proxy));
+-	child_process_init(proxy);
 -	argv_array_push(&proxy->args, git_proxy_command);
 -	argv_array_push(&proxy->args, host);
 -	argv_array_push(&proxy->args, port);
@@ -333,10 +326,10 @@ index 5047402..adaab12 100644
  	char *end;
 diff --git a/tcp.c b/tcp.c
 new file mode 100644
-index 0000000..dd69502
+index 0000000..c914532
 --- /dev/null
 +++ b/tcp.c
-@@ -0,0 +1,277 @@
+@@ -0,0 +1,278 @@
 +#include "cache.h"
 +#include "tcp.h"
 +#include "run-command.h"
@@ -601,7 +594,8 @@ index 0000000..dd69502
 +
 +	get_host_and_port(&host, &port);
 +
-+	proxy = xcalloc(1, sizeof(*proxy));
++	proxy = xmalloc(sizeof(*proxy));
++	child_process_init(proxy);
 +	argv_array_push(&proxy->args, git_proxy_command);
 +	argv_array_push(&proxy->args, host);
 +	argv_array_push(&proxy->args, port);

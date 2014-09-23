@@ -1,4 +1,4 @@
-From fc3716c6305b97cd73cb1f823a3c8a4d969c924d Mon Sep 17 00:00:00 2001
+From 5373eb4d584cd0fe160eb0b0935f64c2db051182 Mon Sep 17 00:00:00 2001
 From: Jens Lehmann <Jens.Lehmann@web.de>
 Date: Wed, 13 Jun 2012 18:50:10 +0200
 Subject: Teach checkout to recursively checkout submodules
@@ -10,8 +10,8 @@ Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
 ---
  Documentation/git-checkout.txt |   8 ++
  builtin/checkout.c             |  14 +++
- submodule-config.c             |  15 +++
- submodule-config.h             |   4 +
+ submodule.c                    |  14 +++
+ submodule.h                    |   3 +
  t/lib-submodule-update.sh      |  16 ++-
  t/t1013-read-tree-submodule.sh |   2 +
  t/t2013-checkout-submodule.sh  | 217 ++++++++++++++++++++++++++++++++++++++++-
@@ -22,15 +22,15 @@ Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
  t/t6041-bisect-submodule.sh    |   1 +
  t/t7112-reset-submodule.sh     |   2 +
  t/t7613-merge-submodule.sh     |   3 +
- 14 files changed, 284 insertions(+), 5 deletions(-)
+ 14 files changed, 282 insertions(+), 5 deletions(-)
 
 diff --git a/Documentation/git-checkout.txt b/Documentation/git-checkout.txt
-index 38c70c5..2ffa010 100644
+index 33ad2ad..bcf1c4d 100644
 --- a/Documentation/git-checkout.txt
 +++ b/Documentation/git-checkout.txt
-@@ -232,6 +232,14 @@ section of linkgit:git-add[1] to learn how to operate the `--patch` mode.
- 	specific files such as HEAD, index... See "MULTIPLE CHECKOUT
- 	MODE" section for more information.
+@@ -225,6 +225,14 @@ This means that you can use `git checkout -p` to selectively discard
+ edits from your current working tree. See the ``Interactive Mode''
+ section of linkgit:git-add[1] to learn how to operate the `--patch` mode.
  
 +--[no-]recurse-submodules::
 +	Using --recurse-submodules will update the content of all initialized
@@ -44,12 +44,12 @@ index 38c70c5..2ffa010 100644
  	Branch to checkout; if it refers to a branch (i.e., a name that,
  	when prepended with "refs/heads/", is a valid ref), then that
 diff --git a/builtin/checkout.c b/builtin/checkout.c
-index f865ed4..7d51dfd 100644
+index 8afdf2b..0159dc8 100644
 --- a/builtin/checkout.c
 +++ b/builtin/checkout.c
-@@ -23,6 +23,9 @@
+@@ -21,6 +21,9 @@
+ #include "submodule.h"
  #include "argv-array.h"
- #include "sigchain.h"
  
 +static const char *recurse_submodules_default = "off";
 +static int recurse_submodules = RECURSE_SUBMODULES_DEFAULT;
@@ -57,10 +57,10 @@ index f865ed4..7d51dfd 100644
  static const char * const checkout_usage[] = {
  	N_("git checkout [options] <branch>"),
  	N_("git checkout [options] [<branch>] -- <file>..."),
-@@ -1351,6 +1354,12 @@ int cmd_checkout(int argc, const char **argv, const char *prefix)
+@@ -1110,6 +1113,12 @@ int cmd_checkout(int argc, const char **argv, const char *prefix)
+ 			 N_("do not limit pathspecs to sparse entries only")),
+ 		OPT_HIDDEN_BOOL(0, "guess", &dwim_new_local_branch,
  				N_("second guess 'git checkout no-such-branch'")),
- 		OPT_FILENAME(0, "to", &opts.new_worktree,
- 			   N_("check a branch out in a separate working directory")),
 +		{ OPTION_CALLBACK, 0, "recurse-submodules", &recurse_submodules,
 +			    "checkout", "control recursive updating of submodules",
 +			    PARSE_OPT_OPTARG, option_parse_update_submodules },
@@ -70,7 +70,7 @@ index f865ed4..7d51dfd 100644
  		OPT_END(),
  	};
  
-@@ -1383,6 +1392,11 @@ int cmd_checkout(int argc, const char **argv, const char *prefix)
+@@ -1131,6 +1140,11 @@ int cmd_checkout(int argc, const char **argv, const char *prefix)
  		git_xmerge_config("merge.conflictstyle", conflict_style, NULL);
  	}
  
@@ -82,19 +82,11 @@ index f865ed4..7d51dfd 100644
  	if ((!!opts.new_branch + !!opts.new_branch_force + !!opts.new_orphan_branch) > 1)
  		die(_("-b, -B and --orphan are mutually exclusive"));
  
-diff --git a/submodule-config.c b/submodule-config.c
-index b8e5cc1..af77982 100644
---- a/submodule-config.c
-+++ b/submodule-config.c
-@@ -1,6 +1,7 @@
- #include "cache.h"
- #include "submodule-config.h"
- #include "submodule.h"
-+#include "parse-options.h"
- #include "string-list.h"
- #include "strbuf.h"
- 
-@@ -238,6 +239,20 @@ int parse_update_recurse_submodules_arg(const char *opt, const char *arg)
+diff --git a/submodule.c b/submodule.c
+index 9baf88d..ca232b6 100644
+--- a/submodule.c
++++ b/submodule.c
+@@ -375,6 +375,20 @@ int parse_update_recurse_submodules_arg(const char *opt, const char *arg)
  	}
  }
  
@@ -112,31 +104,30 @@ index b8e5cc1..af77982 100644
 +	return 0;
 +}
 +
- static void warn_multiple_config(const unsigned char *commit_sha1,
- 				 const char *name, const char *option)
+ int submodule_needs_update(const char *path)
  {
-diff --git a/submodule-config.h b/submodule-config.h
-index d032375..8787864 100644
---- a/submodule-config.h
-+++ b/submodule-config.h
-@@ -4,6 +4,8 @@
- #include "hashmap.h"
- #include "strbuf.h"
+ 	struct string_list_item *path_option;
+diff --git a/submodule.h b/submodule.h
+index b42ae91..9841da3 100644
+--- a/submodule.h
++++ b/submodule.h
+@@ -3,6 +3,7 @@
  
+ struct diff_options;
+ struct argv_array;
 +struct option;
-+
- /*
-  * Submodule entry containing the information about a certain submodule
-  * in a certain revision.
-@@ -20,6 +22,8 @@ struct submodule {
  
+ enum {
+ 	RECURSE_SUBMODULES_ON_DEMAND = -1,
+@@ -23,6 +24,8 @@ int parse_submodule_config_option(const char *var, const char *value);
+ void handle_ignore_submodules_arg(struct diff_options *diffopt, const char *);
  int parse_fetch_recurse_submodules_arg(const char *opt, const char *arg);
  int parse_update_recurse_submodules_arg(const char *opt, const char *arg);
 +int option_parse_update_submodules(const struct option *opt,
 +		const char *arg, int unset);
- int parse_submodule_config_option(const char *var, const char *value);
- const struct submodule *submodule_from_name(const unsigned char *commit_sha1,
- 		const char *name);
+ int submodule_needs_update(const char *path);
+ int populate_submodule(const char *path, unsigned char sha1[20], int force);
+ int depopulate_submodule(const char *path);
 diff --git a/t/lib-submodule-update.sh b/t/lib-submodule-update.sh
 index 711f55b..0db601e 100755
 --- a/t/lib-submodule-update.sh

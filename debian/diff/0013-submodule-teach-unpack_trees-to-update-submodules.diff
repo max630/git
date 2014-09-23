@@ -1,4 +1,4 @@
-From c1eb792cbb4d68cdcf052c29986f256b18445896 Mon Sep 17 00:00:00 2001
+From 8b311365267617c37b20a278b65efa0846503f68 Mon Sep 17 00:00:00 2001
 From: Jens Lehmann <Jens.Lehmann@web.de>
 Date: Fri, 5 Apr 2013 18:35:27 +0200
 Subject: submodule: teach unpack_trees() to update submodules
@@ -53,10 +53,10 @@ index 5e18e46..eb2384b 100644
  				return error("%s is a directory", path.buf);
  			remove_subtree(&path);
 diff --git a/submodule.c b/submodule.c
-index 43e38ba..fe323a1 100644
+index a91f077..9baf88d 100644
 --- a/submodule.c
 +++ b/submodule.c
-@@ -376,6 +376,42 @@ int depopulate_submodule(const char *path)
+@@ -462,6 +462,42 @@ int depopulate_submodule(const char *path)
  	return 0;
  }
  
@@ -99,7 +99,7 @@ index 43e38ba..fe323a1 100644
  void show_submodule_summary(FILE *f, const char *path,
  		const char *line_prefix,
  		unsigned char one[20], unsigned char two[20],
-@@ -815,6 +851,17 @@ out:
+@@ -896,6 +932,17 @@ out:
  	return result;
  }
  
@@ -117,7 +117,7 @@ index 43e38ba..fe323a1 100644
  unsigned is_submodule_modified(const char *path, int ignore_untracked)
  {
  	ssize_t len;
-@@ -964,6 +1011,45 @@ int ok_to_remove_submodule(const char *path)
+@@ -1042,6 +1089,45 @@ int ok_to_remove_submodule(const char *path)
  	return ok_to_remove;
  }
  
@@ -164,18 +164,18 @@ index 43e38ba..fe323a1 100644
  		struct commit *a, struct commit *b)
  {
 diff --git a/submodule.h b/submodule.h
-index 1fa9108..ebda1c7 100644
+index 3657ca8..b42ae91 100644
 --- a/submodule.h
 +++ b/submodule.h
-@@ -25,6 +25,7 @@ void gitmodules_config(void);
- void handle_ignore_submodules_arg(struct diff_options *diffopt, const char *);
+@@ -26,6 +26,7 @@ int parse_update_recurse_submodules_arg(const char *opt, const char *arg);
+ int submodule_needs_update(const char *path);
  int populate_submodule(const char *path, unsigned char sha1[20], int force);
  int depopulate_submodule(const char *path);
 +int update_submodule(const char *path, const unsigned char sha1[20], int force);
  void show_submodule_summary(FILE *f, const char *path,
  		const char *line_prefix,
  		unsigned char one[20], unsigned char two[20],
-@@ -36,9 +37,11 @@ void check_for_new_submodule_commits(unsigned char new_sha1[20]);
+@@ -37,9 +38,11 @@ void check_for_new_submodule_commits(unsigned char new_sha1[20]);
  int fetch_populated_submodules(const struct argv_array *options,
  			       const char *prefix, int command_line_option,
  			       int quiet);
@@ -188,7 +188,7 @@ index 1fa9108..ebda1c7 100644
  		    const unsigned char a[20], const unsigned char b[20], int search);
  int find_unpushed_submodules(unsigned char new_sha1[20], const char *remotes_name,
 diff --git a/unpack-trees.c b/unpack-trees.c
-index 2603a69..9103ac6 100644
+index 186014f..7426881 100644
 --- a/unpack-trees.c
 +++ b/unpack-trees.c
 @@ -28,6 +28,9 @@ static const char *unpack_plumbing_errors[NB_UNPACK_TREES_ERROR_TYPES] = {
@@ -210,7 +210,7 @@ index 2603a69..9103ac6 100644
  
  	if (advice_commit_before_merge)
  		msg = "The following untracked working tree files would be %s by %s:\n%%s"
-@@ -1219,17 +1224,15 @@ static int verify_uptodate_1(const struct cache_entry *ce,
+@@ -1220,17 +1225,15 @@ static int verify_uptodate_1(const struct cache_entry *ce,
  	if (!lstat(ce->name, &st)) {
  		int flags = CE_MATCH_IGNORE_VALID|CE_MATCH_IGNORE_SKIP_WORKTREE;
  		unsigned changed = ie_match_stat(o->src_index, ce, &st, flags);
@@ -237,7 +237,7 @@ index 2603a69..9103ac6 100644
  		errno = 0;
  	}
  	if (errno == ENOENT)
-@@ -1252,6 +1255,36 @@ static int verify_uptodate_sparse(const struct cache_entry *ce,
+@@ -1253,6 +1256,36 @@ static int verify_uptodate_sparse(const struct cache_entry *ce,
  	return verify_uptodate_1(ce, o, ERROR_SPARSE_NOT_UPTODATE_FILE);
  }
  
@@ -274,7 +274,7 @@ index 2603a69..9103ac6 100644
  static void invalidate_ce_path(const struct cache_entry *ce,
  			       struct unpack_trees_options *o)
  {
-@@ -1528,9 +1561,17 @@ static int merged_entry(const struct cache_entry *ce,
+@@ -1531,9 +1564,17 @@ static int merged_entry(const struct cache_entry *ce,
  			copy_cache_entry(merge, old);
  			update = 0;
  		} else {
@@ -308,5 +308,5 @@ index 36a73a6..bee8740 100644
  	ERROR_WOULD_LOSE_UNTRACKED_REMOVED,
  	ERROR_BIND_OVERLAP,
 -- 
-2.0.0.526.g5318336
+2.1.0.rc2.206.gedb03e5
 

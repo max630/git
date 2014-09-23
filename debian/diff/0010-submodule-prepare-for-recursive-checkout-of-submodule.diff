@@ -1,4 +1,4 @@
-From b2a34de1d5448c955db031f3ca5ddf3b4d3a2a59 Mon Sep 17 00:00:00 2001
+From 2f562bd5d938444cba066b49dcacff85f9cdc394 Mon Sep 17 00:00:00 2001
 From: Jens Lehmann <Jens.Lehmann@web.de>
 Date: Mon, 18 Jun 2012 22:17:59 +0200
 Subject: submodule: prepare for recursive checkout of submodules
@@ -12,26 +12,25 @@ automatically.
 Signed-off-by: Jens Lehmann <Jens.Lehmann@web.de>
 Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
 ---
- submodule-config.c | 15 +++++++++++++++
- submodule-config.h |  1 +
- submodule.c        | 21 +++++++++++++++++++++
- submodule.h        |  2 ++
- 4 files changed, 39 insertions(+)
+ submodule.c | 36 ++++++++++++++++++++++++++++++++++++
+ submodule.h |  3 +++
+ 2 files changed, 39 insertions(+)
 
-diff --git a/submodule-config.c b/submodule-config.c
-index 96623ad..b8e5cc1 100644
---- a/submodule-config.c
-+++ b/submodule-config.c
-@@ -1,6 +1,7 @@
- #include "cache.h"
- #include "submodule-config.h"
- #include "submodule.h"
-+#include "string-list.h"
- #include "strbuf.h"
- 
- /*
-@@ -223,6 +224,20 @@ int parse_fetch_recurse_submodules_arg(const char *opt, const char *arg)
- 	return parse_fetch_recurse(opt, arg, 1);
+diff --git a/submodule.c b/submodule.c
+index 0690dc5..8bf2281 100644
+--- a/submodule.c
++++ b/submodule.c
+@@ -16,6 +16,8 @@ static struct string_list config_name_for_path;
+ static struct string_list config_fetch_recurse_submodules_for_name;
+ static struct string_list config_ignore_for_name;
+ static int config_fetch_recurse_submodules = RECURSE_SUBMODULES_ON_DEMAND;
++static int config_update_recurse_submodules = RECURSE_SUBMODULES_OFF;
++static int option_update_recurse_submodules = RECURSE_SUBMODULES_DEFAULT;
+ static struct string_list changed_submodule_paths;
+ static int initialized_fetch_ref_tips;
+ static struct sha1_array ref_tips_before_fetch;
+@@ -359,6 +361,34 @@ int parse_fetch_recurse_submodules_arg(const char *opt, const char *arg)
+ 	}
  }
  
 +int parse_update_recurse_submodules_arg(const char *opt, const char *arg)
@@ -48,42 +47,11 @@ index 96623ad..b8e5cc1 100644
 +	}
 +}
 +
- static void warn_multiple_config(const unsigned char *commit_sha1,
- 				 const char *name, const char *option)
- {
-diff --git a/submodule-config.h b/submodule-config.h
-index 58afc83..d032375 100644
---- a/submodule-config.h
-+++ b/submodule-config.h
-@@ -19,6 +19,7 @@ struct submodule {
- };
- 
- int parse_fetch_recurse_submodules_arg(const char *opt, const char *arg);
-+int parse_update_recurse_submodules_arg(const char *opt, const char *arg);
- int parse_submodule_config_option(const char *var, const char *value);
- const struct submodule *submodule_from_name(const unsigned char *commit_sha1,
- 		const char *name);
-diff --git a/submodule.c b/submodule.c
-index 0151603..eaf26d4 100644
---- a/submodule.c
-+++ b/submodule.c
-@@ -14,6 +14,8 @@
- #include "blob.h"
- 
- static int config_fetch_recurse_submodules = RECURSE_SUBMODULES_ON_DEMAND;
-+static int config_update_recurse_submodules = RECURSE_SUBMODULES_OFF;
-+static int option_update_recurse_submodules = RECURSE_SUBMODULES_DEFAULT;
- static struct string_list changed_submodule_paths;
- static int initialized_fetch_ref_tips;
- static struct sha1_array ref_tips_before_fetch;
-@@ -44,6 +46,19 @@ int is_staging_gitmodules_ok(void)
- 	return !gitmodules_is_modified;
- }
- 
 +int submodule_needs_update(const char *path)
 +{
-+	const struct submodule *submodule = submodule_from_path(null_sha1, path);
-+	if (!submodule || !submodule->name)
++	struct string_list_item *path_option;
++	path_option = unsorted_string_list_lookup(&config_name_for_path, path);
++	if (!path_option)
 +		return 0;
 +
 +	/* update can't be "none", "merge" or "rebase" */
@@ -93,11 +61,11 @@ index 0151603..eaf26d4 100644
 +	return config_update_recurse_submodules != RECURSE_SUBMODULES_OFF;
 +}
 +
- /*
-  * Try to update the "path" entry in the "submodule.<name>" section of the
-  * .gitmodules file. Return 0 only if a .gitmodules file was found, a section
-@@ -351,6 +366,12 @@ void set_config_fetch_recurse_submodules(int value)
- 	config_fetch_recurse_submodules = value;
+ void show_submodule_summary(FILE *f, const char *path,
+ 		const char *line_prefix,
+ 		unsigned char one[20], unsigned char two[20],
+@@ -561,6 +591,12 @@ int push_unpushed_submodules(unsigned char new_sha1[20], const char *remotes_nam
+ 	return ret;
  }
  
 +void set_config_update_recurse_submodules(int default_value, int option_value)
@@ -106,22 +74,22 @@ index 0151603..eaf26d4 100644
 +	option_update_recurse_submodules = option_value;
 +}
 +
- static int has_remote(const char *refname, const unsigned char *sha1, int flags, void *cb_data)
+ static int is_submodule_commit_present(const char *path, unsigned char sha1[20])
  {
- 	return 1;
+ 	int is_present = 0;
 diff --git a/submodule.h b/submodule.h
-index 5507c3d..d7451f0 100644
+index 7beec48..055918c 100644
 --- a/submodule.h
 +++ b/submodule.h
-@@ -14,6 +14,7 @@ enum {
- };
- 
- int is_staging_gitmodules_ok(void);
+@@ -22,12 +22,15 @@ void gitmodules_config(void);
+ int parse_submodule_config_option(const char *var, const char *value);
+ void handle_ignore_submodules_arg(struct diff_options *diffopt, const char *);
+ int parse_fetch_recurse_submodules_arg(const char *opt, const char *arg);
++int parse_update_recurse_submodules_arg(const char *opt, const char *arg);
 +int submodule_needs_update(const char *path);
- int update_path_in_gitmodules(const char *oldpath, const char *newpath);
- int remove_path_from_gitmodules(const char *path);
- void stage_updated_gitmodules(void);
-@@ -28,6 +29,7 @@ void show_submodule_summary(FILE *f, const char *path,
+ void show_submodule_summary(FILE *f, const char *path,
+ 		const char *line_prefix,
+ 		unsigned char one[20], unsigned char two[20],
  		unsigned dirty_submodule, const char *meta,
  		const char *del, const char *add, const char *reset);
  void set_config_fetch_recurse_submodules(int value);
@@ -130,5 +98,5 @@ index 5507c3d..d7451f0 100644
  int fetch_populated_submodules(const struct argv_array *options,
  			       const char *prefix, int command_line_option,
 -- 
-2.0.0.526.g5318336
+2.1.0.rc2.206.gedb03e5
 

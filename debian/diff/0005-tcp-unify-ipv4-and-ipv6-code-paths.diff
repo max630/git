@@ -1,4 +1,4 @@
-From 526030ea235b0e70ef31004d445ac6d03b9e5964 Mon Sep 17 00:00:00 2001
+From 286a7698e836b744499c33b08863031b4159bc4c Mon Sep 17 00:00:00 2001
 From: Jonathan Nieder <jrnieder@gmail.com>
 Date: Mon, 6 Jun 2011 04:41:28 -0500
 Subject: tcp: unify ipv4 and ipv6 code paths
@@ -95,10 +95,10 @@ Improved-by: Erik Faye-Lund <kusmabite@gmail.com>
  create mode 100644 dns-ipv6.h
 
 diff --git a/Makefile b/Makefile
-index a3cfc77..60e1256 100644
+index cbb4dca..9ea3668 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -1362,6 +1362,11 @@ ifdef NO_TRUSTABLE_FILEMODE
+@@ -1230,6 +1230,11 @@ ifdef NO_TRUSTABLE_FILEMODE
  endif
  ifdef NO_IPV6
  	BASIC_CFLAGS += -DNO_IPV6
@@ -326,7 +326,7 @@ index 0000000..4211c9e
 +
 +#endif
 diff --git a/tcp.c b/tcp.c
-index fc4e22f..6642cbc 100644
+index 6f9c869..2eb8597 100644
 --- a/tcp.c
 +++ b/tcp.c
 @@ -3,8 +3,10 @@

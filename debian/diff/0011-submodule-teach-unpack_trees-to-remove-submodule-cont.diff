@@ -1,4 +1,4 @@
-From a3de1e1a98d51e1eed7cc5565fdf3a20a800d1bc Mon Sep 17 00:00:00 2001
+From 0d390b2561824f8f5eb530348c708ee20ec86771 Mon Sep 17 00:00:00 2001
 From: Jens Lehmann <Jens.Lehmann@web.de>
 Date: Tue, 19 Jun 2012 20:55:45 +0200
 Subject: submodule: teach unpack_trees() to remove submodule contents
@@ -25,16 +25,16 @@ Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
 ---
  submodule.c    | 37 +++++++++++++++++++++++++++++++++++++
  submodule.h    |  1 +
- unpack-trees.c |  6 ++----
+ unpack-trees.c |  6 +++---
  wrapper.c      |  3 +++
- 4 files changed, 43 insertions(+), 4 deletions(-)
+ 4 files changed, 44 insertions(+), 3 deletions(-)
 
 diff --git a/submodule.c b/submodule.c
-index eaf26d4..c1fc71a 100644
+index 8bf2281..0c823dd 100644
 --- a/submodule.c
 +++ b/submodule.c
-@@ -303,6 +303,43 @@ static void print_submodule_summary(struct rev_info *rev, FILE *f,
- 	strbuf_release(&sb);
+@@ -389,6 +389,43 @@ int submodule_needs_update(const char *path)
+ 	return config_update_recurse_submodules != RECURSE_SUBMODULES_OFF;
  }
  
 +int depopulate_submodule(const char *path)
@@ -78,30 +78,30 @@ index eaf26d4..c1fc71a 100644
  		const char *line_prefix,
  		unsigned char one[20], unsigned char two[20],
 diff --git a/submodule.h b/submodule.h
-index d7451f0..c70c4de 100644
+index 055918c..df291cf 100644
 --- a/submodule.h
 +++ b/submodule.h
-@@ -23,6 +23,7 @@ void set_diffopt_flags_from_submodule_config(struct diff_options *diffopt,
- int submodule_config(const char *var, const char *value, void *cb);
- void gitmodules_config(void);
- void handle_ignore_submodules_arg(struct diff_options *diffopt, const char *);
+@@ -24,6 +24,7 @@ void handle_ignore_submodules_arg(struct diff_options *diffopt, const char *);
+ int parse_fetch_recurse_submodules_arg(const char *opt, const char *arg);
+ int parse_update_recurse_submodules_arg(const char *opt, const char *arg);
+ int submodule_needs_update(const char *path);
 +int depopulate_submodule(const char *path);
  void show_submodule_summary(FILE *f, const char *path,
  		const char *line_prefix,
  		unsigned char one[20], unsigned char two[20],
 diff --git a/unpack-trees.c b/unpack-trees.c
-index c6aa8fb..eee418b 100644
+index 629c658..68275dc 100644
 --- a/unpack-trees.c
 +++ b/unpack-trees.c
-@@ -5,6 +5,7 @@
- #include "tree-walk.h"
- #include "cache-tree.h"
- #include "unpack-trees.h"
-+#include "submodule.h"
- #include "progress.h"
+@@ -9,6 +9,7 @@
  #include "refs.h"
  #include "attr.h"
-@@ -1261,15 +1262,12 @@ static void invalidate_ce_path(const struct cache_entry *ce,
+ #include "split-index.h"
++#include "submodule.h"
+ 
+ /*
+  * Error messages expected by scripts out of plumbing commands such as
+@@ -1262,14 +1263,13 @@ static void invalidate_ce_path(const struct cache_entry *ce,
  /*
   * Check that checking out ce->sha1 in subdir ce->name is not
   * going to overwrite any working files.
@@ -113,13 +113,13 @@ index c6aa8fb..eee418b 100644
  				  enum unpack_trees_error_types error_type,
  				  struct unpack_trees_options *o)
  {
--	return 0;
-+	return submodule_needs_update(ce->name) && is_submodule_modified(ce->name, 0);
++	if (submodule_needs_update(ce->name) && is_submodule_modified(ce->name, 0))
++		return 1;
+ 	return 0;
  }
  
- static int verify_clean_subdirectory(const struct cache_entry *ce,
 diff --git a/wrapper.c b/wrapper.c
-index c9b1e45..5b4b771 100644
+index 25074d7..6a0ac5e 100644
 --- a/wrapper.c
 +++ b/wrapper.c
 @@ -2,6 +2,7 @@
@@ -130,7 +130,7 @@ index c9b1e45..5b4b771 100644
  
  static void do_nothing(size_t size)
  {
-@@ -447,6 +448,8 @@ int unlink_or_warn(const char *file)
+@@ -483,6 +484,8 @@ int unlink_or_warn(const char *file)
  
  int rmdir_or_warn(const char *file)
  {
@@ -140,5 +140,5 @@ index c9b1e45..5b4b771 100644
  }
  
 -- 
-2.0.0.526.g5318336
+2.1.0.rc2.206.gedb03e5
 
