@@ -1,3 +1,69 @@
+Version v2.1.3; changes since v2.1.2:
+-------------------------------------
+
+David Aguilar (1):
+      mergetools/meld: make usage of `--output` configurable and more robust
+
+Eric Sunshine (1):
+      mailinfo: work around -Wstring-plus-int warning
+
+Jeff King (2):
+      mailinfo: make ">From" in-body header check more robust
+      pack-objects: turn off bitmaps when we split packs
+
+Junio C Hamano (1):
+      Git 2.1.3
+
+René Scharfe (3):
+      daemon: handle gethostbyname() error
+      daemon: fix error message after bind()
+      daemon: remove write-only variable maxfd
+
+Roland Mas (1):
+      gitweb: use start_form, not startform that was removed in CGI.pm 4.04
+
+Wieland Hoffmann (1):
+      git-tag.txt: Add a missing hyphen to `-s`
+
+brian m. carlson (1):
+      Documentation: fix misrender of pretty-formats in Asciidoctor
+
+
+Version v2.1.2; changes since v2.1.1:
+-------------------------------------
+
+Jeff King (5):
+      send-pack: take refspecs over stdin
+      index-pack: fix race condition with duplicate bases
+      fsck: exit with non-zero status upon error from fsck_obj()
+      config: avoid a funny sentinel value "a^"
+      fsck: return non-zero status on missing ref tips
+
+Junio C Hamano (1):
+      Git 2.1.2
+
+Max Kirillov (1):
+      reachable.c: add HEAD to reachability starting commits
+
+Maxim Bublis (2):
+      t9300: test filedelete command
+      fast-import: fix segfault in store_tree()
+
+Phillip Sz (2):
+      l10n: de.po: change Email to E-Mail
+      l10n: de.po: use comma before "um"
+
+Ralf Thielow (1):
+      po/TEAMS: add new member to German translation team
+
+Sergey Organov (2):
+      Documentation/git-rebase.txt: -f forces a rebase that would otherwise be a no-op
+      Documentation/git-rebase.txt: <upstream> must be given to specify <branch>
+
+Tanay Abhra (1):
+      make config --add behave correctly for empty and NULL values
+
+
 Version v2.1.1; changes since v2.1.0:
 -------------------------------------
 
