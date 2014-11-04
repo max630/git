@@ -1,4 +1,4 @@
-Version next; changes since v2.1.1:
+Version next; changes since v2.1.3:
 -----------------------------------
 
 Alex Henrie (1):
@@ -42,7 +42,7 @@ Christian Couder (11):
       trailer: add tests for commands in config file
       Documentation: add documentation for 'git interpret-trailers'
 
-David Aguilar (20):
+David Aguilar (19):
       stylefix: asterisks stick to the variable, not the type
       cleanups: ensure that git-compat-util.h is included first
       Documentation: a note about stdout for git rev-parse --verify --quiet
@@ -56,7 +56,6 @@ David Aguilar (20):
       test-lib-functions: adjust style to match CodingGuidelines
       mergetool: use more conservative temporary filenames
       git-sh-setup: move GIT_DIR initialization into a function
-      mergetools/meld: make usage of `--output` configurable and more robust
       t7610-mergetool: use test_config to isolate tests
       test-lib-functions: adjust style to match CodingGuidelines
       mergetool: use more conservative temporary filenames
@@ -74,9 +73,6 @@ David Turner (4):
       test-dump-cache-tree: invalid trees are not errors
       cache-tree: subdirectory tests
       cache-tree: Write updated cache-tree after commit
-
-Eric Sunshine (1):
-      mailinfo: work around -Wstring-plus-int warning
 
 Eric Wong (15):
       git svn: info: correctly handle absolute path args
@@ -113,7 +109,7 @@ Jakob Stoklund Olesen (2):
       git-svn: only look at the new parts of svn:mergeinfo
       git-svn: only look at the root path for svn:mergeinfo
 
-Jeff King (63):
+Jeff King (56):
       stash: default listing to working-tree diff
       subtree: make "all" default target of Makefile
       http: style fixes for curl_multi_init error check
@@ -121,7 +117,6 @@ Jeff King (63):
       log-tree: make add_name_decoration a public function
       log-tree: make name_decoration hash static
       Makefile: drop CHECK_HEADER_DEPENDENCIES code
-      send-pack: take refspecs over stdin
       log-tree: use FLEX_ARRAY in name_decoration
       commit: provide a function to find a header in a buffer
       record_author_date(): fix memory leak on malformed commit
@@ -131,16 +126,11 @@ Jeff King (63):
       docs/fast-export: explain --anonymize more completely
       determine_author_info(): reuse parsing functions
       determine_author_info(): copy getenv output
-      index-pack: fix race condition with duplicate bases
-      fsck: exit with non-zero status upon error from fsck_obj()
       refs: write packed_refs file using stdio
-      config: avoid a funny sentinel value "a^"
-      fsck: return non-zero status on missing ref tips
       refs: speed up is_refname_available
       prune-packed: fix minor memory leak
       make update-server-info more robust
       server-info: clean up after writing info/packs
-      mailinfo: make ">From" in-body header check more robust
       credential-cache: close stderr in daemon process
       branch: clean up commit flags after merge-filter walk
       t5304: use test_path_is_* instead of "test -f"
@@ -173,7 +163,6 @@ Jeff King (63):
       pack-objects: use argv_array
       repack: pack objects mentioned by the index
       pack-objects: double-check options before discarding objects
-      pack-objects: turn off bitmaps when we split packs
       drop add_object_array_with_mode
       cache-tree: avoid infinite loop on zero-entry tree
       bundle: split out ref writing from bundle_create
@@ -211,7 +200,7 @@ Jonathan Nieder (10):
       lockfile: remove unable_to_lock_error
       ref_transaction_commit: bail out on failure to remove a ref
 
-Junio C Hamano (68):
+Junio C Hamano (66):
       tests: drop GIT_*_TIMING_TESTS environment variable support
       lockfile: allow reopening a closed but still locked file
       test prerequisites: eradicate NOT_FOO
@@ -254,7 +243,6 @@ Junio C Hamano (68):
       t7004: give the test a bit more stack space
       Update draft release notes to 2.2
       Update draft release notes to 2.2
-      Git 2.1.2
       Update draft release notes to 2.2
       completion: use "git -C $there" instead of (cd $there && git ...)
       pack-objects: set number of threads before checking and warning
@@ -276,7 +264,6 @@ Junio C Hamano (68):
       builtin/commit.c: extract ignore_non_trailer() helper function
       merge & sequencer: turn "Conflicts:" hint into a comment
       Update draft release notes to 2.2
-      Git 2.1.3
       bundle: split out a helper function to create pack data
       bundle: split out a helper function to compute and write prerequisites
       Git 2.2.0-rc0
@@ -310,15 +297,12 @@ Matthieu Moy (8):
       merge, pull: stop advising 'commit -a' in case of conflict
       RelNotes/2.2.0.txt: fix minor typos
 
-Max Kirillov (3):
-      reachable.c: add HEAD to reachability starting commits
+Max Kirillov (2):
       gitk: Show detached HEAD if --all is specified
       gitk: Remove boilerplate for configuration variables
 
-Maxim Bublis (3):
+Maxim Bublis (1):
       contrib/svn-fe: fix Makefile
-      t9300: test filedelete command
-      fast-import: fix segfault in store_tree()
 
 Michael Haggerty (41):
       unable_to_lock_die(): rename function from unable_to_lock_index_die()
@@ -401,17 +385,10 @@ Philip Oakley (4):
       doc: add 'everyday' to 'git help'
       doc: fix 'git status --help' character quoting
 
-Phillip Sz (2):
-      l10n: de.po: change Email to E-Mail
-      l10n: de.po: use comma before "um"
-
-Ralf Thielow (1):
-      po/TEAMS: add new member to German translation team
-
 Ramsay Allan Jones (1):
       revision: remove definition of unused 'add_object' function
 
-René Scharfe (49):
+René Scharfe (46):
       strbuf: add strbuf_getcwd()
       unix-sockets: use strbuf_getcwd()
       init: avoid superfluous real_path() calls
@@ -448,9 +425,6 @@ René Scharfe (49):
       t0090: avoid passing empty string to printf %d
       sha1-array: add test-sha1-array and basic tests
       sha1-lookup: handle duplicates in sha1_pos()
-      daemon: handle gethostbyname() error
-      daemon: fix error message after bind()
-      daemon: remove write-only variable maxfd
       bundle: plug minor memory leak in is_tag_in_date_range()
       mailsplit: remove unnecessary unlink(2) call
       use skip_prefix() to avoid more magic numbers
@@ -464,9 +438,6 @@ René Scharfe (49):
 
 Robert de Bath (1):
       config.txt: pack.windowmemory limit applies per-thread
-
-Roland Mas (1):
-      gitweb: use start_form, not startform that was removed in CGI.pm 4.04
 
 Ronnie Sahlberg (38):
       refs.c: change ref_transaction_create to do error checking and return status
@@ -513,9 +484,7 @@ Sebastian Schuberth (3):
       contacts: add a Makefile to generate docs and install
       gitk: Do not depend on Cygwin's "kill" command on Windows
 
-Sergey Organov (3):
-      Documentation/git-rebase.txt: -f forces a rebase that would otherwise be a no-op
-      Documentation/git-rebase.txt: <upstream> must be given to specify <branch>
+Sergey Organov (1):
       Documentation/git-rebase.txt: document when --fork-point is auto-enabled
 
 Sergey Senozhatsky (1):
@@ -548,7 +517,7 @@ Steffen Prohaska (8):
 Sveinung Kvilhaugsvik (1):
       git-svn.txt: advertise pushurl with dcommit
 
-Tanay Abhra (25):
+Tanay Abhra (24):
       add `config_set` API for caching config-like files
       test-config: add tests for the config_set API
       pretty.c: make git_pretty_formats_config return -1 on git_config_string failure
@@ -573,7 +542,6 @@ Tanay Abhra (25):
       ll-merge.c: refactor `read_merge_config()` to use `git_config_string()`
       merge-recursive.c: replace `git_config()` with `git_config_get_int()`
       builtin/apply.c: replace `git_config()` with `git_config_get_string_const()`
-      make config --add behave correctly for empty and NULL values
 
 Thomas Braun (2):
       pretty: note that %cd respects the --date= option
@@ -591,22 +559,84 @@ W. Trevor King (2):
       pre-push.sample: Write error message to stderr
       t1304: Set LOGNAME even if USER is unset or null
 
-Wieland Hoffmann (1):
-      git-tag.txt: Add a missing hyphen to `-s`
-
 Zoltan Klinger (1):
       grep: fix match highlighting for combined patterns with context lines
 
-brian m. carlson (9):
+brian m. carlson (8):
       archive: honor tar.umask even for pax headers
       imap-send doc: omit confusing "to use imap-send" modifier
-      Documentation: fix misrender of pretty-formats in Asciidoctor
       Documentation: adjust document title underlining
       Documentation: fix mismatched delimiters in git-imap-send
       Documentation: move some AsciiDoc parameters into variables
       Documentation: implement linkgit macro for Asciidoctor
       Documentation: refactor common operations into variables
       Documentation: remove Asciidoctor linkgit macro
+
+
+Version v2.1.3; changes since v2.1.2:
+-------------------------------------
+
+David Aguilar (1):
+      mergetools/meld: make usage of `--output` configurable and more robust
+
+Eric Sunshine (1):
+      mailinfo: work around -Wstring-plus-int warning
+
+Jeff King (2):
+      mailinfo: make ">From" in-body header check more robust
+      pack-objects: turn off bitmaps when we split packs
+
+Junio C Hamano (1):
+      Git 2.1.3
+
+René Scharfe (3):
+      daemon: handle gethostbyname() error
+      daemon: fix error message after bind()
+      daemon: remove write-only variable maxfd
+
+Roland Mas (1):
+      gitweb: use start_form, not startform that was removed in CGI.pm 4.04
+
+Wieland Hoffmann (1):
+      git-tag.txt: Add a missing hyphen to `-s`
+
+brian m. carlson (1):
+      Documentation: fix misrender of pretty-formats in Asciidoctor
+
+
+Version v2.1.2; changes since v2.1.1:
+-------------------------------------
+
+Jeff King (5):
+      send-pack: take refspecs over stdin
+      index-pack: fix race condition with duplicate bases
+      fsck: exit with non-zero status upon error from fsck_obj()
+      config: avoid a funny sentinel value "a^"
+      fsck: return non-zero status on missing ref tips
+
+Junio C Hamano (1):
+      Git 2.1.2
+
+Max Kirillov (1):
+      reachable.c: add HEAD to reachability starting commits
+
+Maxim Bublis (2):
+      t9300: test filedelete command
+      fast-import: fix segfault in store_tree()
+
+Phillip Sz (2):
+      l10n: de.po: change Email to E-Mail
+      l10n: de.po: use comma before "um"
+
+Ralf Thielow (1):
+      po/TEAMS: add new member to German translation team
+
+Sergey Organov (2):
+      Documentation/git-rebase.txt: -f forces a rebase that would otherwise be a no-op
+      Documentation/git-rebase.txt: <upstream> must be given to specify <branch>
+
+Tanay Abhra (1):
+      make config --add behave correctly for empty and NULL values
 
 
 Version v2.1.1; changes since v2.1.0:
