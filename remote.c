@@ -508,7 +508,7 @@ static void read_config(void)
 		return;
 	default_remote_name = "origin";
 	current_branch = NULL;
-	head_ref = resolve_ref_unsafe("HEAD", sha1, 0, &flag);
+	head_ref = resolve_ref_unsafe("HEAD", 0, sha1, &flag);
 	if (head_ref && (flag & REF_ISSYMREF) &&
 	    skip_prefix(head_ref, "refs/heads/", &head_ref)) {
 		current_branch = make_branch(head_ref, 0);
@@ -862,21 +862,14 @@ static int match_name_with_pattern(const char *key, const char *name,
 	ret = !strncmp(name, key, klen) && namelen >= klen + ksuffixlen &&
 		!memcmp(name + namelen - ksuffixlen, kstar + 1, ksuffixlen);
 	if (ret && value) {
+		struct strbuf sb = STRBUF_INIT;
 		const char *vstar = strchr(value, '*');
-		size_t vlen;
-		size_t vsuffixlen;
 		if (!vstar)
 			die("Value '%s' of pattern has no '*'", value);
-		vlen = vstar - value;
-		vsuffixlen = strlen(vstar + 1);
-		*result = xmalloc(vlen + vsuffixlen +
-				  strlen(name) -
-				  klen - ksuffixlen + 1);
-		strncpy(*result, value, vlen);
-		strncpy(*result + vlen,
-			name + klen, namelen - klen - ksuffixlen);
-		strcpy(*result + vlen + namelen - klen - ksuffixlen,
-		       vstar + 1);
+		strbuf_add(&sb, value, vstar - value);
+		strbuf_add(&sb, name + klen, namelen - klen - ksuffixlen);
+		strbuf_addstr(&sb, vstar + 1);
+		*result = strbuf_detach(&sb, NULL);
 	}
 	return ret;
 }
@@ -1145,7 +1138,8 @@ static char *guess_ref(const char *name, struct ref *peer)
 	struct strbuf buf = STRBUF_INIT;
 	unsigned char sha1[20];
 
-	const char *r = resolve_ref_unsafe(peer->name, sha1, 1, NULL);
+	const char *r = resolve_ref_unsafe(peer->name, RESOLVE_REF_READING,
+					   sha1, NULL);
 	if (!r)
 		return NULL;
 
@@ -1206,7 +1200,9 @@ static int match_explicit(struct ref *src, struct ref *dst,
 		unsigned char sha1[20];
 		int flag;
 
-		dst_value = resolve_ref_unsafe(matched_src->name, sha1, 1, &flag);
+		dst_value = resolve_ref_unsafe(matched_src->name,
+					       RESOLVE_REF_READING,
+					       sha1, &flag);
 		if (!dst_value ||
 		    ((flag & REF_ISSYMREF) &&
 		     !starts_with(dst_value, "refs/heads/")))
@@ -1635,6 +1631,27 @@ void set_ref_status_for_push(struct ref *remote_refs, int send_mirror,
 	}
 }
 
+static void set_merge(struct branch *ret)
+{
+	char *ref;
+	unsigned char sha1[20];
+	int i;
+
+	ret->merge = xcalloc(ret->merge_nr, sizeof(*ret->merge));
+	for (i = 0; i < ret->merge_nr; i++) {
+		ret->merge[i] = xcalloc(1, sizeof(**ret->merge));
+		ret->merge[i]->src = xstrdup(ret->merge_name[i]);
+		if (!remote_find_tracking(ret->remote, ret->merge[i]) ||
+		    strcmp(ret->remote_name, "."))
+			continue;
+		if (dwim_ref(ret->merge_name[i], strlen(ret->merge_name[i]),
+			     sha1, &ref) == 1)
+			ret->merge[i]->dst = ref;
+		else
+			ret->merge[i]->dst = xstrdup(ret->merge_name[i]);
+	}
+}
+
 struct branch *branch_get(const char *name)
 {
 	struct branch *ret;
@@ -1646,17 +1663,8 @@ struct branch *branch_get(const char *name)
 		ret = make_branch(name, 0);
 	if (ret && ret->remote_name) {
 		ret->remote = remote_get(ret->remote_name);
-		if (ret->merge_nr) {
-			int i;
-			ret->merge = xcalloc(ret->merge_nr, sizeof(*ret->merge));
-			for (i = 0; i < ret->merge_nr; i++) {
-				ret->merge[i] = xcalloc(1, sizeof(**ret->merge));
-				ret->merge[i]->src = xstrdup(ret->merge_name[i]);
-				if (remote_find_tracking(ret->remote, ret->merge[i])
-				    && !strcmp(ret->remote_name, "."))
-					ret->merge[i]->dst = xstrdup(ret->merge_name[i]);
-			}
-		}
+		if (ret->merge_nr)
+			set_merge(ret);
 	}
 	return ret;
 }
@@ -1680,7 +1688,7 @@ static int ignore_symref_update(const char *refname)
 	unsigned char sha1[20];
 	int flag;
 
-	if (!resolve_ref_unsafe(refname, sha1, 0, &flag))
+	if (!resolve_ref_unsafe(refname, 0, sha1, &flag))
 		return 0; /* non-existing refs are OK */
 	return (flag & REF_ISSYMREF);
 }

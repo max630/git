@@ -108,12 +108,6 @@ static struct child_process *get_helper(struct transport *transport)
 	int refspec_alloc = 0;
 	int duped;
 	int code;
-	char git_dir_buf[sizeof(GIT_DIR_ENVIRONMENT) + PATH_MAX + 1];
-	const char *helper_env[] = {
-		git_dir_buf,
-		NULL
-	};
-
 
 	if (data->helper)
 		return data->helper;
@@ -129,8 +123,8 @@ static struct child_process *get_helper(struct transport *transport)
 	helper->git_cmd = 0;
 	helper->silent_exec_failure = 1;
 
-	snprintf(git_dir_buf, sizeof(git_dir_buf), "%s=%s", GIT_DIR_ENVIRONMENT, get_git_dir());
-	helper->env = helper_env;
+	argv_array_pushf(&helper->env_array, "%s=%s", GIT_DIR_ENVIRONMENT,
+			 get_git_dir());
 
 	code = start_command(helper);
 	if (code < 0 && errno == ENOENT)
@@ -260,7 +254,8 @@ static const char *unsupported_options[] = {
 static const char *boolean_options[] = {
 	TRANS_OPT_THIN,
 	TRANS_OPT_KEEP,
-	TRANS_OPT_FOLLOWTAGS
+	TRANS_OPT_FOLLOWTAGS,
+	TRANS_OPT_PUSH_CERT
 	};
 
 static int set_helper_option(struct transport *transport,
@@ -419,7 +414,7 @@ static int get_exporter(struct transport *transport,
 	struct child_process *helper = get_helper(transport);
 	int i;
 
-	memset(fastexport, 0, sizeof(*fastexport));
+	child_process_init(fastexport);
 
 	/* we need to duplicate helper->in because we want to use it after
 	 * fastexport is done with it. */
@@ -836,6 +831,9 @@ static int push_refs_with_push(struct transport *transport,
 	if (flags & TRANSPORT_PUSH_DRY_RUN) {
 		if (set_helper_option(transport, "dry-run", "true") != 0)
 			die("helper %s does not support dry-run", data->name);
+	} else if (flags & TRANSPORT_PUSH_CERT) {
+		if (set_helper_option(transport, TRANS_OPT_PUSH_CERT, "true") != 0)
+			die("helper %s does not support --signed", data->name);
 	}
 
 	strbuf_addch(&buf, '\n');
@@ -859,6 +857,9 @@ static int push_refs_with_export(struct transport *transport,
 
 	if (flags & TRANSPORT_PUSH_DRY_RUN) {
 		if (set_helper_option(transport, "dry-run", "true") != 0)
+			die("helper %s does not support dry-run", data->name);
+	} else if (flags & TRANSPORT_PUSH_CERT) {
+		if (set_helper_option(transport, TRANS_OPT_PUSH_CERT, "true") != 0)
 			die("helper %s does not support dry-run", data->name);
 	}
 
@@ -890,7 +891,10 @@ static int push_refs_with_export(struct transport *transport,
 					int flag;
 
 					/* Follow symbolic refs (mainly for HEAD). */
-					name = resolve_ref_unsafe(ref->peer_ref->name, sha1, 1, &flag);
+					name = resolve_ref_unsafe(
+						 ref->peer_ref->name,
+						 RESOLVE_REF_READING,
+						 sha1, &flag);
 					if (!name || !(flag & REF_ISSYMREF))
 						name = ref->peer_ref->name;
 

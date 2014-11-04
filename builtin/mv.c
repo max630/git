@@ -3,8 +3,8 @@
  *
  * Copyright (C) 2006 Johannes Schindelin
  */
-#include "cache.h"
 #include "builtin.h"
+#include "lockfile.h"
 #include "dir.h"
 #include "cache-tree.h"
 #include "string-list.h"
@@ -184,10 +184,10 @@ int cmd_mv(int argc, const char **argv, const char *prefix)
 
 				modes[i] = WORKING_DIRECTORY;
 				n = argc + last - first;
-				source = xrealloc(source, n * sizeof(char *));
-				destination = xrealloc(destination, n * sizeof(char *));
-				modes = xrealloc(modes, n * sizeof(enum update_mode));
-				submodule_gitfile = xrealloc(submodule_gitfile, n * sizeof(char *));
+				REALLOC_ARRAY(source, n);
+				REALLOC_ARRAY(destination, n);
+				REALLOC_ARRAY(modes, n);
+				REALLOC_ARRAY(submodule_gitfile, n);
 
 				dst = add_slash(dst);
 				dst_len = strlen(dst);

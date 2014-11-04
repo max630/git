@@ -11,19 +11,20 @@ static void (*try_to_free_routine)(size_t size) = do_nothing;
 
 static int memory_limit_check(size_t size, int gentle)
 {
-	static int limit = -1;
-	if (limit == -1) {
-		const char *env = getenv("GIT_ALLOC_LIMIT");
-		limit = env ? atoi(env) * 1024 : 0;
+	static size_t limit = 0;
+	if (!limit) {
+		limit = git_env_ulong("GIT_ALLOC_LIMIT", 0);
+		if (!limit)
+			limit = SIZE_MAX;
 	}
-	if (limit && size > limit) {
+	if (size > limit) {
 		if (gentle) {
-			error("attempting to allocate %"PRIuMAX" over limit %d",
-			      (intmax_t)size, limit);
+			error("attempting to allocate %"PRIuMAX" over limit %"PRIuMAX,
+			      (uintmax_t)size, (uintmax_t)limit);
 			return -1;
 		} else
-			die("attempting to allocate %"PRIuMAX" over limit %d",
-			    (intmax_t)size, limit);
+			die("attempting to allocate %"PRIuMAX" over limit %"PRIuMAX,
+			    (uintmax_t)size, (uintmax_t)limit);
 	}
 	return 0;
 }
@@ -465,15 +466,27 @@ int xmkstemp_mode(char *template, int mode)
 
 static int warn_if_unremovable(const char *op, const char *file, int rc)
 {
-	if (rc < 0) {
-		int err = errno;
-		if (ENOENT != err) {
-			warning("unable to %s %s: %s",
-				op, file, strerror(errno));
-			errno = err;
-		}
-	}
+	int err;
+	if (!rc || errno == ENOENT)
+		return 0;
+	err = errno;
+	warning("unable to %s %s: %s", op, file, strerror(errno));
+	errno = err;
 	return rc;
+}
+
+int unlink_or_msg(const char *file, struct strbuf *err)
+{
+	int rc = unlink(file);
+
+	assert(err);
+
+	if (!rc || errno == ENOENT)
+		return 0;
+
+	strbuf_addf(err, "unable to unlink %s: %s",
+		    file, strerror(errno));
+	return -1;
 }
 
 int unlink_or_warn(const char *file)

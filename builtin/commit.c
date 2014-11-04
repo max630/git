@@ -6,6 +6,7 @@
  */
 
 #include "cache.h"
+#include "lockfile.h"
 #include "cache-tree.h"
 #include "color.h"
 #include "dir.h"
@@ -315,8 +316,8 @@ static void refresh_cache_or_die(int refresh_flags)
 		die_resolve_conflict("commit");
 }
 
-static char *prepare_index(int argc, const char **argv, const char *prefix,
-			   const struct commit *current_head, int is_status)
+static const char *prepare_index(int argc, const char **argv, const char *prefix,
+				 const struct commit *current_head, int is_status)
 {
 	struct string_list partial;
 	struct pathspec pathspec;
@@ -341,7 +342,7 @@ static char *prepare_index(int argc, const char **argv, const char *prefix,
 			die(_("unable to create temporary index"));
 
 		old_index_env = getenv(INDEX_ENVIRONMENT);
-		setenv(INDEX_ENVIRONMENT, index_lock.filename, 1);
+		setenv(INDEX_ENVIRONMENT, index_lock.filename.buf, 1);
 
 		if (interactive_add(argc, argv, prefix, patch_interactive) != 0)
 			die(_("interactive add failed"));
@@ -352,7 +353,7 @@ static char *prepare_index(int argc, const char **argv, const char *prefix,
 			unsetenv(INDEX_ENVIRONMENT);
 
 		discard_cache();
-		read_cache_from(index_lock.filename);
+		read_cache_from(index_lock.filename.buf);
 		if (update_main_cache_tree(WRITE_TREE_SILENT) == 0) {
 			if (reopen_lock_file(&index_lock) < 0)
 				die(_("unable to write index file"));
@@ -362,7 +363,7 @@ static char *prepare_index(int argc, const char **argv, const char *prefix,
 			warning(_("Failed to update main cache tree"));
 
 		commit_style = COMMIT_NORMAL;
-		return index_lock.filename;
+		return index_lock.filename.buf;
 	}
 
 	/*
@@ -385,7 +386,7 @@ static char *prepare_index(int argc, const char **argv, const char *prefix,
 		if (write_locked_index(&the_index, &index_lock, CLOSE_LOCK))
 			die(_("unable to write new_index file"));
 		commit_style = COMMIT_NORMAL;
-		return index_lock.filename;
+		return index_lock.filename.buf;
 	}
 
 	/*
@@ -472,9 +473,9 @@ static char *prepare_index(int argc, const char **argv, const char *prefix,
 		die(_("unable to write temporary index file"));
 
 	discard_cache();
-	read_cache_from(false_lock.filename);
+	read_cache_from(false_lock.filename.buf);
 
-	return false_lock.filename;
+	return false_lock.filename.buf;
 }
 
 static int run_status(FILE *fp, const char *index_file, const char *prefix, int nowarn,
@@ -676,6 +677,52 @@ static void adjust_comment_line_char(const struct strbuf *sb)
 	comment_line_char = *p;
 }
 
+/*
+ * Inspect sb and determine the true "end" of the log message, in
+ * order to find where to put a new Signed-off-by: line.  Ignored are
+ * trailing comment lines and blank lines, and also the traditional
+ * "Conflicts:" block that is not commented out, so that we can use
+ * "git commit -s --amend" on an existing commit that forgot to remove
+ * it.
+ *
+ * Returns the number of bytes from the tail to ignore, to be fed as
+ * the second parameter to append_signoff().
+ */
+static int ignore_non_trailer(struct strbuf *sb)
+{
+	int boc = 0;
+	int bol = 0;
+	int in_old_conflicts_block = 0;
+
+	while (bol < sb->len) {
+		char *next_line;
+
+		if (!(next_line = memchr(sb->buf + bol, '\n', sb->len - bol)))
+			next_line = sb->buf + sb->len;
+		else
+			next_line++;
+
+		if (sb->buf[bol] == comment_line_char || sb->buf[bol] == '\n') {
+			/* is this the first of the run of comments? */
+			if (!boc)
+				boc = bol;
+			/* otherwise, it is just continuing */
+		} else if (starts_with(sb->buf + bol, "Conflicts:\n")) {
+			in_old_conflicts_block = 1;
+			if (!boc)
+				boc = bol;
+		} else if (in_old_conflicts_block && sb->buf[bol] == '\t') {
+			; /* a pathname in the conflicts block */
+		} else if (boc) {
+			/* the previous was not trailing comment */
+			boc = 0;
+			in_old_conflicts_block = 0;
+		}
+		bol = next_line - sb->buf;
+	}
+	return boc ? sb->len - boc : 0;
+}
+
 static int prepare_to_commit(const char *index_file, const char *prefix,
 			     struct commit *current_head,
 			     struct wt_status *s,
@@ -799,32 +846,8 @@ static int prepare_to_commit(const char *index_file, const char *prefix,
 	if (clean_message_contents)
 		stripspace(&sb, 0);
 
-	if (signoff) {
-		/*
-		 * See if we have a Conflicts: block at the end. If yes, count
-		 * its size, so we can ignore it.
-		 */
-		int ignore_footer = 0;
-		int i, eol, previous = 0;
-		const char *nl;
-
-		for (i = 0; i < sb.len; i++) {
-			nl = memchr(sb.buf + i, '\n', sb.len - i);
-			if (nl)
-				eol = nl - sb.buf;
-			else
-				eol = sb.len;
-			if (starts_with(sb.buf + previous, "\nConflicts:\n")) {
-				ignore_footer = sb.len - previous;
-				break;
-			}
-			while (i < eol)
-				i++;
-			previous = eol;
-		}
-
-		append_signoff(&sb, ignore_footer, 0);
-	}
+	if (signoff)
+		append_signoff(&sb, ignore_non_trailer(&sb), 0);
 
 	if (fwrite(sb.buf, 1, sb.len, s->fp) < sb.len)
 		die_errno(_("could not write commit template"));
@@ -1271,22 +1294,21 @@ static int dry_run_commit(int argc, const char **argv, const char *prefix,
 	return commitable ? 0 : 1;
 }
 
-static int parse_status_slot(const char *var, int offset)
+static int parse_status_slot(const char *slot)
 {
-	if (!strcasecmp(var+offset, "header"))
+	if (!strcasecmp(slot, "header"))
 		return WT_STATUS_HEADER;
-	if (!strcasecmp(var+offset, "branch"))
+	if (!strcasecmp(slot, "branch"))
 		return WT_STATUS_ONBRANCH;
-	if (!strcasecmp(var+offset, "updated")
-		|| !strcasecmp(var+offset, "added"))
+	if (!strcasecmp(slot, "updated") || !strcasecmp(slot, "added"))
 		return WT_STATUS_UPDATED;
-	if (!strcasecmp(var+offset, "changed"))
+	if (!strcasecmp(slot, "changed"))
 		return WT_STATUS_CHANGED;
-	if (!strcasecmp(var+offset, "untracked"))
+	if (!strcasecmp(slot, "untracked"))
 		return WT_STATUS_UNTRACKED;
-	if (!strcasecmp(var+offset, "nobranch"))
+	if (!strcasecmp(slot, "nobranch"))
 		return WT_STATUS_NOBRANCH;
-	if (!strcasecmp(var+offset, "unmerged"))
+	if (!strcasecmp(slot, "unmerged"))
 		return WT_STATUS_UNMERGED;
 	return -1;
 }
@@ -1294,6 +1316,7 @@ static int parse_status_slot(const char *var, int offset)
 static int git_status_config(const char *k, const char *v, void *cb)
 {
 	struct wt_status *s = cb;
+	const char *slot_name;
 
 	if (starts_with(k, "column."))
 		return git_column_config(k, v, "status", &s->colopts);
@@ -1323,14 +1346,14 @@ static int git_status_config(const char *k, const char *v, void *cb)
 		s->display_comment_prefix = git_config_bool(k, v);
 		return 0;
 	}
-	if (starts_with(k, "status.color.") || starts_with(k, "color.status.")) {
-		int slot = parse_status_slot(k, 13);
+	if (skip_prefix(k, "status.color.", &slot_name) ||
+	    skip_prefix(k, "color.status.", &slot_name)) {
+		int slot = parse_status_slot(slot_name);
 		if (slot < 0)
 			return 0;
 		if (!v)
 			return config_error_nonbool(k);
-		color_parse(v, k, s->color_palette[slot]);
-		return 0;
+		return color_parse(v, s->color_palette[slot]);
 	}
 	if (!strcmp(k, "status.relativepaths")) {
 		s->relative_paths = git_config_bool(k, v);
@@ -1512,14 +1535,12 @@ static void print_summary(const char *prefix, const unsigned char *sha1,
 	rev.diffopt.break_opt = 0;
 	diff_setup_done(&rev.diffopt);
 
-	head = resolve_ref_unsafe("HEAD", junk_sha1, 0, NULL);
-	printf("[%s%s ",
-		starts_with(head, "refs/heads/") ?
-			head + 11 :
-			!strcmp(head, "HEAD") ?
-				_("detached HEAD") :
-				head,
-		initial_commit ? _(" (root-commit)") : "");
+	head = resolve_ref_unsafe("HEAD", 0, junk_sha1, NULL);
+	if (!strcmp(head, "HEAD"))
+		head = _("detached HEAD");
+	else
+		skip_prefix(head, "refs/heads/", &head);
+	printf("[%s%s ", head, initial_commit ? _(" (root-commit)") : "");
 
 	if (!log_tree_commit(&rev, commit)) {
 		rev.always_show_header = 1;
@@ -1810,8 +1831,8 @@ int cmd_commit(int argc, const char **argv, const char *prefix)
 	    ref_transaction_update(transaction, "HEAD", sha1,
 				   current_head
 				   ? current_head->object.sha1 : NULL,
-				   0, !!current_head, &err) ||
-	    ref_transaction_commit(transaction, sb.buf, &err)) {
+				   0, !!current_head, sb.buf, &err) ||
+	    ref_transaction_commit(transaction, &err)) {
 		rollback_index_files();
 		die("%s", err.buf);
 	}

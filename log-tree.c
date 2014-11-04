@@ -56,15 +56,14 @@ static int parse_decorate_color_slot(const char *slot)
 	return -1;
 }
 
-int parse_decorate_color_config(const char *var, const int ofs, const char *value)
+int parse_decorate_color_config(const char *var, const char *slot_name, const char *value)
 {
-	int slot = parse_decorate_color_slot(var + ofs);
+	int slot = parse_decorate_color_slot(slot_name);
 	if (slot < 0)
 		return 0;
 	if (!value)
 		return config_error_nonbool(var);
-	color_parse(value, var, decoration_colors[slot]);
-	return 0;
+	return color_parse(value, decoration_colors[slot]);
 }
 
 /*
@@ -174,14 +173,16 @@ static void show_children(struct rev_info *opt, struct commit *commit, int abbre
 }
 
 /*
- * The caller makes sure there is no funny color before
- * calling. format_decorations makes sure the same after return.
+ * The caller makes sure there is no funny color before calling.
+ * format_decorations_extended makes sure the same after return.
  */
-void format_decorations(struct strbuf *sb,
+void format_decorations_extended(struct strbuf *sb,
 			const struct commit *commit,
-			int use_color)
+			int use_color,
+			const char *prefix,
+			const char *separator,
+			const char *suffix)
 {
-	const char *prefix;
 	const struct name_decoration *decoration;
 	const char *color_commit =
 		diff_get_color(use_color, DIFF_COMMIT);
@@ -191,7 +192,6 @@ void format_decorations(struct strbuf *sb,
 	decoration = get_name_decoration(&commit->object);
 	if (!decoration)
 		return;
-	prefix = " (";
 	while (decoration) {
 		strbuf_addstr(sb, color_commit);
 		strbuf_addstr(sb, prefix);
@@ -200,11 +200,11 @@ void format_decorations(struct strbuf *sb,
 			strbuf_addstr(sb, "tag: ");
 		strbuf_addstr(sb, decoration->name);
 		strbuf_addstr(sb, color_reset);
-		prefix = ", ";
+		prefix = separator;
 		decoration = decoration->next;
 	}
 	strbuf_addstr(sb, color_commit);
-	strbuf_addch(sb, ')');
+	strbuf_addstr(sb, suffix);
 	strbuf_addstr(sb, color_reset);
 }
 

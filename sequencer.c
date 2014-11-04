@@ -1,4 +1,5 @@
 #include "cache.h"
+#include "lockfile.h"
 #include "sequencer.h"
 #include "dir.h"
 #include "object.h"
@@ -251,8 +252,8 @@ static int fast_forward_to(const unsigned char *to, const unsigned char *from,
 	if (!transaction ||
 	    ref_transaction_update(transaction, "HEAD",
 				   to, unborn ? null_sha1 : from,
-				   0, 1, &err) ||
-	    ref_transaction_commit(transaction, sb.buf, &err)) {
+				   0, 1, sb.buf, &err) ||
+	    ref_transaction_commit(transaction, &err)) {
 		ref_transaction_free(transaction);
 		error("%s", err.buf);
 		strbuf_release(&sb);
@@ -264,6 +265,23 @@ static int fast_forward_to(const unsigned char *to, const unsigned char *from,
 	strbuf_release(&err);
 	ref_transaction_free(transaction);
 	return 0;
+}
+
+void append_conflicts_hint(struct strbuf *msgbuf)
+{
+	int i;
+
+	strbuf_addch(msgbuf, '\n');
+	strbuf_commented_addf(msgbuf, "Conflicts:\n");
+	for (i = 0; i < active_nr;) {
+		const struct cache_entry *ce = active_cache[i++];
+		if (ce_stage(ce)) {
+			strbuf_commented_addf(msgbuf, "\t%s\n", ce->name);
+			while (i < active_nr && !strcmp(ce->name,
+							active_cache[i]->name))
+				i++;
+		}
+	}
 }
 
 static int do_recursive_merge(struct commit *base, struct commit *next,
@@ -306,21 +324,8 @@ static int do_recursive_merge(struct commit *base, struct commit *next,
 	if (opts->signoff)
 		append_signoff(msgbuf, 0, 0);
 
-	if (!clean) {
-		int i;
-		strbuf_addstr(msgbuf, "\nConflicts:\n");
-		for (i = 0; i < active_nr;) {
-			const struct cache_entry *ce = active_cache[i++];
-			if (ce_stage(ce)) {
-				strbuf_addch(msgbuf, '\t');
-				strbuf_addstr(msgbuf, ce->name);
-				strbuf_addch(msgbuf, '\n');
-				while (i < active_nr && !strcmp(ce->name,
-						active_cache[i]->name))
-					i++;
-			}
-		}
-	}
+	if (!clean)
+		append_conflicts_hint(msgbuf);
 
 	return !clean;
 }
@@ -330,7 +335,7 @@ static int is_index_unchanged(void)
 	unsigned char head_sha1[20];
 	struct commit *head_commit;
 
-	if (!resolve_ref_unsafe("HEAD", head_sha1, 1, NULL))
+	if (!resolve_ref_unsafe("HEAD", RESOLVE_REF_READING, head_sha1, NULL))
 		return error(_("Could not resolve HEAD commit\n"));
 
 	head_commit = lookup_commit(head_sha1);
@@ -870,7 +875,7 @@ static int rollback_single_pick(void)
 	if (!file_exists(git_path("CHERRY_PICK_HEAD")) &&
 	    !file_exists(git_path("REVERT_HEAD")))
 		return error(_("no cherry-pick or revert in progress"));
-	if (read_ref_full("HEAD", head_sha1, 0, NULL))
+	if (read_ref_full("HEAD", 0, head_sha1, NULL))
 		return error(_("cannot resolve HEAD"));
 	if (is_null_sha1(head_sha1))
 		return error(_("cannot abort from a branch yet to be born"));
