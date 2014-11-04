@@ -1,4 +1,4 @@
-From 0d390b2561824f8f5eb530348c708ee20ec86771 Mon Sep 17 00:00:00 2001
+From 20d4f88552c72db757aace3185b221590e2bab0c Mon Sep 17 00:00:00 2001
 From: Jens Lehmann <Jens.Lehmann@web.de>
 Date: Tue, 19 Jun 2012 20:55:45 +0200
 Subject: submodule: teach unpack_trees() to remove submodule contents
@@ -119,7 +119,7 @@ index 629c658..68275dc 100644
  }
  
 diff --git a/wrapper.c b/wrapper.c
-index 25074d7..6a0ac5e 100644
+index 007ec0d..aad3c70 100644
 --- a/wrapper.c
 +++ b/wrapper.c
 @@ -2,6 +2,7 @@
@@ -130,7 +130,7 @@ index 25074d7..6a0ac5e 100644
  
  static void do_nothing(size_t size)
  {
-@@ -483,6 +484,8 @@ int unlink_or_warn(const char *file)
+@@ -496,6 +497,8 @@ int unlink_or_warn(const char *file)
  
  int rmdir_or_warn(const char *file)
  {

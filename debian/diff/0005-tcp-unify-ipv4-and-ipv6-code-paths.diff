@@ -1,4 +1,4 @@
-From 286a7698e836b744499c33b08863031b4159bc4c Mon Sep 17 00:00:00 2001
+From 59e67f0d1fca9591189b64c4e4bc58955fbaa83b Mon Sep 17 00:00:00 2001
 From: Jonathan Nieder <jrnieder@gmail.com>
 Date: Mon, 6 Jun 2011 04:41:28 -0500
 Subject: tcp: unify ipv4 and ipv6 code paths
@@ -82,31 +82,29 @@ can be corrected.
 Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
 Improved-by: Erik Faye-Lund <kusmabite@gmail.com>
 ---
- Makefile   |   5 ++
+ Makefile   |   3 +
  dns-ipv4.c |  36 ++++++++++++
  dns-ipv4.h |  74 +++++++++++++++++++++++++
- dns-ipv6.c |  49 +++++++++++++++++
+ dns-ipv6.c |  49 ++++++++++++++++
  dns-ipv6.h |  32 +++++++++++
- tcp.c      | 182 +++++++++++--------------------------------------------------
- 6 files changed, 227 insertions(+), 151 deletions(-)
+ tcp.c      | 184 +++++++++++--------------------------------------------------
+ 6 files changed, 225 insertions(+), 153 deletions(-)
  create mode 100644 dns-ipv4.c
  create mode 100644 dns-ipv4.h
  create mode 100644 dns-ipv6.c
  create mode 100644 dns-ipv6.h
 
 diff --git a/Makefile b/Makefile
-index cbb4dca..9ea3668 100644
+index 8ac19c2..2c4599b 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -1230,6 +1230,11 @@ ifdef NO_TRUSTABLE_FILEMODE
+@@ -1233,6 +1233,9 @@ ifdef NO_TRUSTABLE_FILEMODE
  endif
  ifdef NO_IPV6
  	BASIC_CFLAGS += -DNO_IPV6
 +	LIB_OBJS += dns-ipv4.o
-+	LIB_H += dns-ipv4.h
 +else
 +	LIB_OBJS += dns-ipv6.o
-+	LIB_H += dns-ipv6.h
  endif
  ifdef NO_INTPTR_T
  	COMPAT_CFLAGS += -DNO_INTPTR_T
@@ -326,7 +324,7 @@ index 0000000..4211c9e
 +
 +#endif
 diff --git a/tcp.c b/tcp.c
-index 6f9c869..2eb8597 100644
+index 243e0e5..2eb8597 100644
 --- a/tcp.c
 +++ b/tcp.c
 @@ -3,8 +3,10 @@
@@ -461,7 +459,7 @@ index 6f9c869..2eb8597 100644
  
  	if (sockfd < 0)
  		die("unable to connect to %s:\n%s", host, error_message.buf);
-@@ -143,107 +124,6 @@ static int git_tcp_connect_sock(char *host, int flags)
+@@ -143,109 +124,6 @@ static int git_tcp_connect_sock(char *host, int flags)
  	return sockfd;
  }
  
@@ -476,6 +474,8 @@ index 6f9c869..2eb8597 100644
 -	static char addrbuf[HOST_NAME_MAX + 1];
 -
 -	hent = gethostbyname(hostname);
+-	if (!hent)
+-		return;
 -
 -	ap = hent->h_addr_list;
 -	memset(&sa, 0, sizeof sa);
