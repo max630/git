@@ -368,6 +368,8 @@ static int cmd_log_walk(struct rev_info *rev)
 
 static int git_log_config(const char *var, const char *value, void *cb)
 {
+	const char *slot_name;
+
 	if (!strcmp(var, "format.pretty"))
 		return git_config_string(&fmt_pretty, var, value);
 	if (!strcmp(var, "format.subjectprefix"))
@@ -388,8 +390,8 @@ static int git_log_config(const char *var, const char *value, void *cb)
 		default_show_root = git_config_bool(var, value);
 		return 0;
 	}
-	if (starts_with(var, "color.decorate."))
-		return parse_decorate_color_config(var, 15, value);
+	if (skip_prefix(var, "color.decorate.", &slot_name))
+		return parse_decorate_color_config(var, slot_name, value);
 	if (!strcmp(var, "log.mailmap")) {
 		use_mailmap_config = git_config_bool(var, value);
 		return 0;
@@ -1440,7 +1442,7 @@ int cmd_format_patch(int argc, const char **argv, const char *prefix)
 			continue;
 
 		nr++;
-		list = xrealloc(list, nr * sizeof(list[0]));
+		REALLOC_ARRAY(list, nr);
 		list[nr - 1] = commit;
 	}
 	if (nr == 0)
