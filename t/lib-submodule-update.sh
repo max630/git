@@ -356,9 +356,6 @@ test_submodule_switch () {
 		# submodule files with the newly checked out ones in the
 		# directory of the same name while it shouldn't.
 		RESULT="failure"
-	elif test "$KNOWN_FAILURE_RECURSE_SUBMODULE_SERIES_BREAKS_REPLACE_SUBMODULE_TEST" = 1
-	then
-		RESULT="failure"
 	else
 		RESULT="success"
 	fi
