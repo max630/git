@@ -1613,6 +1613,16 @@ proc chewcommits {} {
     global curview hlview viewcomplete
     global pending_select
 
+    global lastprogupdate progupdatepending
+    set now [clock clicks -milliseconds]
+    if {$now >= $lastprogupdate + 500} {
+        set progupdatepending 0
+        update
+    } elseif {!$progupdatepending} {
+        set progupdatepending 1
+        after [expr {$lastprogupdate + 500 - $now}] doprogupdate
+    }
+
     layoutmore
     if {$viewcomplete($curview)} {
 	global commitidx varctok
@@ -2058,9 +2068,11 @@ proc makewindow {} {
     global headctxmenu progresscanv progressitem progresscoords statusw
     global fprogitem fprogcoord lastprogupdate progupdatepending
     global rprogitem rprogcoord rownumsel numcommits
+    global markbgcolor
     global have_tk85 use_ttk NS
     global git_version
     global worddiff
+    global locate_efile locate_eline locate_has_file
 
     # The "mc" arguments here are purely so that xgettext
     # sees the following string as needing to be translated
@@ -2383,6 +2395,10 @@ proc makewindow {} {
 	pack .bleft.mid.worddiff -side left -padx 5
     }
 
+    ${NS}::checkbutton .bleft.mid.firstparent -text [mc "First parent"] \
+	-command changefirstparent -variable firstparent
+    pack .bleft.mid.firstparent -side left -padx 5
+
     set ctext .bleft.bottom.ctext
     text $ctext -background $bgcolor -foreground $fgcolor \
 	-state disabled -font textfont \
@@ -2433,6 +2449,8 @@ proc makewindow {} {
     $ctext tag conf currentsearchhit -back $currentsearchhitbgcolor
     $ctext tag conf wwrap -wrap word -lmargin2 1c
     $ctext tag conf bold -font textfontbold
+    $ctext tag conf omark -background $markbgcolor
+    $ctext tag raise sel
 
     .pwbottom add .bleft
     if {!$use_ttk} {
@@ -2466,6 +2484,18 @@ proc makewindow {} {
     $cflist tag configure highlight \
 	-background [$cflist cget -selectbackground]
     $cflist tag configure bold -font mainfontbold
+
+    ${NS}::frame .bright.locate
+    set locate_efile {}
+    set locate_eline 0
+    set locate_has_file 0
+    ${NS}::entry .bright.locate.efile -textvariable locate_efile
+    ${NS}::entry .bright.locate.eline -width 4 -textvariable locate_eline
+    trace add variable locate_efile write locate_changed
+    trace add variable locate_eline write locate_changed
+    pack .bright.locate.eline -side right
+    pack .bright.locate.efile -fill x
+    lappend entries .bright.locate.efile .bright.locate.eline
 
     .pwbottom add .bright
     .ctop add .pwbottom
@@ -2656,6 +2686,7 @@ proc makewindow {} {
     makemenu $diff_menu {
 	{mc "Show origin of this line" command show_line_source}
 	{mc "Run git gui blame on this line" command {external_blame_diff}}
+	{mc "Show the latest change of selected region" command show_selection_source}
     }
     $diff_menu configure -tearoff 0
 }
@@ -2776,33 +2807,85 @@ proc doprogupdate {} {
     }
 }
 
+proc config_check_tmp_exists {tries_left} {
+    global config_file_tmp
+
+    if {[file exists $config_file_tmp]} {
+	incr tries_left -1
+	if {$tries_left > 0} {
+	    after 100 [list config_check_tmp_exists $tries_left]
+	} else {
+	    error_popup "Probably there is stale $config_file_tmp file; config saving is going to fail. Check if it is being used by any existing gitk process and remove it otherwise"
+	}
+    }
+}
+
+proc config_init_trace {name} {
+    global config_variable_changed config_variable_original
+
+    upvar #0 $name var
+    set config_variable_changed($name) 0
+    set config_variable_original($name) $var
+}
+
+proc config_variable_change_cb {name name2 op} {
+    global config_variable_changed config_variable_original
+
+    upvar #0 $name var
+    if {$op eq "write" &&
+	(![info exists config_variable_original($name)] ||
+	 $config_variable_original($name) ne $var)} {
+	set config_variable_changed($name) 1
+    }
+}
+
 proc savestuff {w} {
-    global viewname viewfiles viewargs viewargscmd viewperm nextviewnum
-    global use_ttk
     global stuffsaved
     global config_file config_file_tmp
-    global config_variables
+    global config_variables config_variable_changed
+    global viewchanged
+
+    upvar #0 viewname current_viewname
+    upvar #0 viewfiles current_viewfiles
+    upvar #0 viewargs current_viewargs
+    upvar #0 viewargscmd current_viewargscmd
+    upvar #0 viewperm current_viewperm
+    upvar #0 nextviewnum current_nextviewnum
+    upvar #0 use_ttk current_use_ttk
 
     if {$stuffsaved} return
     if {![winfo viewable .]} return
+    set remove_tmp 0
     catch {
-	if {[file exists $config_file_tmp]} {
-	    file delete -force $config_file_tmp
+	set try_count 0
+	while {[catch {set f [open $config_file_tmp {WRONLY CREAT EXCL}]}]} {
+	    if {[incr try_count] > 50} {
+		error "Unable to write config file: $config_file_tmp exists"
+	    }
+	    after 100
 	}
-	set f [open $config_file_tmp w]
+	set remove_tmp 1
 	if {$::tcl_platform(platform) eq {windows}} {
 	    file attributes $config_file_tmp -hidden true
 	}
+	if {[file exists $config_file]} {
+	    source $config_file
+	}
 	foreach var_name $config_variables {
 	    upvar #0 $var_name var
-	    puts $f [list set $var_name $var]
+	    upvar 0 $var_name old_var
+	    if {!$config_variable_changed($var_name) && [info exists old_var]} {
+		puts $f [list set $var_name $old_var]
+	    } else {
+		puts $f [list set $var_name $var]
+	    }
 	}
 
 	puts $f "set geometry(main) [wm geometry .]"
 	puts $f "set geometry(state) [wm state .]"
 	puts $f "set geometry(topwidth) [winfo width .tf]"
 	puts $f "set geometry(topheight) [winfo height .tf]"
-	if {$use_ttk} {
+	if {$current_use_ttk} {
 	    puts $f "set geometry(pwsash0) \"[.tf.histframe.pwclist sashpos 0] 1\""
 	    puts $f "set geometry(pwsash1) \"[.tf.histframe.pwclist sashpos 1] 1\""
 	} else {
@@ -2812,15 +2895,46 @@ proc savestuff {w} {
 	puts $f "set geometry(botwidth) [winfo width .bleft]"
 	puts $f "set geometry(botheight) [winfo height .bleft]"
 
+	array set view_save {}
+	array set views {}
+	if {![info exists permviews]} { set permviews {} }
+	foreach view $permviews {
+	    set view_save([lindex $view 0]) 1
+	    set views([lindex $view 0]) $view
+	}
 	puts -nonewline $f "set permviews {"
-	for {set v 0} {$v < $nextviewnum} {incr v} {
-	    if {$viewperm($v)} {
-		puts $f "{[list $viewname($v) $viewfiles($v) $viewargs($v) $viewargscmd($v)]}"
+	for {set v 1} {$v < $current_nextviewnum} {incr v} {
+	    if {$viewchanged($v)} {
+		if {$current_viewperm($v)} {
+		    set views($current_viewname($v)) [list $current_viewname($v) $current_viewfiles($v) $current_viewargs($v) $current_viewargscmd($v)]
+		} else {
+		    set view_save($current_viewname($v)) 0
+		}
+		lappend views_modified_names $current_viewname($v)
 	    }
+	}
+	# write old and updated view to their places and append remaining to the end
+	foreach view $permviews {
+	    set view_name [lindex $view 0]
+	    if {$view_save($view_name)} {
+		puts $f "{$views($view_name)}"
+	    }
+	    unset views($view_name)
+	}
+	foreach view_name [array names views] {
+	    puts $f "{$views($view_name)}"
 	}
 	puts $f "}"
 	close $f
 	file rename -force $config_file_tmp $config_file
+	set remove_tmp 0
+	return ""
+    } err
+    if {$err ne ""} {
+	puts "Error saving config: $err"
+    }
+    if {$remove_tmp} {
+	file delete -force $config_file_tmp
     }
     set stuffsaved 1
 }
@@ -3108,6 +3222,48 @@ proc linetoelt {l} {
     }
 }
 
+proc elttoline {elt} {
+    global treeheight treecontents
+
+    set y 2
+    set prefix {}
+    set elt_len [llength [file split $elt]]
+    foreach elt_label [file split $elt] {
+        set elt_label_len [string length $elt_label]
+        foreach e $treecontents($prefix) {
+            # scan over entries which is less than filename,
+            # and also over all entries which start with filename,
+            # because they are not sorted correctly
+            if {[string compare $e $elt_label] < 0} {
+                # skip to next
+            } elseif {$e eq "$elt_label/" && $elt_len > 1} {
+                if {$elt_len > 1} {
+                    # go deeper
+                    append prefix $e
+                    incr y
+                    incr elt_len -1
+                    break
+                } else {
+                    return $y
+                }
+            } elseif {$e eq $elt_label} {
+                return $y
+            } elseif {[string compare -length $elt_label_len $e $elt_label] == 0} {
+                # skip to next
+            } else {
+                return $y
+            }
+            # next
+            if {[string index $e end] eq "/"} {
+                incr y $treeheight($prefix$e)
+            } else {
+                incr y
+            }
+        }
+    }
+    return $y
+}
+
 proc highlight_tree {y prefix} {
     global treeheight treecontents cflist
 
@@ -3217,6 +3373,7 @@ proc treeclick {w x y} {
 
 proc setfilelist {id} {
     global treefilelist cflist jump_to_here
+    global cmitmode
 
     treeview $cflist $treefilelist($id) 0
     if {$jump_to_here ne {}} {
@@ -3224,6 +3381,8 @@ proc setfilelist {id} {
 	if {[lsearch -exact $treefilelist($id) $f] >= 0} {
 	    showfile $f
 	}
+    } elseif {$cmitmode eq "tree"} {
+	locate_changed locate_efile {} write
     }
 }
 
@@ -3411,6 +3570,7 @@ proc pop_diff_menu {w X Y x y} {
     global ctext diff_menu flist_menu_file
     global diff_menu_txtpos diff_menu_line
     global diff_menu_filebase
+    global selection_source_data
 
     set diff_menu_txtpos [split [$w index "@$x,$y"] "."]
     set diff_menu_line [lindex $diff_menu_txtpos 0]
@@ -3423,6 +3583,12 @@ proc pop_diff_menu {w X Y x y} {
     if {$f eq {}} return
     set flist_menu_file [lindex $f 0]
     set diff_menu_filebase [lindex $f 1]
+    prepare_show_selection_source
+    if {$selection_source_data ne {}} {
+	$diff_menu entryconf 2 -state normal
+    } else {
+	$diff_menu entryconf 2 -state disabled
+    }
     tk_popup $diff_menu $X $Y
 }
 
@@ -3547,11 +3713,11 @@ proc external_diff {} {
     }
 }
 
-proc find_hunk_blamespec {base line} {
+proc resolve_hunk_lines {base start_diffline end_diffline} {
     global ctext
 
     # Find and parse the hunk header
-    set s_lix [$ctext search -backwards -regexp ^@@ "$line.0 lineend" $base.0]
+    set s_lix [$ctext search -backwards -regexp ^@@ "$start_diffline.0 lineend" $base.0]
     if {$s_lix eq {}} return
 
     set s_line [$ctext get $s_lix "$s_lix + 1 lines"]
@@ -3571,49 +3737,70 @@ proc find_hunk_blamespec {base line} {
     }
 
     # Now scan the lines to determine offset within the hunk
-    set max_parent [expr {[llength $base_lines]-2}]
-    set dline 0
+    set max_parent [expr {[llength $base_lines]-1}]
     set s_lno [lindex [split $s_lix "."] 0]
 
-    # Determine if the line is removed
-    set chunk [$ctext get $line.0 "$line.1 + $max_parent chars"]
-    if {[string match {[-+ ]*} $chunk]} {
-	set removed_idx [string first "-" $chunk]
-	# Choose a parent index
-	if {$removed_idx >= 0} {
-	    set parent $removed_idx
-	} else {
-	    set unchanged_idx [string first " " $chunk]
-	    if {$unchanged_idx >= 0} {
-		set parent $unchanged_idx
-	    } else {
-		# blame the current commit
-		set parent -1
-	    }
-	}
-	# then count other lines that belong to it
-	for {set i $line} {[incr i -1] > $s_lno} {} {
-	    set chunk [$ctext get $i.0 "$i.1 + $max_parent chars"]
-	    # Determine if the line is removed
-	    set removed_idx [string first "-" $chunk]
-	    if {$parent >= 0} {
-		set code [string index $chunk $parent]
-		if {$code eq "-" || ($removed_idx < 0 && $code ne "+")} {
-		    incr dline
-		}
-	    } else {
-		if {$removed_idx < 0} {
-		    incr dline
-		}
-	    }
-	}
-	incr parent
-    } else {
-	set parent 0
+    set commitlines_by_diffline {}
+    array unset commit_lines
+    for {set p 0} {$p <= $max_parent} {incr p} {
+	set commit_lines($p) [expr [lindex $base_lines $p] - 1]
     }
+    for {set diffline [expr $s_lno + 1]} {$diffline <= $end_diffline} {incr diffline} {
+	set chunk [$ctext get $diffline.0 "$diffline.0 + $max_parent chars"]
+	if {$chunk eq {} || [string match "\[\n@\]*" $chunk]} {
+	    # region is larger than hunk
+	    return {}
+	}
+	set is_removed [expr [string first "-" $chunk] >= 0]
+	if {!$is_removed} {
+	    incr commit_lines(0)
+	    set commitlines [list [list 0 $commit_lines(0)]]
+	} else {
+	    set commitlines {}
+	}
+	for {set p 1} {$p <= $max_parent} {incr p} {
+	    switch -- [string index $chunk "$p-1"] {
+		"+" {
+		}
+		"-" {
+		    incr commit_lines($p)
+		    lappend commitlines [list $p $commit_lines($p)]
+		}
+		" " {
+		    if {!$is_removed} {
+			incr commit_lines($p)
+			lappend commitlines [list $p $commit_lines($p)]
+		    }
+		}
+		default {
+		    error_popup "resolve_hunk_lines: unexpected diff line($diffline): $chunk"
+		    break
+		}
+	    }
+	}
+	if {$diffline >= $start_diffline} {
+	    lappend commitlines_by_diffline [list $diffline $commitlines]
+	}
+    }
+    return $commitlines_by_diffline
+}
 
-    incr dline [lindex $base_lines $parent]
-    return [list $parent $dline]
+proc find_hunk_blamespec {base line} {
+    foreach cl_spec [resolve_hunk_lines $base $line $line] {
+	if {[lindex $cl_spec 0] == $line} {
+	    set commitlines [lindex $cl_spec 1]
+	    if {[llength $commitlines] > 0} {
+		if {[llength $commitlines] > 1 && [lindex $commitlines 0 0] eq 0} {
+		    return [lindex $commitlines 1]
+		} else {
+		    return [lindex $commitlines 0]
+		}
+	    } else {
+		error_popup "find_hunk_blamespec: invalid commitlines: $commitlines"
+	    }
+	}
+    }
+    return {}
 }
 
 proc external_blame_diff {} {
@@ -3707,7 +3894,7 @@ proc external_blame {parent_idx {line {}}} {
 }
 
 proc show_line_source {} {
-    global cmitmode currentid parents curview blamestuff blameinst
+    global cmitmode currentid parents curview
     global diff_menu_line diff_menu_filebase flist_menu_file
     global nullid nullid2 gitdir cdup
 
@@ -3727,9 +3914,17 @@ proc show_line_source {} {
 	if {$currentid eq $nullid} {
 	    if {$pi > 0} {
 		# must be a merge in progress...
+		if {[file exists [file join $gitdir MERGE_HEAD]]} {
+		    set merge_head_file [file join $gitdir MERGE_HEAD]
+		} elseif {[file exists [file join $gitdir CHERRY_PICK_HEAD]]} {
+		    set merge_head_file [file join $gitdir CHERRY_PICK_HEAD]
+		} else {
+		    error_popup [mc "Conflict is not from a merge or cherry-pick"]
+		    return
+		}
 		if {[catch {
 		    # get the last line from .git/MERGE_HEAD
-		    set f [open [file join $gitdir MERGE_HEAD] r]
+		    set f [open $merge_head_file r]
 		    set id [lindex [split [read $f] "\n"] end-1]
 		    close $f
 		} err]} {
@@ -3763,6 +3958,12 @@ proc show_line_source {} {
 	lappend blameargs $id
     }
     lappend blameargs -- [file join $cdup $flist_menu_file]
+    startblaming $blameargs read_line_source
+}
+
+proc startblaming {blameargs blamecommand} {
+    global blamestuff blameinst
+
     if {[catch {
 	set f [open $blameargs r]
     } err]} {
@@ -3772,26 +3973,27 @@ proc show_line_source {} {
     nowbusy blaming [mc "Searching"]
     fconfigure $f -blocking 0
     set i [reg_instance $f]
-    set blamestuff($i) {}
+    set blamestuff {}
     set blameinst $i
-    filerun $f [list read_line_source $f $i]
+    filerun $f [list blameiocallback $f $i $blamecommand]
 }
 
 proc stopblaming {} {
-    global blameinst
+    global blameinst blamestuff
 
     if {[info exists blameinst]} {
 	stop_instance $blameinst
 	unset blameinst
+	unset blamestuff
 	notbusy blaming
     }
 }
 
-proc read_line_source {fd inst} {
-    global blamestuff curview commfd blameinst nullid nullid2
+proc blameiocallback {fd inst blamecommand} {
+    global blamestuff blameinst commfd
 
     while {[gets $fd line] >= 0} {
-	lappend blamestuff($inst) $line
+	lappend blamestuff $line
     }
     if {![eof $fd]} {
 	return 1
@@ -3802,17 +4004,26 @@ proc read_line_source {fd inst} {
     fconfigure $fd -blocking 1
     if {[catch {close $fd} err]} {
 	error_popup [mc "Error running git blame: %s" $err]
+	unset blamestuff
 	return 0
     }
 
+    $blamecommand
+    unset blamestuff
+    return 0
+}
+
+proc read_line_source {} {
+    global blamestuff curview nullid nullid2
+
     set fname {}
-    set line [split [lindex $blamestuff($inst) 0] " "]
+    set line [split [lindex $blamestuff 0] " "]
     set id [lindex $line 0]
     set lnum [lindex $line 1]
     if {[string length $id] == 40 && [string is xdigit $id] &&
 	[string is digit -strict $lnum]} {
 	# look for "filename" line
-	foreach l $blamestuff($inst) {
+	foreach l $blamestuff {
 	    if {[string match "filename *" $l]} {
 		set fname [string range $l 9 end]
 		break
@@ -3836,6 +4047,136 @@ proc read_line_source {fd inst} {
 	puts "oops couldn't parse git blame output"
     }
     return 0
+}
+
+proc show_selection_source {} {
+    global selection_source_data
+    global blameinst blamestuff
+
+    if {$selection_source_data eq {}} {
+	return
+    }
+
+    foreach var {id fname lnum lnumber} val $selection_source_data { set $var $val }
+    set args [list | git log --pretty=format:%H "-L$lnum,+$lnumber:$fname" -M -n1 $id]
+
+    startblaming $args selsource_read
+}
+
+proc selsource_read {} {
+    global blamestuff
+    global curview
+
+    set id {}
+    set lnum {}
+    set state start
+    foreach l $blamestuff {
+	switch -- $state {
+	    start { if {[regexp {^([0-9a-f]{40})$} $l _ id_match]} {
+			set id $id_match
+			set state diff_header_diff
+		    } else {
+			break
+		    }
+	    }
+	    diff_header_diff { if {[regexp {^diff --git} $l]} { set state diff_header_oldfile } else { break } }
+	    diff_header_oldfile { if {[regexp {^---} $l]} {set state diff_header_newfile} else { break } }
+	    diff_header_newfile {
+		if {[regexp {^\+\+\+ b/(.*)$} $l _ fname_match]} {
+		    set fname $fname_match
+		    set state diff_hunk_header
+		} else {
+		    break
+		}
+	    }
+	    diff_hunk_header {
+		if {[regexp {^@@@*.* \+([0-9]+),[0-9]+ @@@*$} $l _ lnum_matched]} {
+		    set lnum $lnum_matched
+		    break
+		}
+	    }
+	}
+    }
+
+    if {$id eq {}} {
+	error_popup [mc "Parsing output of git log failed"]
+	return 0
+    }
+
+    if {![commitinview $id $curview]} {
+	error_popup [mc "The latest change is in commit %s, \
+			 which is not in this view" [shortids $id]]
+	return 0
+    }
+
+    selectline [rowofcommit $id] 1 [list $fname $lnum] 1
+}
+
+proc prepare_show_selection_source {} {
+    global ctext
+    global selection_source_data
+
+    set selection [$ctext tag ranges sel]
+    if {[llength $selection] != 2} {
+	set selection_source_data {}
+	return
+    }
+    set start_line [lindex [split [lindex $selection 0] "."] 0]
+    set end_index [split [lindex $selection 1] "."]
+    if {[lindex $end_index 1] eq 0} {
+	set end_line [expr [lindex $end_index 0] - 1]
+    } else {
+	set end_line [lindex $end_index 0]
+    }
+    set selection_source_data [prepare_show_region_source $start_line $end_line]
+}
+
+proc prepare_show_region_source {start_line end_line} {
+    global cmitmode
+    global currentid parents curview
+    global nullid
+    if {$start_line > $end_line} {
+	error_popup "Cannot blame region: $start_line > $end_line"
+	return {}
+    }
+    set f [find_ctext_fileinfo $start_line]
+    if {$f eq {}} {
+	return {}
+    }
+    if {$currentid eq $nullid} {
+	return {}
+    }
+    set fname [lindex $f 0]
+    set filebase [lindex $f 1]
+    if {$cmitmode eq "tree"} {
+	set id $currentid
+	set start_lnum [expr $start_line - $filebase]
+	set end_lnum [expr $end_line - $filebase]
+    } else {
+	set id [lindex $parents($curview,$currentid) 0]
+	set start_lnum {}
+	set end_lnum {}
+	foreach cl_spec [resolve_hunk_lines $filebase $start_line $end_line] {
+	    set diffline [lindex $cl_spec 0]
+	    if {$diffline > $end_line} {
+		break
+	    } elseif {$diffline >= $start_line} {
+		foreach branch [lindex $cl_spec 1] {
+		    if {[lindex $branch 0] == 1} {
+			if {$start_lnum eq {}} {
+			    set start_lnum [lindex $branch 1]
+			}
+			set end_lnum [lindex $branch 1]
+		    }
+		}
+	    }
+	}
+    }
+    if {$start_lnum ne {} && $end_lnum ne {}} {
+	return [list $id $fname $start_lnum [expr $end_lnum - $start_lnum + 1]]
+    } else {
+	return {}
+    }
 }
 
 # delete $dir when we see eof on $f (presumably because the child has exited)
@@ -4238,7 +4579,7 @@ proc allviewmenus {n op args} {
 
 proc newviewok {top n {apply 0}} {
     global nextviewnum newviewperm newviewname newishighlight
-    global viewname viewfiles viewperm selectedview curview
+    global viewname viewfiles viewperm viewchanged selectedview curview
     global viewargs viewargscmd newviewopts viewhlmenu
 
     if {[catch {
@@ -4259,6 +4600,7 @@ proc newviewok {top n {apply 0}} {
 	incr nextviewnum
 	set viewname($n) $newviewname($n)
 	set viewperm($n) $newviewopts($n,perm)
+	set viewchanged($n) 1
 	set viewfiles($n) $files
 	set viewargs($n) $newargs
 	set viewargscmd($n) $newviewopts($n,cmd)
@@ -4271,6 +4613,7 @@ proc newviewok {top n {apply 0}} {
     } else {
 	# editing an existing view
 	set viewperm($n) $newviewopts($n,perm)
+	set viewchanged($n) 1
 	if {$newviewname($n) ne $viewname($n)} {
 	    set viewname($n) $newviewname($n)
 	    doviewmenu .bar.view 5 [list showview $n] \
@@ -4293,7 +4636,7 @@ proc newviewok {top n {apply 0}} {
 }
 
 proc delview {} {
-    global curview viewperm hlview selectedhlview
+    global curview viewperm hlview selectedhlview viewchanged
 
     if {$curview == 0} return
     if {[info exists hlview] && $hlview == $curview} {
@@ -4302,6 +4645,7 @@ proc delview {} {
     }
     allviewmenus $curview delete
     set viewperm($curview) 0
+    set viewchanged($curview) 1
     showview 0
 }
 
@@ -7131,6 +7475,7 @@ proc selectline {l isnew {desired_loc {}} {switch_to_patch 0}} {
     global cmitmode showneartags allcommits
     global targetrow targetid lastscrollrows
     global autoselect autosellen jump_to_here
+    global firstparent
     global vinlinediff
 
     catch {unset pending_select}
@@ -7150,6 +7495,12 @@ proc selectline {l isnew {desired_loc {}} {switch_to_patch 0}} {
 
     if {$cmitmode ne "patch" && $switch_to_patch} {
         set cmitmode "patch"
+    }
+
+    if {$cmitmode eq "tree"} {
+        pack .bright.locate -side top -fill x -after .bright.mode
+    } else {
+        pack forget .bright.locate
     }
 
     set y [expr {$canvy0 + $l * $linespc}]
@@ -7279,7 +7630,7 @@ proc selectline {l isnew {desired_loc {}} {switch_to_patch 0}} {
 	gettree $id
     } elseif {$vinlinediff($curview) == 1} {
 	showinlinediff $id
-    } elseif {[llength $olds] <= 1} {
+    } elseif {[llength $olds] <= 1 || $firstparent} {
 	startdiff $id
     } else {
 	mergediff $id
@@ -7341,6 +7692,66 @@ proc reselectline {} {
 
     if {$selectedline ne {}} {
 	selectline $selectedline 0
+    }
+}
+
+
+proc treeopendir_rec {w dir} {
+    global treediropen
+
+    if {[catch { set opened $treediropen($dir) }] != 0 || !$opened} {
+        set parent [file dirname $dir]
+        if {$parent ne "."} {
+            treeopendir_rec $w "$parent/"
+        }
+        treeopendir $w $dir
+    }
+}
+
+proc locate_changed {var _idx op} {
+    if {$op ne "write"} {
+        return
+    }
+
+    if {$var eq "locate_efile"} {
+        global locate_efile locate_has_file
+        global treediropen treecontents treeindex treeparent
+        global cflist cflist_top
+        global commentend ctext
+
+        if {[string index $locate_efile end] eq "/" && [catch { set _dummy $treecontents($locate_efile) }] == 0} {
+            treeopendir_rec $cflist $locate_efile
+        } else {
+            set dir [file dirname $locate_efile]
+            set fname [file tail $locate_efile]
+            if {$dir eq "."} { set dir {} } else { set dir "$dir/" }
+            if {[catch { set contents $treecontents($dir); set ix $treeindex($dir) }] == 0} {
+                if {$dir ne {}} {
+                    treeopendir_rec $cflist $dir
+                }
+                set file_line [elttoline $locate_efile]
+                $cflist see $file_line.0
+                if {[lsearch -exact -sorted $contents $fname] >= 0} {
+                    $cflist tag remove highlight 1.0 end
+                    $cflist tag add highlight "$file_line.0" "$file_line.end"
+                    showfile $locate_efile
+                    set locate_has_file 1
+                } else {
+                    if {$locate_has_file} {
+                        $ctext conf -state normal
+                        clear_ctext $commentend
+                        $ctext conf -state disabled
+                        set locate_has_file 0
+                    }
+                }
+            }
+        }
+    }
+
+    if {$var eq "locate_eline"} {
+        global locate_eline
+
+
     }
 }
 
@@ -7585,11 +7996,10 @@ proc getblobline {bf id} {
 }
 
 proc mark_ctext_line {lnum} {
-    global ctext markbgcolor
+    global ctext
 
-    $ctext tag delete omark
+    $ctext tag remove omark 1.0 end
     $ctext tag add omark $lnum.0 "$lnum.0 + 1 line"
-    $ctext tag conf omark -background $markbgcolor
     $ctext see $lnum.0
 }
 
@@ -7649,9 +8059,11 @@ proc showinlinediff {ids} {
     add_flist $treediff
 
     $ctext conf -state normal
+    parseblobdiffline_start
     foreach line $difflines {
 	parseblobdiffline $ids $line
     }
+    parseblobdiffline_end $ids
     maybe_scroll_ctext 1
     $ctext conf -state disabled
 }
@@ -7726,7 +8138,7 @@ proc diffcmd {ids flags} {
 proc gettreediffs {ids} {
     global treediff treepending limitdiffs vfilelimit curview
 
-    set cmd [diffcmd $ids {--no-commit-id}]
+    set cmd [diffcmd $ids {--no-commit-id -m --first-parent}]
     if {$limitdiffs && $vfilelimit($curview) ne {}} {
 	    set cmd [concat $cmd -- $vfilelimit($curview)]
     }
@@ -7812,6 +8224,13 @@ proc changeworddiff {name ix op} {
     reselectline
 }
 
+proc changefirstparent {} {
+    global treediffs
+    catch {unset treediffs}
+
+    reselectline
+}
+
 proc initblobdiffvars {} {
     global diffencoding targetline diffnparents
     global diffinhdr currdiffsubmod diffseehere
@@ -7829,6 +8248,7 @@ proc getblobdiffs {ids} {
     global diffcontext
     global ignorespace
     global worddiff
+    global firstparent
     global limitdiffs vfilelimit curview
     global git_version
 
@@ -7840,12 +8260,17 @@ proc getblobdiffs {ids} {
     if {[package vcompare $git_version "1.6.6"] >= 0} {
 	set submodule "--submodule"
     }
-    set cmd [diffcmd $ids "-p $textconv $submodule  -C --cc --no-commit-id -U$diffcontext"]
+    set cmd [diffcmd $ids "-p $textconv $submodule  -C --no-commit-id -U$diffcontext"]
     if {$ignorespace} {
 	append cmd " -w"
     }
     if {$worddiff ne [mc "Line diff"]} {
 	append cmd " --word-diff=porcelain"
+    }
+    if {$firstparent} {
+	append cmd " -m --first-parent"
+    } else {
+	append cmd " --cc"
     }
     if {$limitdiffs && $vfilelimit($curview) ne {}} {
 	set cmd [concat $cmd -- $vfilelimit($curview)]
@@ -7857,6 +8282,7 @@ proc getblobdiffs {ids} {
     fconfigure $bdf -blocking 0 -encoding binary -eofchar {}
     set blobdifffd($ids) $bdf
     initblobdiffvars
+    parseblobdiffline_start
     filerun $bdf [list getblobdiffline $bdf $diffids]
 }
 
@@ -7938,21 +8364,76 @@ proc getblobdiffline {bdf ids} {
     $ctext conf -state normal
     while {[incr nr] <= 1000 && [gets $bdf line] >= 0} {
 	if {$ids != $diffids || $bdf != $blobdifffd($ids)} {
+            parseblobdiffline_end $ids
 	    catch {close $bdf}
 	    return 0
 	}
 	parseblobdiffline $ids $line
     }
-    $ctext conf -state disabled
-    blobdiffmaybeseehere [eof $bdf]
     if {[eof $bdf]} {
+        parseblobdiffline_end $ids
 	catch {close $bdf}
 	return 0
     }
+    $ctext conf -state disabled
+    blobdiffmaybeseehere [eof $bdf]
     return [expr {$nr >= 1000? 2: 1}]
 }
 
+proc parseblobdiffline_start {} {
+    hunkfilter_init
+}
+
+proc parseblobdiffline_end {ids} {
+    global hunkfilter_data
+
+    if {[hunkfilter_enabled]} {
+        hunkfilter_flush $ids
+    }
+}
+
 proc parseblobdiffline {ids line} {
+    global hunkfilter_data
+
+    if {[hunkfilter_enabled]} {
+        set line_rest [string range $line 1 end]
+        set operation [string index $line 0]
+        case $operation {
+            {" "} {
+                    if {[string trim $line_rest] eq "" && [llength [dict get $hunkfilter_data pending_lines]] > 0} {
+                        dict lappend hunkfilter_data pending_lines $line
+                    } else {
+                        hunkfilter_resolve_pending
+                        dict lappend hunkfilter_data lines $line
+                        dict incr hunkfilter_data num_pass
+                    }
+                }
+            "+" {
+                    dict lappend hunkfilter_data pending_lines $line
+                    dict set hunkfilter_data pending_new "[dict get $hunkfilter_data pending_new]$line_rest\n"
+                }
+            "-" {
+                    dict lappend hunkfilter_data pending_lines $line
+                    dict set hunkfilter_data pending_old "[dict get $hunkfilter_data pending_old]$line_rest\n"
+                }
+            "\\" { # newline EOF
+                    dict lappend hunkfilter_data pending_lines $line
+                }
+            default {
+                    hunkfilter_flush $ids
+                    hunkfilter_check_start $line
+                }
+        }
+    } else {
+        hunkfilter_check_start $line
+    }
+
+    if {![hunkfilter_enabled]} {
+        real_parseblobdiffline $ids $line
+    }
+}
+
+proc real_parseblobdiffline {ids line} {
     global ctext curdiffstart
     global diffnexthead diffnextnote difffilestart
     global ctext_file_names ctext_file_lines
@@ -8154,6 +8635,106 @@ proc parseblobdiffline {ids line} {
 	    # or something else we don't recognize
 	    $ctext insert end "$line\n" hunksep
 	}
+    }
+}
+
+proc normalize_string {str} {
+    set str [string trim $str]
+    set str [regsub -all {[ \r\n\t]+} $str " "]
+    set str [regsub -all {([\{\}\(\)\[\]\*\+;,\\\/\+\*<>-]) ([a-zA-Z0-9_])} $str {\1\2}]
+    set str [regsub -all {([a-zA-Z0-9_]) ([\{\}\(\)\[\]\*\+;,\\\/\+\*<>-])} $str {\1\2}]
+    set str [regsub -all {([\{\}\(\)\[\],;]) ([\{\}\(\)\[\],;])} $str {\1\2}]
+    set str [regsub -all {([\{\}\(\)\[\],;]) ([\{\}\(\)\[\],;])} $str {\1\2}]
+    return $str
+}
+
+proc hunkfilter_init {} {
+    global hunkfilter_data
+
+    if {[hunkfilter_enabled] \
+        && ([llength [dict get $hunkfilter_data lines]] > 0 || [llength [dict get $hunkfilter_data pending_lines]] > 0)} {
+        puts "Lost hunkfilter data:"
+        foreach d [concat [dict get $hunkfilter_data lines] [dict get $hunkfilter_data pending_lines]] {
+            puts [list l: $d]
+        }
+    }
+    set hunkfilter_data [dict create enabled 0]
+}
+
+proc hunkfilter_resolve_pending {} {
+    global hunkfilter_data
+
+    set lines [dict get $hunkfilter_data pending_lines]
+    if {[llength $lines] == 0} {
+        return
+    }
+    set new [normalize_string [dict get $hunkfilter_data pending_new]]
+    set old [normalize_string [dict get $hunkfilter_data pending_old]]
+    set hunkfilter_data [dict replace $hunkfilter_data pending_lines {} pending_old "" pending_new ""]
+    if {$new ne $old} {
+        foreach line $lines {
+            set operation [string index $line 0]
+            dict lappend hunkfilter_data lines $line
+            case $operation {
+                " " { dict incr hunkfilter_data num_pass }
+                "+" { dict incr hunkfilter_data num_new }
+                "-" { dict incr hunkfilter_data num_old }
+                "\\" { }
+            }
+        }
+    } else {
+        foreach line $lines {
+            set operation [string index $line 0]
+            if {$operation eq " " || $operation eq "-"} { #show older lines to make "Show origin" work
+                dict lappend hunkfilter_data lines [string replace $line 0 0 " "]
+                dict incr hunkfilter_data num_pass
+            }
+        }
+    }
+}
+
+proc hunkfilter_flush {ids} {
+    global hunkfilter_data
+
+    hunkfilter_resolve_pending
+    set num_old [dict get $hunkfilter_data num_old]
+    set num_new [dict get $hunkfilter_data num_new]
+    set num_pass [dict get $hunkfilter_data num_pass]
+    if {$num_old > 0 || $num_new > 0} {
+        set firstline [regsub {^(@@ -[0-9]+,)[0-9]+( \+[0-9]+,)[0-9]+( @@)} \
+                                [dict get $hunkfilter_data firstline] \
+                                "\\1[expr $num_pass + $num_old]\\2[expr $num_pass + $num_new]\\3"]
+        foreach cached_line [concat [list $firstline] [dict get $hunkfilter_data lines]] {
+            real_parseblobdiffline $ids $cached_line
+        }
+    }
+
+    set hunkfilter_data [dict create enabled 0]
+}
+
+proc hunkfilter_check_start {line} {
+    global hunkfilter_data
+    global ignorespace worddiff
+
+    if {[string match "@@ *" $line] && $ignorespace && $worddiff eq [mc "Line diff"]} {
+        set hunkfilter_data [dict create enabled 1 \
+                                         firstline $line \
+                                         lines {} \
+                                         num_pass 0 \
+                                         num_old 0 \
+                                         num_new 0 \
+                                         pending_lines {} \
+                                         pending_old "" \
+                                         pending_new ""]
+    }
+}
+
+proc hunkfilter_enabled {} {
+    global hunkfilter_data
+    if {[info exists hunkfilter_data] && [dict get $hunkfilter_data enabled]} {
+        return 1
+    } else {
+        return 0
     }
 }
 
@@ -8983,6 +9564,7 @@ proc diffcommits {a b} {
     set blobdifffd($diffids) $fd
     set diffinhdr 0
     set currdiffsubmod ""
+    parseblobdiffline_start
     filerun $fd [list getblobdiffline $fd $diffids]
 }
 
@@ -12036,6 +12618,7 @@ set diffcontext 3
 set mergecolors {red blue green purple brown "#009090" magenta "#808000" "#009000" "#ff0080" cyan "#b07070" "#70b0f0" "#70f0b0" "#f0b070" "#ff70b0"}
 set ignorespace 0
 set worddiff ""
+set firstparent 0
 set markbgcolor "#e0e0ff"
 
 set headbgcolor green
@@ -12109,6 +12692,7 @@ catch {
     }
     source $config_file
 }
+config_check_tmp_exists 50
 
 set config_variables {
     mainfont textfont uifont tabstop findmergefiles maxgraphpct maxwidth
@@ -12121,6 +12705,10 @@ set config_variables {
     filesepbgcolor filesepfgcolor linehoverbgcolor linehoverfgcolor
     linehoveroutlinecolor mainheadcirclecolor workingfilescirclecolor
     indexcirclecolor circlecolors linkfgcolor circleoutlinecolor
+}
+foreach var $config_variables {
+    config_init_trace $var
+    trace add variable $var write config_variable_change_cb
 }
 
 parsefont mainfont $mainfont
@@ -12249,6 +12837,7 @@ set highlight_related [mc "None"]
 set highlight_files {}
 set viewfiles(0) {}
 set viewperm(0) 0
+set viewchanged(0) 0
 set viewargs(0) {}
 set viewargscmd(0) {}
 
@@ -12307,6 +12896,7 @@ if {$cmdline_files ne {} || $revtreeargs ne {} || $revtreeargscmd ne {}} {
     set viewargs(1) $revtreeargs
     set viewargscmd(1) $revtreeargscmd
     set viewperm(1) 0
+    set viewchanged(1) 0
     set vdatemode(1) 0
     addviewmenu 1
     .bar.view entryconf [mca "Edit view..."] -state normal
@@ -12322,6 +12912,7 @@ if {[info exists permviews]} {
 	set viewargs($n) [lindex $v 2]
 	set viewargscmd($n) [lindex $v 3]
 	set viewperm($n) 1
+	set viewchanged($n) 0
 	addviewmenu $n
     }
 }
