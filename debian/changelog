@@ -1,3 +1,25 @@
+git (1:2.1.1+next.20140919-1.max630~1) UNRELEASED; urgency=low
+
+  * Non-maintainer upload.
+  * Update to git master@13da0fc092 (2014-10-20 23:07:32)
+  * Update to gitk master@9fabefb (2014-10-30 00:43:15)
+  * Local changes
+    * Revert "checkout --recursive-submodules" feature
+    * Fix Perl ssl issues
+    * Latest version of worktree-vs-submodules 7f69ed9f32
+    * setup.c: set workdir when gitdir is not default
+    * gitk fixes
+      * gitk_blame_region
+      * gitk_ignorespace
+      * takefile
+      * responsive_load
+      * visible_selection (v2)
+      * show_cherrypick_origin
+      * incremental_config_write
+      * first-parent-diff (by Stefan Haller)
+
+ -- Max Kirillov <max@max630.net>  Sun, 30 Nov 2014 09:31:32 +0200
+
 git (1:2.1.1+next.20140919-1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit 7a54a76a.
