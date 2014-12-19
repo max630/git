@@ -2,6 +2,7 @@
 #include "string-list.h"
 #include "run-command.h"
 #include "string-list.h"
+#include "commit.h"
 #include "trailer.h"
 /*
  * Copyright (c) 2013, 2014 Christian Couder <chriscool@tuxfamily.org>
@@ -228,7 +229,7 @@ static const char *apply_command(const char *command, const char *arg)
 {
 	struct strbuf cmd = STRBUF_INIT;
 	struct strbuf buf = STRBUF_INIT;
-	struct child_process cp;
+	struct child_process cp = CHILD_PROCESS_INIT;
 	const char *argv[] = {NULL, NULL};
 	const char *result;
 
@@ -237,7 +238,6 @@ static const char *apply_command(const char *command, const char *arg)
 		strbuf_replace(&cmd, TRAILER_ARG_STRING, arg);
 
 	argv[0] = cmd.buf;
-	child_process_init(&cp);
 	cp.argv = argv;
 	cp.env = local_repo_env;
 	cp.no_stdin = 1;
@@ -583,8 +583,12 @@ static int parse_trailer(struct strbuf *tok, struct strbuf *val, const char *tra
 	strbuf_addch(&seps, '=');
 	len = strcspn(trailer, seps.buf);
 	strbuf_release(&seps);
-	if (len == 0)
-		return error(_("empty trailer token in trailer '%s'"), trailer);
+	if (len == 0) {
+		int l = strlen(trailer);
+		while (l > 0 && isspace(trailer[l - 1]))
+			l--;
+		return error(_("empty trailer token in trailer '%.*s'"), l, trailer);
+	}
 	if (len < strlen(trailer)) {
 		strbuf_add(tok, trailer, len);
 		strbuf_trim(tok);
@@ -765,6 +769,22 @@ static int find_trailer_start(struct strbuf **lines, int count)
 	return only_spaces ? count : 0;
 }
 
+/* Get the index of the end of the trailers */
+static int find_trailer_end(struct strbuf **lines, int patch_start)
+{
+	struct strbuf sb = STRBUF_INIT;
+	int i, ignore_bytes;
+
+	for (i = 0; i < patch_start; i++)
+		strbuf_addbuf(&sb, lines[i]);
+	ignore_bytes = ignore_non_trailer(&sb);
+	strbuf_release(&sb);
+	for (i = patch_start - 1; i >= 0 && ignore_bytes > 0; i--)
+		ignore_bytes -= lines[i]->len;
+
+	return i + 1;
+}
+
 static int has_blank_line_before(struct strbuf **lines, int start)
 {
 	for (;start >= 0; start--) {
@@ -787,14 +807,15 @@ static int process_input_file(struct strbuf **lines,
 			      struct trailer_item **in_tok_last)
 {
 	int count = 0;
-	int patch_start, trailer_start, i;
+	int patch_start, trailer_start, trailer_end, i;
 
 	/* Get the line count */
 	while (lines[count])
 		count++;
 
 	patch_start = find_patch_start(lines, count);
-	trailer_start = find_trailer_start(lines, patch_start);
+	trailer_end = find_trailer_end(lines, patch_start);
+	trailer_start = find_trailer_start(lines, trailer_end);
 
 	/* Print lines before the trailers as is */
 	print_lines(lines, 0, trailer_start);
@@ -803,12 +824,14 @@ static int process_input_file(struct strbuf **lines,
 		printf("\n");
 
 	/* Parse trailer lines */
-	for (i = trailer_start; i < patch_start; i++) {
-		struct trailer_item *new = create_trailer_item(lines[i]->buf);
-		add_trailer_item(in_tok_first, in_tok_last, new);
+	for (i = trailer_start; i < trailer_end; i++) {
+		if (lines[i]->buf[0] != comment_line_char) {
+			struct trailer_item *new = create_trailer_item(lines[i]->buf);
+			add_trailer_item(in_tok_first, in_tok_last, new);
+		}
 	}
 
-	return patch_start;
+	return trailer_end;
 }
 
 static void free_all(struct trailer_item **first)
@@ -825,7 +848,7 @@ void process_trailers(const char *file, int trim_empty, struct string_list *trai
 	struct trailer_item *in_tok_last = NULL;
 	struct trailer_item *arg_tok_first;
 	struct strbuf **lines;
-	int patch_start;
+	int trailer_end;
 
 	/* Default config must be setup first */
 	git_config(git_trailer_default_config, NULL);
@@ -834,7 +857,7 @@ void process_trailers(const char *file, int trim_empty, struct string_list *trai
 	lines = read_input_file(file);
 
 	/* Print the lines before the trailers */
-	patch_start = process_input_file(lines, &in_tok_first, &in_tok_last);
+	trailer_end = process_input_file(lines, &in_tok_first, &in_tok_last);
 
 	arg_tok_first = process_command_line_args(trailers);
 
@@ -845,7 +868,7 @@ void process_trailers(const char *file, int trim_empty, struct string_list *trai
 	free_all(&in_tok_first);
 
 	/* Print the lines after the trailers as is */
-	print_lines(lines, patch_start, INT_MAX);
+	print_lines(lines, trailer_end, INT_MAX);
 
 	strbuf_list_free(lines);
 }
