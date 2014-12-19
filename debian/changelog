@@ -14,6 +14,14 @@ git (1:2.1.4-0.1) unstable; urgency=medium
       * new '[core] protectNTFS' setting to reject path components
         such as ".Git " that NTFS folds to ".git" in "git checkout"
         and "git add".  Always reject such paths in "git fsck".
+  * debian/diff/0009-git-svn-use-SVN-Ra-get_dir2-when-possible.diff:
+    new from upstream: git svn: use get_dir2 instead of get_dir when
+    possible (thx Eric Wong; works around: #767530).
+  * debian/diff/0010-gitweb-hack-around-CGI-s-list-context-...diff:
+    new from upstream: gitweb: be explicit about use of param() in list
+    context, avoiding log noiose with libcgi-pm-perl >= 4.08 and a test
+    failure in t9500-gitweb-standalone-no-errors.sh (thx Reiner
+    Herrmann; closes: #770655).
   * correct spelling of Roland Mas's name in the 1:2.1.3-1 changelog
     entry.
 
