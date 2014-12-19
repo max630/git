@@ -1,3 +1,41 @@
+Version v2.1.4; changes since v2.1.3:
+-------------------------------------
+
+Ben North (1):
+      gitignore.txt: fix spelling of "backslash"
+
+Jeff King (9):
+      docs/credential-store: s/--store/--file/
+      unpack-trees: propagate errors adding entries to the index
+      read-tree: add tests for confusing paths like ".." and ".git"
+      verify_dotfile(): reject .git case-insensitively
+      t1450: refactor ".", "..", and ".git" fsck tests
+      fsck: notice .git case-insensitively
+      utf8: add is_hfs_dotgit() helper
+      read-cache: optionally disallow HFS+ .git variants
+      fsck: complain about HFS+ ".git" aliases in trees
+
+Johannes Schindelin (3):
+      path: add is_ntfs_dotgit() helper
+      read-cache: optionally disallow NTFS .git variants
+      fsck: complain about NTFS ".git" aliases in trees
+
+Junio C Hamano (4):
+      Git 1.8.5.6
+      Git 1.9.5
+      Git 2.0.5
+      Git 2.1.4
+
+Nicolas Dermine (1):
+      config.txt: fix typo
+
+René Scharfe (1):
+      clean: use f(void) instead of f() to declare a pointer to a function without arguments
+
+Thomas Quinot (1):
+      Documentation/config.txt: fix minor typo
+
+
 Version v2.1.3; changes since v2.1.2:
 -------------------------------------
 

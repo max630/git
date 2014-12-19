@@ -1,5 +1,19 @@
-git (1:2.1.3-1.1) unstable; urgency=low
+git (1:2.1.4-0.1) unstable; urgency=medium
 
+  * new upstream point release (CVE-2014-9390).
+    * checkout: tighten exit code handling on errors.
+    * avoid writing filenames to the work tree that some filesystems
+      do not distinguish from ".git".
+      * reject ".gIt" and other path components that case-fold
+        to ".git" in "git checkout", "git add", and "git fsck".
+      * new '[core] protectHFS' setting to reject path components
+        such as ".Git\u200f" that HFS+ folds to ".git" in
+        "git checkout" and "git add".  Always reject such paths
+        in "git fsck".  (U+200F is the Unicode right-to-left
+        mark.)
+      * new '[core] protectNTFS' setting to reject path components
+        such as ".Git " that NTFS folds to ".git" in "git checkout"
+        and "git add".  Always reject such paths in "git fsck".
   * correct spelling of Roland Mas's name in the 1:2.1.3-1 changelog
     entry.
 
