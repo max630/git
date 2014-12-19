@@ -14,7 +14,21 @@ git (1:2.1.4-0.1) unstable; urgency=medium
       * new '[core] protectNTFS' setting to reject path components
         such as ".Git " that NTFS folds to ".git" in "git checkout"
         and "git add".  Always reject such paths in "git fsck".
-  * debian/implicit: check for debian/$pkg.triggers.
+  * gitweb: use apache 2.4-compatible configuration (thx Jean-Michel
+    Nirgal Vourgère for advice; closes: #669292).
+    * rules, conffiles: Apache configuration goes in
+      /etc/apache2/conf-available, not conf.d.
+    * preinst, postinst, postrm: use dpkg-maintscript-helper to
+      rename the conffile and preserve local changes.
+    * postinst, prerm, postrm: use apache2-maintscript-helper if
+      present to load and unload gitweb configuration.
+    * implicit: check for debian/$pkg.triggers.
+    * triggers: re-run postinst when apache2-maintscript-helper is
+      installed.
+    * control:
+      * Pre-Depends: dpkg 1.15.8 for dpkg-maintscript-helper.
+      * Breaks: apache2.2-common because the Apache configuration
+        requires version 2.4.
   * debian/diff/0009-git-svn-use-SVN-Ra-get_dir2-when-possible.diff:
     new from upstream: git svn: use get_dir2 instead of get_dir when
     possible (thx Eric Wong; works around: #767530).
