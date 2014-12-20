@@ -1,7 +1,14 @@
 git (1:2.1.4-2) unstable; urgency=medium
 
-  * gitweb: update version number in conffile handling code to handle
-    upgrades within testing.
+  * update gitweb configuration for Apache 2.4:
+    * apache2.conf:
+      * make configuration conditional on CGI and alias support.
+      * put explicit '+' before FollowSymLinks option.
+    * README.Debian: update with new configuration file path.
+      Mention CGI support requirement.
+    * prerm: fix typo in last line (it should be "fi", not "then").
+    * update version number in conffile handling code to handle
+      upgrades within testing.
 
  -- Jonathan Nieder <jrnieder@gmail.com>  Fri, 19 Dec 2014 17:52:50 -0800
 
