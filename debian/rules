@@ -335,9 +335,9 @@ install-indep: build-arch-stamp build-indep-stamp
 	  '$(GIT)'web/usr/lib/cgi-bin/gitweb.cgi
 	install -d -m0755 '$(GIT)'web/etc
 	install -m0644 debian/gitweb.conf '$(GIT)'web/etc/gitweb.conf
-	install -d -m0755 '$(GIT)'web/etc/apache2/conf.d
+	install -d -m0755 '$(GIT)'web/etc/apache2/conf-available
 	install -m0644 debian/gitweb.apache2.conf \
-	  '$(GIT)'web/etc/apache2/conf.d/gitweb
+	  '$(GIT)'web/etc/apache2/conf-available/gitweb.conf
 	# git-all
 	rm -rf '$(GIT)'-all
 	install -d -m0755 '$(GIT)'-all

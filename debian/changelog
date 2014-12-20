@@ -1,12 +1,58 @@
-git (1:2.1.3+next.20141218-0.1) experimental; urgency=low
+git (1:2.1.4+next.20141218-0.1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit 41e5f3a7.
+  * debian/diff/0009-*, 0010-*: remove; applied upstream.
 
  -- Jonathan Nieder <jrnieder@gmail.com>  Fri, 19 Dec 2014 16:01:33 -0800
+
+git (1:2.1.4-1) unstable; urgency=medium
+
+  * new upstream point release (CVE-2014-9390).
+    * checkout: tighten exit code handling on errors.
+    * avoid writing filenames to the work tree that some filesystems
+      do not distinguish from ".git".
+      * reject ".gIt" and other path components that case-fold
+        to ".git" in "git checkout", "git add", and "git fsck".
+      * new '[core] protectHFS' setting to reject path components
+        such as ".Git\u200f" that HFS+ folds to ".git" in
+        "git checkout" and "git add".  Always reject such paths
+        in "git fsck".  (U+200F is the Unicode right-to-left
+        mark.)
+      * new '[core] protectNTFS' setting to reject path components
+        such as ".Git " that NTFS folds to ".git" in "git checkout"
+        and "git add".  Always reject such paths in "git fsck".
+  * gitweb: use apache 2.4-compatible configuration (thx Jean-Michel
+    Nirgal Vourgère for advice; closes: #669292).
+    * rules, conffiles: Apache configuration goes in
+      /etc/apache2/conf-available, not conf.d.
+    * preinst, postinst, postrm: use dpkg-maintscript-helper to
+      rename the conffile and preserve local changes.
+    * postinst, prerm, postrm: use apache2-maintscript-helper if
+      present to load and unload gitweb configuration.
+    * implicit: check for debian/$pkg.triggers.
+    * triggers: re-run postinst when apache2-maintscript-helper is
+      installed.
+    * control:
+      * Pre-Depends: dpkg 1.15.8 for dpkg-maintscript-helper.
+      * Breaks: apache2.2-common because the Apache configuration
+        requires version 2.4.
+  * debian/diff/0009-git-svn-use-SVN-Ra-get_dir2-when-possible.diff:
+    new from upstream: git svn: use get_dir2 instead of get_dir when
+    possible (thx Eric Wong; works around: #767530).
+  * debian/diff/0010-gitweb-hack-around-CGI-s-list-context-...diff:
+    new from upstream: gitweb: be explicit about use of param() in list
+    context, avoiding log noiose with libcgi-pm-perl >= 4.08 and a test
+    failure in t9500-gitweb-standalone-no-errors.sh (thx Reiner
+    Herrmann; closes: #770655).
+  * correct spelling of Roland Mas's name in the 1:2.1.3-1 changelog
+    entry.
+
+ -- Jonathan Nieder <jrnieder@gmail.com>  Fri, 19 Dec 2014 15:55:34 -0800
 
 git (1:2.1.3+next.20141103-1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit a3a616cf.
+  * merge branch debian-sid.
 
  -- Jonathan Nieder <jrnieder@gmail.com>  Tue, 04 Nov 2014 13:26:52 -0800
 
@@ -26,7 +72,7 @@ git (1:2.1.3-1) unstable; urgency=low
     * mergetool: fix --output handling in meld >= 3.12 (see GNOME
       bug 737869).
     * gitweb: use start_form instead of startform for compatibility
-      with CGI.pm 4.04 and newer (thx Roland Max; closes: #765525).
+      with CGI.pm 4.04 and newer (thx Roland Mas; closes: #765525).
     * pack-objects: do not write invalid bitmaps when hitting pack
       size limit.
 
