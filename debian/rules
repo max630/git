@@ -185,16 +185,15 @@ install-indep: build-arch-stamp build-indep-stamp
 	  INSTLIBDIR=/usr/share/perl5
 	$(MAKE) -CDocumentation install-webdoc WEBDOC_DEST='$(TMP)'/html \
 	  2>/dev/null
-	$(MAKE) -C contrib/subtree doc $(OPTS)
+	DESTDIR='$(TMP)' $(MAKE) -Ccontrib/subtree install-doc $(OPTS)
 	install -m 0644 contrib/subtree/git-subtree.txt '$(TMP)'/html
-	install -m 0644 contrib/subtree/git-subtree.html '$(TMP)'/html
 	# RelNotes are shipped in git
 	rm -rf '$(TMP)'/html/RelNotes
 	# git-man
 	rm -rf '$(GIT)'-man
 	install -d -m0755 '$(GIT)'-man/usr/share/man/man3
 	DESTDIR='$(GIT)'-man $(MAKE) install-doc $(OPTS)
-	PATH=$$PATH:$(CURDIR) DESTDIR='$(GIT)'-man $(MAKE) -C contrib/subtree install-doc $(OPTS)
+	DESTDIR='$(GIT)'-man $(MAKE) -Ccontrib/subtree install-man $(OPTS)
 	install -m 0644 '$(TMP)'/usr/share/man/man3/Git* \
 	  '$(GIT)'-man/usr/share/man/man3/
 	# don't include arch, cvs, p4, svn, email, gui, and gitk man pages
