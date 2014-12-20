@@ -1,8 +1,8 @@
-git (1:2.1.4+next.20141218-1.1) experimental; urgency=low
+git (1:2.1.4+next.20141218-2) experimental; urgency=low
 
   * merge branch debian-sid.
 
- -- Jonathan Nieder <jrnieder@gmail.com>  Fri, 19 Dec 2014 18:41:03 -0800
+ -- Jonathan Nieder <jrnieder@gmail.com>  Fri, 19 Dec 2014 18:41:35 -0800
 
 git (1:2.1.4-2) unstable; urgency=medium
 
