@@ -1,13 +1,14 @@
-git (1:2.1.4+next.20141218-0.1) experimental; urgency=low
+git (1:2.1.4+next.20141218-1) experimental; urgency=low
 
   * new snapshot, taken from upstream commit 41e5f3a7.
+  * merge branch debian-sid.
   * debian/diff/0009-*, 0010-*: remove; applied upstream.
   * debian/rules: use install-html target for git-subtree docs.
     This avoids installing git-subtree.html to the git-man
     package, as we have done by mistake since v2.2.0-rc0
     (closes: #768795).
 
- -- Jonathan Nieder <jrnieder@gmail.com>  Fri, 19 Dec 2014 16:01:33 -0800
+ -- Jonathan Nieder <jrnieder@gmail.com>  Fri, 19 Dec 2014 16:28:19 -0800
 
 git (1:2.1.4-1) unstable; urgency=medium
 
