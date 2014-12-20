@@ -1,4 +1,4 @@
-From 5373eb4d584cd0fe160eb0b0935f64c2db051182 Mon Sep 17 00:00:00 2001
+From 482e9e81058022306ecad0e73833b0f5a87ca555 Mon Sep 17 00:00:00 2001
 From: Jens Lehmann <Jens.Lehmann@web.de>
 Date: Wed, 13 Jun 2012 18:50:10 +0200
 Subject: Teach checkout to recursively checkout submodules
@@ -44,7 +44,7 @@ index 33ad2ad..bcf1c4d 100644
  	Branch to checkout; if it refers to a branch (i.e., a name that,
  	when prepended with "refs/heads/", is a valid ref), then that
 diff --git a/builtin/checkout.c b/builtin/checkout.c
-index 8afdf2b..0159dc8 100644
+index 52d6cbb..d8df8e6 100644
 --- a/builtin/checkout.c
 +++ b/builtin/checkout.c
 @@ -21,6 +21,9 @@
@@ -57,7 +57,7 @@ index 8afdf2b..0159dc8 100644
  static const char * const checkout_usage[] = {
  	N_("git checkout [options] <branch>"),
  	N_("git checkout [options] [<branch>] -- <file>..."),
-@@ -1110,6 +1113,12 @@ int cmd_checkout(int argc, const char **argv, const char *prefix)
+@@ -1128,6 +1131,12 @@ int cmd_checkout(int argc, const char **argv, const char *prefix)
  			 N_("do not limit pathspecs to sparse entries only")),
  		OPT_HIDDEN_BOOL(0, "guess", &dwim_new_local_branch,
  				N_("second guess 'git checkout no-such-branch'")),
@@ -70,7 +70,7 @@ index 8afdf2b..0159dc8 100644
  		OPT_END(),
  	};
  
-@@ -1131,6 +1140,11 @@ int cmd_checkout(int argc, const char **argv, const char *prefix)
+@@ -1149,6 +1158,11 @@ int cmd_checkout(int argc, const char **argv, const char *prefix)
  		git_xmerge_config("merge.conflictstyle", conflict_style, NULL);
  	}
  
@@ -83,7 +83,7 @@ index 8afdf2b..0159dc8 100644
  		die(_("-b, -B and --orphan are mutually exclusive"));
  
 diff --git a/submodule.c b/submodule.c
-index 9baf88d..ca232b6 100644
+index 91971b0..a86a8a7 100644
 --- a/submodule.c
 +++ b/submodule.c
 @@ -375,6 +375,20 @@ int parse_update_recurse_submodules_arg(const char *opt, const char *arg)
@@ -539,5 +539,5 @@ index d1e9fcc..39ff7b3 100755
  
  test_done
 -- 
-2.1.0.rc2.206.gedb03e5
+2.2.0.rc0.207.ga3a616c
 

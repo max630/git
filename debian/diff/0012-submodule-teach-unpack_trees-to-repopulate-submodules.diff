@@ -1,4 +1,4 @@
-From 140a12ffd4b5f17c3033e3cf19e2177461a2adeb Mon Sep 17 00:00:00 2001
+From 38c65dea359a8c2f7f9706b1465034ac676441bd Mon Sep 17 00:00:00 2001
 From: Jens Lehmann <Jens.Lehmann@web.de>
 Date: Mon, 18 Jun 2012 22:11:45 +0200
 Subject: submodule: teach unpack_trees() to repopulate submodules
@@ -38,7 +38,7 @@ index 1eda8e9..5e18e46 100644
  	default:
  		return error("unknown file mode for %s in index", path);
 diff --git a/submodule.c b/submodule.c
-index 0c823dd..a91f077 100644
+index 1f6a75a..5e745fe 100644
 --- a/submodule.c
 +++ b/submodule.c
 @@ -389,6 +389,42 @@ int submodule_needs_update(const char *path)
@@ -161,10 +161,10 @@ index 79cdd34..711f55b 100755
  		reset_work_tree_to add_sub1 &&
  		(
 diff --git a/unpack-trees.c b/unpack-trees.c
-index 68275dc..186014f 100644
+index 85e035f..68dac5f 100644
 --- a/unpack-trees.c
 +++ b/unpack-trees.c
-@@ -1366,6 +1366,7 @@ static int check_ok_to_remove(const char *name, int len, int dtype,
+@@ -1370,6 +1370,7 @@ static int check_ok_to_remove(const char *name, int len, int dtype,
  			      struct unpack_trees_options *o)
  {
  	const struct cache_entry *result;
@@ -172,7 +172,7 @@ index 68275dc..186014f 100644
  
  	/*
  	 * It may be that the 'lstat()' succeeded even though
-@@ -1408,6 +1409,24 @@ static int check_ok_to_remove(const char *name, int len, int dtype,
+@@ -1412,6 +1413,24 @@ static int check_ok_to_remove(const char *name, int len, int dtype,
  			return 0;
  	}
  
@@ -198,5 +198,5 @@ index 68275dc..186014f 100644
  		add_rejected_path(o, error_type, name);
  }
 -- 
-2.1.0.rc2.206.gedb03e5
+2.2.0.rc0.207.ga3a616c
 

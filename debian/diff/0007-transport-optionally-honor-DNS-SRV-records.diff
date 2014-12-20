@@ -1,4 +1,4 @@
-From bdee5a4481935db688791edb4169aad53706a765 Mon Sep 17 00:00:00 2001
+From fa2e69a98ca3360aab29487588a27e6831d71288 Mon Sep 17 00:00:00 2001
 From: Jonathan Nieder <jrnieder@gmail.com>
 Date: Mon, 6 Jun 2011 04:46:20 -0500
 Subject: transport: optionally honor DNS SRV records
@@ -61,7 +61,7 @@ Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
  create mode 100644 srv.h
 
 diff --git a/Makefile b/Makefile
-index 2c4599b..fb8d2fa 100644
+index 80c1f12..d3fa0e5 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -164,6 +164,10 @@ all::
@@ -75,7 +75,7 @@ index 2c4599b..fb8d2fa 100644
  # Define NO_MMAP if you want to avoid mmap.
  #
  # Define NO_SYS_POLL_H if you don't have sys/poll.h.
-@@ -1103,6 +1107,11 @@ endif
+@@ -1119,6 +1123,11 @@ endif
  ifdef NEEDS_NSL
  	EXTLIBS += -lnsl
  endif
@@ -575,5 +575,5 @@ index e6673e1..62747ca 100644
  }
  
 -- 
-2.1.0.rc2.206.gedb03e5
+2.2.0.rc0.207.ga3a616c
 
