@@ -16,9 +16,9 @@
 #
 # To use these routines:
 #
-#    1) Copy this file to somewhere (e.g. ~/.git-completion.sh).
+#    1) Copy this file to somewhere (e.g. ~/.git-completion.bash).
 #    2) Add the following line to your .bashrc/.zshrc:
-#        source ~/.git-completion.sh
+#        source ~/.git-completion.bash
 #    3) Consider changing your PS1 to also show the current branch,
 #       see git-prompt.sh for details.
 #
@@ -411,12 +411,9 @@ __git_refs_remotes ()
 
 __git_remotes ()
 {
-	local i IFS=$'\n' d="$(__gitdir)"
+	local d="$(__gitdir)"
 	test -d "$d/remotes" && ls -1 "$d/remotes"
-	for i in $(git --git-dir="$d" config --get-regexp 'remote\..*\.url' 2>/dev/null); do
-		i="${i#remote.}"
-		echo "${i/.url*/}"
-	done
+	git --git-dir="$d" remote
 }
 
 __git_list_merge_strategies ()
@@ -1425,7 +1422,7 @@ __git_log_gitk_options="
 # Options that go well for log and shortlog (not gitk)
 __git_log_shortlog_options="
 	--author= --committer= --grep=
-	--all-match
+	--all-match --invert-grep
 "
 
 __git_log_pretty_formats="oneline short medium full fuller email raw format:"
@@ -1693,6 +1690,7 @@ _git_rebase ()
 			--committer-date-is-author-date --ignore-date
 			--ignore-whitespace --whitespace=
 			--autosquash --fork-point --no-fork-point
+			--autostash
 			"
 
 		return
@@ -2013,6 +2011,7 @@ _git_config ()
 		color.status.changed
 		color.status.header
 		color.status.nobranch
+		color.status.unmerged
 		color.status.untracked
 		color.status.updated
 		color.ui
