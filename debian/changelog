@@ -1,3 +1,22 @@
+git (1:2.3.4+next.20150323~max630.1) UNRELEASED; urgency=low
+
+  * gitk@{2015-03-15}
+  * Drop debian patches incompatible with next
+    * But apply 'pre-rebase hook: capture documentation in a <<here document'
+  * My core changes:
+    * implement common_dir handling in git_path_submodule()
+    * ssl_perl_compatibility
+    * gitfile-proper-workdir
+  * My gitk changes:
+    * Show the latest change of selected region
+    * Aggressive ignorespace
+    * Takefile
+    * Visible selection
+    * Show cherrypick origin
+  * gitk: Add "First parent" checkbox (by stefan@haller-berlin.de)
+
+ -- Max Kirillov <max@max630.net>  Tue, 24 Mar 2015 21:17:06 +0200
+
 git (1:2.1.4+next.20141218-2) experimental; urgency=low
 
   * merge branch debian-sid.
