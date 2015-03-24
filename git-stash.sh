@@ -20,7 +20,7 @@ require_work_tree
 cd_to_toplevel
 
 TMP="$GIT_DIR/.git-stash.$$"
-TMPindex=${GIT_INDEX_FILE-"$GIT_DIR/index"}.stash.$$
+TMPindex=${GIT_INDEX_FILE-"$(git rev-parse --git-path index)"}.stash.$$
 trap 'rm -f "$TMP-"* "$TMPindex"' 0
 
 ref_stash=refs/stash
@@ -50,7 +50,7 @@ clear_stash () {
 	then
 		die "$(gettext "git stash clear with parameters is unimplemented")"
 	fi
-	if current=$(git rev-parse --verify $ref_stash 2>/dev/null)
+	if current=$(git rev-parse --verify --quiet $ref_stash)
 	then
 		git update-ref -d $ref_stash $current
 	fi
@@ -184,7 +184,7 @@ store_stash () {
 	fi
 
 	# Make sure the reflog for stash is kept.
-	: >>"$GIT_DIR/logs/$ref_stash"
+	: >>"$(git rev-parse --git-path logs/$ref_stash)"
 	git update-ref -m "$stash_msg" $ref_stash $w_commit
 	ret=$?
 	test $ret != 0 && test -z $quiet &&
@@ -259,7 +259,7 @@ save_stash () {
 		say "$(gettext "No local changes to save")"
 		exit 0
 	fi
-	test -f "$GIT_DIR/logs/$ref_stash" ||
+	test -f "$(git rev-parse --git-path logs/$ref_stash)" ||
 		clear_stash || die "$(gettext "Cannot initialize stash")"
 
 	create_stash "$stash_msg" $untracked
@@ -292,12 +292,12 @@ save_stash () {
 }
 
 have_stash () {
-	git rev-parse --verify $ref_stash >/dev/null 2>&1
+	git rev-parse --verify --quiet $ref_stash >/dev/null
 }
 
 list_stash () {
 	have_stash || return 0
-	git log --format="%gd: %gs" -g "$@" $ref_stash --
+	git log --format="%gd: %gs" -g --first-parent -m "$@" $ref_stash --
 }
 
 show_stash () {
@@ -392,12 +392,12 @@ parse_flags_and_rev()
 		;;
 	esac
 
-	REV=$(git rev-parse --quiet --symbolic --verify "$1" 2>/dev/null) || {
+	REV=$(git rev-parse --symbolic --verify --quiet "$1") || {
 		reference="$1"
-		die "$(eval_gettext "\$reference is not valid reference")"
+		die "$(eval_gettext "\$reference is not a valid reference")"
 	}
 
-	i_commit=$(git rev-parse --quiet --verify "$REV^2" 2>/dev/null) &&
+	i_commit=$(git rev-parse --verify --quiet "$REV^2") &&
 	set -- $(git rev-parse "$REV" "$REV^1" "$REV:" "$REV^1:" "$REV^2:" 2>/dev/null) &&
 	s=$1 &&
 	w_commit=$1 &&
@@ -409,7 +409,7 @@ parse_flags_and_rev()
 	test "$ref_stash" = "$(git rev-parse --symbolic-full-name "${REV%@*}")" &&
 	IS_STASH_REF=t
 
-	u_commit=$(git rev-parse --quiet --verify "$REV^3" 2>/dev/null) &&
+	u_commit=$(git rev-parse --verify --quiet "$REV^3") &&
 	u_tree=$(git rev-parse "$REV^3:" 2>/dev/null)
 }
 
@@ -531,7 +531,8 @@ drop_stash () {
 		die "$(eval_gettext "\${REV}: Could not drop stash entry")"
 
 	# clear_stash if we just dropped the last stash entry
-	git rev-parse --verify "$ref_stash@{0}" >/dev/null 2>&1 || clear_stash
+	git rev-parse --verify --quiet "$ref_stash@{0}" >/dev/null ||
+	clear_stash
 }
 
 apply_to_branch () {

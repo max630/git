@@ -80,13 +80,13 @@ static int write_one_shallow(const struct commit_graft *graft, void *cb_data)
 
 static void create_pack_file(void)
 {
-	struct child_process pack_objects;
+	struct child_process pack_objects = CHILD_PROCESS_INIT;
 	char data[8193], progress[128];
 	char abort_msg[] = "aborting due to possible repository "
 		"corruption on the remote side.";
 	int buffered = -1;
 	ssize_t sz;
-	const char *argv[12];
+	const char *argv[13];
 	int i, arg = 0;
 	FILE *pipe_fd;
 
@@ -100,6 +100,8 @@ static void create_pack_file(void)
 		argv[arg++] = "--thin";
 
 	argv[arg++] = "--stdout";
+	if (shallow_nr)
+		argv[arg++] = "--shallow";
 	if (!no_progress)
 		argv[arg++] = "--progress";
 	if (use_ofs_delta)
@@ -108,7 +110,6 @@ static void create_pack_file(void)
 		argv[arg++] = "--include-tag";
 	argv[arg++] = NULL;
 
-	memset(&pack_objects, 0, sizeof(pack_objects));
 	pack_objects.in = -1;
 	pack_objects.out = -1;
 	pack_objects.err = -1;
@@ -167,7 +168,9 @@ static void create_pack_file(void)
 		if (!pollsize)
 			break;
 
-		ret = poll(pfd, pollsize, 1000 * keepalive);
+		ret = poll(pfd, pollsize,
+			keepalive < 0 ? -1 : 1000 * keepalive);
+
 		if (ret < 0) {
 			if (errno != EINTR) {
 				error("poll failed, resuming: %s",
@@ -448,7 +451,7 @@ static void check_non_tip(void)
 	static const char *argv[] = {
 		"rev-list", "--stdin", NULL,
 	};
-	static struct child_process cmd;
+	static struct child_process cmd = CHILD_PROCESS_INIT;
 	struct object *o;
 	char namebuf[42]; /* ^ + SHA-1 + LF */
 	int i;
@@ -678,7 +681,7 @@ static void receive_needs(void)
 }
 
 /* return non-zero if the ref is hidden, otherwise 0 */
-static int mark_our_ref(const char *refname, const unsigned char *sha1, int flag, void *cb_data)
+static int mark_our_ref(const char *refname, const unsigned char *sha1)
 {
 	struct object *o = lookup_unknown_object(sha1);
 
@@ -686,9 +689,13 @@ static int mark_our_ref(const char *refname, const unsigned char *sha1, int flag
 		o->flags |= HIDDEN_REF;
 		return 1;
 	}
-	if (!o)
-		die("git upload-pack: cannot find object %s:", sha1_to_hex(sha1));
 	o->flags |= OUR_REF;
+	return 0;
+}
+
+static int check_ref(const char *refname, const unsigned char *sha1, int flag, void *cb_data)
+{
+	mark_our_ref(refname, sha1);
 	return 0;
 }
 
@@ -710,7 +717,7 @@ static int send_ref(const char *refname, const unsigned char *sha1, int flag, vo
 	const char *refname_nons = strip_namespace(refname);
 	unsigned char peeled[20];
 
-	if (mark_our_ref(refname, sha1, flag, NULL))
+	if (mark_our_ref(refname, sha1))
 		return 0;
 
 	if (capabilities) {
@@ -743,7 +750,7 @@ static int find_symref(const char *refname, const unsigned char *sha1, int flag,
 
 	if ((flag & REF_ISSYMREF) == 0)
 		return 0;
-	symref_target = resolve_ref_unsafe(refname, unused, 0, &flag);
+	symref_target = resolve_ref_unsafe(refname, 0, unused, &flag);
 	if (!symref_target || (flag & REF_ISSYMREF) == 0)
 		die("'%s' is a symref but it is not?", refname);
 	item = string_list_append(cb_data, refname);
@@ -764,8 +771,8 @@ static void upload_pack(void)
 		advertise_shallow_grafts(1);
 		packet_flush(1);
 	} else {
-		head_ref_namespaced(mark_our_ref, NULL);
-		for_each_namespaced_ref(mark_our_ref, NULL);
+		head_ref_namespaced(check_ref, NULL);
+		for_each_namespaced_ref(check_ref, NULL);
 	}
 	string_list_clear(&symref, 1);
 	if (advertise_refs)

@@ -10,7 +10,7 @@
 #include "gpg-interface.h"
 
 static const char * const fmt_merge_msg_usage[] = {
-	N_("git fmt-merge-msg [-m <message>] [--log[=<n>]|--no-log] [--file <file>]"),
+	N_("git fmt-merge-msg [-m <message>] [--log[=<n>] | --no-log] [--file <file>]"),
 	NULL
 };
 
@@ -216,8 +216,7 @@ static void add_branch_desc(struct strbuf *out, const char *name)
 			strbuf_addf(out, "  : %.*s", (int)(ep - bp), bp);
 			bp = ep;
 		}
-		if (out->buf[out->len - 1] != '\n')
-			strbuf_addch(out, '\n');
+		strbuf_complete_line(out);
 	}
 	strbuf_release(&desc);
 }
@@ -602,7 +601,7 @@ int fmt_merge_msg(struct strbuf *in, struct strbuf *out,
 
 	/* get current branch */
 	current_branch = current_branch_to_free =
-		resolve_refdup("HEAD", head_sha1, 1, NULL);
+		resolve_refdup("HEAD", RESOLVE_REF_READING, head_sha1, NULL);
 	if (!current_branch)
 		die("No current branch");
 	if (starts_with(current_branch, "refs/heads/"))

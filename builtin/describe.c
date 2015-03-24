@@ -1,4 +1,5 @@
 #include "cache.h"
+#include "lockfile.h"
 #include "commit.h"
 #include "tag.h"
 #include "refs.h"
@@ -13,8 +14,8 @@
 #define MAX_TAGS	(FLAG_BITS - 1)
 
 static const char * const describe_usage[] = {
-	N_("git describe [options] <commit-ish>*"),
-	N_("git describe [options] --dirty"),
+	N_("git describe [<options>] [<commit-ish>...]"),
+	N_("git describe [<options>] --dirty"),
 	NULL
 };
 

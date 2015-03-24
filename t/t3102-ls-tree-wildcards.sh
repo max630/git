@@ -16,7 +16,21 @@ test_expect_success NOT_MINGW 'ls-tree a* matches literally' '
 100644 blob e69de29bb2d1d6434b8b29ae775ad8c2e48c5391	a[a]/three
 EOF
 	git ls-tree -r HEAD "a[a]" >actual &&
-	test_cmp expected actual
+	test_cmp expect actual
+'
+
+test_expect_success 'ls-tree outside prefix' '
+	cat >expect <<-\EOF &&
+	100644 blob e69de29bb2d1d6434b8b29ae775ad8c2e48c5391	../a[a]/three
+	EOF
+	( cd aa && git ls-tree -r HEAD "../a[a]"; ) >actual &&
+	test_cmp expect actual
+'
+
+test_expect_failure 'ls-tree does not yet support negated pathspec' '
+	git ls-files ":(exclude)a" "a*" >expect &&
+	git ls-tree --name-only -r HEAD ":(exclude)a" "a*" >actual &&
+	test_cmp expect actual
 '
 
 test_done

@@ -215,11 +215,12 @@ static struct commit_list *best_bisection_sorted(struct commit_list *list, int n
 	}
 	qsort(array, cnt, sizeof(*array), compare_commit_dist);
 	for (p = list, i = 0; i < cnt; i++) {
-		struct name_decoration *r = xmalloc(sizeof(*r) + 100);
+		char buf[100]; /* enough for dist=%d */
 		struct object *obj = &(array[i].commit->object);
 
-		sprintf(r->name, "dist=%d", array[i].distance);
-		r->next = add_decoration(&name_decoration, obj, r);
+		snprintf(buf, sizeof(buf), "dist=%d", array[i].distance);
+		add_name_decoration(DECORATION_NONE, buf, obj);
+
 		p->item = array[i].commit;
 		p = p->next;
 	}
@@ -776,7 +777,7 @@ static void check_merge_bases(int no_checkout)
 	int rev_nr;
 	struct commit **rev = get_bad_and_good_commits(&rev_nr);
 
-	result = get_merge_bases_many(rev[0], rev_nr - 1, rev + 1, 0);
+	result = get_merge_bases_many(rev[0], rev_nr - 1, rev + 1);
 
 	for (; result; result = result->next) {
 		const unsigned char *mb = result->item->object.sha1;

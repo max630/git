@@ -1,3 +1,4 @@
+#include "git-compat-util.h"
 #include "http.h"
 #include "pack.h"
 #include "sideband.h"
@@ -8,6 +9,7 @@
 #include "version.h"
 #include "pkt-line.h"
 #include "exec_cmd.h"
+#include "gettext.h"
 
 int active_requests;
 int http_is_verbose;
@@ -62,11 +64,16 @@ static const char *user_agent;
 
 static struct credential cert_auth = CREDENTIAL_INIT;
 static int ssl_cert_password_required;
+#ifdef LIBCURL_CAN_HANDLE_AUTH_ANY
+static unsigned long http_auth_methods = CURLAUTH_ANY;
+#endif
 
 static struct curl_slist *pragma_header;
 static struct curl_slist *no_pragma_header;
 
 static struct active_request_slot *active_queue_head;
+
+static char *cached_accept_language;
 
 size_t fread_buffer(char *ptr, size_t eltsize, size_t nmemb, void *buffer_)
 {
@@ -112,6 +119,37 @@ size_t fwrite_buffer(char *ptr, size_t eltsize, size_t nmemb, void *buffer_)
 size_t fwrite_null(char *ptr, size_t eltsize, size_t nmemb, void *strbuf)
 {
 	return eltsize * nmemb;
+}
+
+static void closedown_active_slot(struct active_request_slot *slot)
+{
+	active_requests--;
+	slot->in_use = 0;
+}
+
+static void finish_active_slot(struct active_request_slot *slot)
+{
+	closedown_active_slot(slot);
+	curl_easy_getinfo(slot->curl, CURLINFO_HTTP_CODE, &slot->http_code);
+
+	if (slot->finished != NULL)
+		(*slot->finished) = 1;
+
+	/* Store slot results so they can be read after the slot is reused */
+	if (slot->results != NULL) {
+		slot->results->curl_result = slot->curl_result;
+		slot->results->http_code = slot->http_code;
+#if LIBCURL_VERSION_NUM >= 0x070a08
+		curl_easy_getinfo(slot->curl, CURLINFO_HTTPAUTH_AVAIL,
+				  &slot->results->auth_avail);
+#else
+		slot->results->auth_avail = 0;
+#endif
+	}
+
+	/* Run callback if appropriate */
+	if (slot->callback_func != NULL)
+		slot->callback_func(slot->callback_data);
 }
 
 #ifdef USE_CURL_MULTI
@@ -313,6 +351,9 @@ static CURL *get_curl_handle(void)
 {
 	CURL *result = curl_easy_init();
 
+	if (!result)
+		die("curl_easy_init failed");
+
 	if (!curl_ssl_verify) {
 		curl_easy_setopt(result, CURLOPT_SSL_VERIFYPEER, 0);
 		curl_easy_setopt(result, CURLOPT_SSL_VERIFYHOST, 0);
@@ -378,7 +419,9 @@ static CURL *get_curl_handle(void)
 
 	if (curl_http_proxy) {
 		curl_easy_setopt(result, CURLOPT_PROXY, curl_http_proxy);
+#if LIBCURL_VERSION_NUM >= 0x070a07
 		curl_easy_setopt(result, CURLOPT_PROXYAUTH, CURLAUTH_ANY);
+#endif
 	}
 
 	set_curl_keepalive(result);
@@ -412,7 +455,8 @@ void http_init(struct remote *remote, const char *url, int proactive_auth)
 	git_config(urlmatch_config_entry, &config);
 	free(normalized_url);
 
-	curl_global_init(CURL_GLOBAL_ALL);
+	if (curl_global_init(CURL_GLOBAL_ALL) != CURLE_OK)
+		die("curl_global_init failed");
 
 	http_proactive_auth = proactive_auth;
 
@@ -430,10 +474,8 @@ void http_init(struct remote *remote, const char *url, int proactive_auth)
 	}
 
 	curlm = curl_multi_init();
-	if (curlm == NULL) {
-		fprintf(stderr, "Error creating curl multi handle.\n");
-		exit(1);
-	}
+	if (!curlm)
+		die("curl_multi_init failed");
 #endif
 
 	if (getenv("GIT_SSL_NO_VERIFY"))
@@ -525,6 +567,9 @@ void http_cleanup(void)
 		cert_auth.password = NULL;
 	}
 	ssl_cert_password_required = 0;
+
+	free(cached_accept_language);
+	cached_accept_language = NULL;
 }
 
 struct active_request_slot *get_active_slot(void)
@@ -590,6 +635,9 @@ struct active_request_slot *get_active_slot(void)
 	curl_easy_setopt(slot->curl, CURLOPT_UPLOAD, 0);
 	curl_easy_setopt(slot->curl, CURLOPT_HTTPGET, 1);
 	curl_easy_setopt(slot->curl, CURLOPT_FAILONERROR, 1);
+#ifdef LIBCURL_CAN_HANDLE_AUTH_ANY
+	curl_easy_setopt(slot->curl, CURLOPT_HTTPAUTH, http_auth_methods);
+#endif
 	if (http_auth.password)
 		init_curl_http_auth(slot->curl);
 
@@ -740,12 +788,6 @@ void run_active_slot(struct active_request_slot *slot)
 #endif
 }
 
-static void closedown_active_slot(struct active_request_slot *slot)
-{
-	active_requests--;
-	slot->in_use = 0;
-}
-
 static void release_active_slot(struct active_request_slot *slot)
 {
 	closedown_active_slot(slot);
@@ -760,31 +802,6 @@ static void release_active_slot(struct active_request_slot *slot)
 #ifdef USE_CURL_MULTI
 	fill_active_slots();
 #endif
-}
-
-void finish_active_slot(struct active_request_slot *slot)
-{
-	closedown_active_slot(slot);
-	curl_easy_getinfo(slot->curl, CURLINFO_HTTP_CODE, &slot->http_code);
-
-	if (slot->finished != NULL)
-		(*slot->finished) = 1;
-
-	/* Store slot results so they can be read after the slot is reused */
-	if (slot->results != NULL) {
-		slot->results->curl_result = slot->curl_result;
-		slot->results->http_code = slot->http_code;
-#if LIBCURL_VERSION_NUM >= 0x070a08
-		curl_easy_getinfo(slot->curl, CURLINFO_HTTPAUTH_AVAIL,
-				  &slot->results->auth_avail);
-#else
-		slot->results->auth_avail = 0;
-#endif
-	}
-
-	/* Run callback if appropriate */
-	if (slot->callback_func != NULL)
-		slot->callback_func(slot->callback_data);
 }
 
 void finish_all_active_slots(void)
@@ -849,7 +866,7 @@ char *get_remote_object_url(const char *url, const char *hex,
 	return strbuf_detach(&buf, NULL);
 }
 
-int handle_curl_result(struct slot_results *results)
+static int handle_curl_result(struct slot_results *results)
 {
 	/*
 	 * If we see a failing http code with CURLE_OK, we have turned off
@@ -880,6 +897,9 @@ int handle_curl_result(struct slot_results *results)
 			credential_reject(&http_auth);
 			return HTTP_NOAUTH;
 		} else {
+#ifdef LIBCURL_CAN_HANDLE_AUTH_ANY
+			http_auth_methods &= ~CURLAUTH_GSSNEGOTIATE;
+#endif
 			return HTTP_REAUTH;
 		}
 	} else {
@@ -996,6 +1016,117 @@ static void extract_content_type(struct strbuf *raw, struct strbuf *type,
 		strbuf_addstr(charset, "ISO-8859-1");
 }
 
+static void write_accept_language(struct strbuf *buf)
+{
+	/*
+	 * MAX_DECIMAL_PLACES must not be larger than 3. If it is larger than
+	 * that, q-value will be smaller than 0.001, the minimum q-value the
+	 * HTTP specification allows. See
+	 * http://tools.ietf.org/html/rfc7231#section-5.3.1 for q-value.
+	 */
+	const int MAX_DECIMAL_PLACES = 3;
+	const int MAX_LANGUAGE_TAGS = 1000;
+	const int MAX_ACCEPT_LANGUAGE_HEADER_SIZE = 4000;
+	char **language_tags = NULL;
+	int num_langs = 0;
+	const char *s = get_preferred_languages();
+	int i;
+	struct strbuf tag = STRBUF_INIT;
+
+	/* Don't add Accept-Language header if no language is preferred. */
+	if (!s)
+		return;
+
+	/*
+	 * Split the colon-separated string of preferred languages into
+	 * language_tags array.
+	 */
+	do {
+		/* collect language tag */
+		for (; *s && (isalnum(*s) || *s == '_'); s++)
+			strbuf_addch(&tag, *s == '_' ? '-' : *s);
+
+		/* skip .codeset, @modifier and any other unnecessary parts */
+		while (*s && *s != ':')
+			s++;
+
+		if (tag.len) {
+			num_langs++;
+			REALLOC_ARRAY(language_tags, num_langs);
+			language_tags[num_langs - 1] = strbuf_detach(&tag, NULL);
+			if (num_langs >= MAX_LANGUAGE_TAGS - 1) /* -1 for '*' */
+				break;
+		}
+	} while (*s++);
+
+	/* write Accept-Language header into buf */
+	if (num_langs) {
+		int last_buf_len = 0;
+		int max_q;
+		int decimal_places;
+		char q_format[32];
+
+		/* add '*' */
+		REALLOC_ARRAY(language_tags, num_langs + 1);
+		language_tags[num_langs++] = "*"; /* it's OK; this won't be freed */
+
+		/* compute decimal_places */
+		for (max_q = 1, decimal_places = 0;
+		     max_q < num_langs && decimal_places <= MAX_DECIMAL_PLACES;
+		     decimal_places++, max_q *= 10)
+			;
+
+		sprintf(q_format, ";q=0.%%0%dd", decimal_places);
+
+		strbuf_addstr(buf, "Accept-Language: ");
+
+		for (i = 0; i < num_langs; i++) {
+			if (i > 0)
+				strbuf_addstr(buf, ", ");
+
+			strbuf_addstr(buf, language_tags[i]);
+
+			if (i > 0)
+				strbuf_addf(buf, q_format, max_q - i);
+
+			if (buf->len > MAX_ACCEPT_LANGUAGE_HEADER_SIZE) {
+				strbuf_remove(buf, last_buf_len, buf->len - last_buf_len);
+				break;
+			}
+
+			last_buf_len = buf->len;
+		}
+	}
+
+	/* free language tags -- last one is a static '*' */
+	for (i = 0; i < num_langs - 1; i++)
+		free(language_tags[i]);
+	free(language_tags);
+}
+
+/*
+ * Get an Accept-Language header which indicates user's preferred languages.
+ *
+ * Examples:
+ *   LANGUAGE= -> ""
+ *   LANGUAGE=ko:en -> "Accept-Language: ko, en; q=0.9, *; q=0.1"
+ *   LANGUAGE=ko_KR.UTF-8:sr@latin -> "Accept-Language: ko-KR, sr; q=0.9, *; q=0.1"
+ *   LANGUAGE=ko LANG=en_US.UTF-8 -> "Accept-Language: ko, *; q=0.1"
+ *   LANGUAGE= LANG=en_US.UTF-8 -> "Accept-Language: en-US, *; q=0.1"
+ *   LANGUAGE= LANG=C -> ""
+ */
+static const char *get_accept_language(void)
+{
+	if (!cached_accept_language) {
+		struct strbuf buf = STRBUF_INIT;
+		write_accept_language(&buf);
+		if (buf.len > 0)
+			cached_accept_language = strbuf_detach(&buf, NULL);
+	}
+
+	return cached_accept_language;
+}
+
 /* http_request() targets */
 #define HTTP_REQUEST_STRBUF	0
 #define HTTP_REQUEST_FILE	1
@@ -1008,6 +1139,7 @@ static int http_request(const char *url,
 	struct slot_results results;
 	struct curl_slist *headers = NULL;
 	struct strbuf buf = STRBUF_INIT;
+	const char *accept_language;
 	int ret;
 
 	slot = get_active_slot();
@@ -1032,6 +1164,11 @@ static int http_request(const char *url,
 			curl_easy_setopt(slot->curl, CURLOPT_WRITEFUNCTION,
 					 fwrite_buffer);
 	}
+
+	accept_language = get_accept_language();
+
+	if (accept_language)
+		headers = curl_slist_append(headers, accept_language);
 
 	strbuf_addstr(&buf, "Pragma:");
 	if (options && options->no_cache)
@@ -1250,7 +1387,7 @@ static int fetch_and_setup_pack_index(struct packed_git **packs_head,
 	int ret;
 
 	if (has_pack_index(sha1)) {
-		new_pack = parse_pack_index(sha1, NULL);
+		new_pack = parse_pack_index(sha1, sha1_pack_index_name(sha1));
 		if (!new_pack)
 			return -1; /* parse_pack_index() already issued error message */
 		goto add_pack;
@@ -1345,7 +1482,7 @@ int finish_http_pack_request(struct http_pack_request *preq)
 	struct packed_git **lst;
 	struct packed_git *p = preq->target;
 	char *tmp_idx;
-	struct child_process ip;
+	struct child_process ip = CHILD_PROCESS_INIT;
 	const char *ip_argv[8];
 
 	close_pack_index(p);
@@ -1368,7 +1505,6 @@ int finish_http_pack_request(struct http_pack_request *preq)
 	ip_argv[3] = preq->tmpfile;
 	ip_argv[4] = NULL;
 
-	memset(&ip, 0, sizeof(ip));
 	ip.argv = ip_argv;
 	ip.git_cmd = 1;
 	ip.no_stdin = 1;

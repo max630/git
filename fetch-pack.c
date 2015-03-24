@@ -1,4 +1,5 @@
 #include "cache.h"
+#include "lockfile.h"
 #include "refs.h"
 #include "pkt-line.h"
 #include "commit.h"
@@ -543,16 +544,19 @@ static void filter_refs(struct fetch_pack_args *args,
 	/* Append unmatched requests to the list */
 	if (allow_tip_sha1_in_want) {
 		for (i = 0; i < nr_sought; i++) {
+			unsigned char sha1[20];
+
 			ref = sought[i];
 			if (ref->matched)
 				continue;
-			if (get_sha1_hex(ref->name, ref->old_sha1))
+			if (get_sha1_hex(ref->name, sha1) ||
+			    ref->name[40] != '\0' ||
+			    hashcmp(sha1, ref->old_sha1))
 				continue;
 
 			ref->matched = 1;
-			*newtail = ref;
-			ref->next = NULL;
-			newtail = &ref->next;
+			*newtail = copy_ref(ref);
+			newtail = &(*newtail)->next;
 		}
 	}
 	*refs = newlist;
@@ -624,7 +628,6 @@ static int everything_local(struct fetch_pack_args *args,
 
 	for (retval = 1, ref = *refs; ref ; ref = ref->next) {
 		const unsigned char *remote = ref->old_sha1;
-		unsigned char local[20];
 		struct object *o;
 
 		o = lookup_object(remote);
@@ -637,8 +640,6 @@ static int everything_local(struct fetch_pack_args *args,
 				ref->name);
 			continue;
 		}
-
-		hashcpy(ref->new_sha1, local);
 		if (!args->verbose)
 			continue;
 		fprintf(stderr,
@@ -666,7 +667,7 @@ static int get_pack(struct fetch_pack_args *args,
 	char hdr_arg[256];
 	const char **av, *cmd_name;
 	int do_keep = args->keep_pack;
-	struct child_process cmd;
+	struct child_process cmd = CHILD_PROCESS_INIT;
 	int ret;
 
 	memset(&demux, 0, sizeof(demux));
@@ -685,7 +686,6 @@ static int get_pack(struct fetch_pack_args *args,
 	else
 		demux.out = xd[0];
 
-	memset(&cmd, 0, sizeof(cmd));
 	cmd.argv = argv;
 	av = argv;
 	*hdr_arg = 0;
@@ -869,34 +869,15 @@ static struct ref *do_fetch_pack(struct fetch_pack_args *args,
 	return ref;
 }
 
-static int fetch_pack_config(const char *var, const char *value, void *cb)
+static void fetch_pack_config(void)
 {
-	if (strcmp(var, "fetch.unpacklimit") == 0) {
-		fetch_unpack_limit = git_config_int(var, value);
-		return 0;
-	}
+	git_config_get_int("fetch.unpacklimit", &fetch_unpack_limit);
+	git_config_get_int("transfer.unpacklimit", &transfer_unpack_limit);
+	git_config_get_bool("repack.usedeltabaseoffset", &prefer_ofs_delta);
+	git_config_get_bool("fetch.fsckobjects", &fetch_fsck_objects);
+	git_config_get_bool("transfer.fsckobjects", &transfer_fsck_objects);
 
-	if (strcmp(var, "transfer.unpacklimit") == 0) {
-		transfer_unpack_limit = git_config_int(var, value);
-		return 0;
-	}
-
-	if (strcmp(var, "repack.usedeltabaseoffset") == 0) {
-		prefer_ofs_delta = git_config_bool(var, value);
-		return 0;
-	}
-
-	if (!strcmp(var, "fetch.fsckobjects")) {
-		fetch_fsck_objects = git_config_bool(var, value);
-		return 0;
-	}
-
-	if (!strcmp(var, "transfer.fsckobjects")) {
-		transfer_fsck_objects = git_config_bool(var, value);
-		return 0;
-	}
-
-	return git_default_config(var, value, cb);
+	git_config(git_default_config, NULL);
 }
 
 static void fetch_pack_setup(void)
@@ -904,7 +885,7 @@ static void fetch_pack_setup(void)
 	static int did_setup;
 	if (did_setup)
 		return;
-	git_config(fetch_pack_config, NULL);
+	fetch_pack_config();
 	if (0 <= transfer_unpack_limit)
 		unpack_limit = transfer_unpack_limit;
 	else if (0 <= fetch_unpack_limit)

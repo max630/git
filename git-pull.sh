@@ -20,7 +20,7 @@ die_conflict () {
     if [ $(git config --bool --get advice.resolveConflict || echo true) = "true" ]; then
 	die "$(gettext "Pull is not possible because you have unmerged files.
 Please, fix them up in the work tree, and then use 'git add/rm <file>'
-as appropriate to mark resolution, or use 'git commit -a'.")"
+as appropriate to mark resolution and make a commit.")"
     else
 	die "$(gettext "Pull is not possible because you have unmerged files.")"
     fi
@@ -245,7 +245,7 @@ test true = "$rebase" && {
 	if ! git rev-parse -q --verify HEAD >/dev/null
 	then
 		# On an unborn branch
-		if test -f "$GIT_DIR/index"
+		if test -f "$(git rev-parse --git-path index)"
 		then
 			die "$(gettext "updating an unborn branch with changes added to the index")"
 		fi

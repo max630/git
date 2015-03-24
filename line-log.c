@@ -237,7 +237,7 @@ static void diff_ranges_release(struct diff_ranges *diff)
 	range_set_release(&diff->target);
 }
 
-void line_log_data_init(struct line_log_data *r)
+static void line_log_data_init(struct line_log_data *r)
 {
 	memset(r, 0, sizeof(struct line_log_data));
 	range_set_init(&r->ranges, 0);
@@ -533,7 +533,7 @@ static void fill_line_ends(struct diff_filespec *spec, long *lines,
 	}
 
 	/* shrink the array to fit the elements */
-	ends = xrealloc(ends, cur * sizeof(*ends));
+	REALLOC_ARRAY(ends, cur);
 	*lines = cur-1;
 	*line_ends = ends;
 }
@@ -1140,6 +1140,9 @@ static int process_ranges_merge_commit(struct rev_info *rev, struct commit *comm
 	struct commit_list *p;
 	int i;
 	int nparents = commit_list_count(commit->parents);
+
+	if (nparents > 1 && rev->first_parent_only)
+		nparents = 1;
 
 	diffqueues = xmalloc(nparents * sizeof(*diffqueues));
 	cand = xmalloc(nparents * sizeof(*cand));

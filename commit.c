@@ -584,25 +584,19 @@ define_commit_slab(author_date_slab, unsigned long);
 static void record_author_date(struct author_date_slab *author_date,
 			       struct commit *commit)
 {
-	const char *buf, *line_end, *ident_line;
 	const char *buffer = get_commit_buffer(commit, NULL);
 	struct ident_split ident;
+	const char *ident_line;
+	size_t ident_len;
 	char *date_end;
 	unsigned long date;
 
-	for (buf = buffer; buf; buf = line_end + 1) {
-		line_end = strchrnul(buf, '\n');
-		if (!skip_prefix(buf, "author ", &ident_line)) {
-			if (!line_end[0] || line_end[1] == '\n')
-				return; /* end of header */
-			continue;
-		}
-		if (split_ident_line(&ident,
-				     ident_line, line_end - ident_line) ||
-		    !ident.date_begin || !ident.date_end)
-			goto fail_exit; /* malformed "author" line */
-		break;
-	}
+	ident_line = find_commit_header(buffer, "author", &ident_len);
+	if (!ident_line)
+		goto fail_exit; /* no author line */
+	if (split_ident_line(&ident, ident_line, ident_len) ||
+	    !ident.date_begin || !ident.date_end)
+		goto fail_exit; /* malformed "author" line */
 
 	date = strtoul(ident.date_begin, &date_end, 10);
 	if (date_end != ident.date_end)
@@ -873,7 +867,7 @@ struct commit_list *get_octopus_merge_bases(struct commit_list *in)
 
 		for (j = ret; j; j = j->next) {
 			struct commit_list *bases;
-			bases = get_merge_bases(i->item, j->item, 1);
+			bases = get_merge_bases(i->item, j->item);
 			if (!new)
 				new = bases;
 			else
@@ -942,10 +936,10 @@ static int remove_redundant(struct commit **array, int cnt)
 	return filled;
 }
 
-struct commit_list *get_merge_bases_many(struct commit *one,
-					 int n,
-					 struct commit **twos,
-					 int cleanup)
+static struct commit_list *get_merge_bases_many_0(struct commit *one,
+						  int n,
+						  struct commit **twos,
+						  int cleanup)
 {
 	struct commit_list *list;
 	struct commit **rslt;
@@ -983,10 +977,23 @@ struct commit_list *get_merge_bases_many(struct commit *one,
 	return result;
 }
 
-struct commit_list *get_merge_bases(struct commit *one, struct commit *two,
-				    int cleanup)
+struct commit_list *get_merge_bases_many(struct commit *one,
+					 int n,
+					 struct commit **twos)
 {
-	return get_merge_bases_many(one, 1, &two, cleanup);
+	return get_merge_bases_many_0(one, n, twos, 1);
+}
+
+struct commit_list *get_merge_bases_many_dirty(struct commit *one,
+					       int n,
+					       struct commit **twos)
+{
+	return get_merge_bases_many_0(one, n, twos, 0);
+}
+
+struct commit_list *get_merge_bases(struct commit *one, struct commit *two)
+{
+	return get_merge_bases_many_0(one, 1, &two, 1);
 }
 
 /*
@@ -1220,43 +1227,7 @@ free_return:
 	free(buf);
 }
 
-static struct {
-	char result;
-	const char *check;
-} sigcheck_gpg_status[] = {
-	{ 'G', "\n[GNUPG:] GOODSIG " },
-	{ 'B', "\n[GNUPG:] BADSIG " },
-	{ 'U', "\n[GNUPG:] TRUST_NEVER" },
-	{ 'U', "\n[GNUPG:] TRUST_UNDEFINED" },
-};
-
-static void parse_gpg_output(struct signature_check *sigc)
-{
-	const char *buf = sigc->gpg_status;
-	int i;
-
-	/* Iterate over all search strings */
-	for (i = 0; i < ARRAY_SIZE(sigcheck_gpg_status); i++) {
-		const char *found, *next;
-
-		if (!skip_prefix(buf, sigcheck_gpg_status[i].check + 1, &found)) {
-			found = strstr(buf, sigcheck_gpg_status[i].check);
-			if (!found)
-				continue;
-			found += strlen(sigcheck_gpg_status[i].check);
-		}
-		sigc->result = sigcheck_gpg_status[i].result;
-		/* The trust messages are not followed by key/signer information */
-		if (sigc->result != 'U') {
-			sigc->key = xmemdupz(found, 16);
-			found += 17;
-			next = strchrnul(found, '\n');
-			sigc->signer = xmemdupz(found, next - found);
-		}
-	}
-}
-
-void check_commit_signature(const struct commit* commit, struct signature_check *sigc)
+void check_commit_signature(const struct commit *commit, struct signature_check *sigc)
 {
 	struct strbuf payload = STRBUF_INIT;
 	struct strbuf signature = STRBUF_INIT;
@@ -1659,4 +1630,72 @@ void print_commit_list(struct commit_list *list,
 		const char *format = list->next ? format_cur : format_last;
 		printf(format, sha1_to_hex(list->item->object.sha1));
 	}
+}
+
+const char *find_commit_header(const char *msg, const char *key, size_t *out_len)
+{
+	int key_len = strlen(key);
+	const char *line = msg;
+
+	while (line) {
+		const char *eol = strchrnul(line, '\n');
+
+		if (line == eol)
+			return NULL;
+
+		if (eol - line > key_len &&
+		    !strncmp(line, key, key_len) &&
+		    line[key_len] == ' ') {
+			*out_len = eol - line - key_len - 1;
+			return line + key_len + 1;
+		}
+		line = *eol ? eol + 1 : NULL;
+	}
+	return NULL;
+}
+
+/*
+ * Inspect sb and determine the true "end" of the log message, in
+ * order to find where to put a new Signed-off-by: line.  Ignored are
+ * trailing comment lines and blank lines, and also the traditional
+ * "Conflicts:" block that is not commented out, so that we can use
+ * "git commit -s --amend" on an existing commit that forgot to remove
+ * it.
+ *
+ * Returns the number of bytes from the tail to ignore, to be fed as
+ * the second parameter to append_signoff().
+ */
+int ignore_non_trailer(struct strbuf *sb)
+{
+	int boc = 0;
+	int bol = 0;
+	int in_old_conflicts_block = 0;
+
+	while (bol < sb->len) {
+		char *next_line;
+
+		if (!(next_line = memchr(sb->buf + bol, '\n', sb->len - bol)))
+			next_line = sb->buf + sb->len;
+		else
+			next_line++;
+
+		if (sb->buf[bol] == comment_line_char || sb->buf[bol] == '\n') {
+			/* is this the first of the run of comments? */
+			if (!boc)
+				boc = bol;
+			/* otherwise, it is just continuing */
+		} else if (starts_with(sb->buf + bol, "Conflicts:\n")) {
+			in_old_conflicts_block = 1;
+			if (!boc)
+				boc = bol;
+		} else if (in_old_conflicts_block && sb->buf[bol] == '\t') {
+			; /* a pathname in the conflicts block */
+		} else if (boc) {
+			/* the previous was not trailing comment */
+			boc = 0;
+			in_old_conflicts_block = 0;
+		}
+		bol = next_line - sb->buf;
+	}
+	return boc ? sb->len - boc : 0;
 }

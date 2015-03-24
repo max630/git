@@ -212,6 +212,21 @@ test_expect_success 'log --grep' '
 	test_cmp expect actual
 '
 
+cat > expect << EOF
+second
+initial
+EOF
+test_expect_success 'log --invert-grep --grep' '
+	git log --pretty="tformat:%s" --invert-grep --grep=th --grep=Sec >actual &&
+	test_cmp expect actual
+'
+
+test_expect_success 'log --invert-grep --grep -i' '
+	echo initial >expect &&
+	git log --pretty="tformat:%s" --invert-grep -i --grep=th --grep=Sec >actual &&
+	test_cmp expect actual
+'
+
 test_expect_success 'log --grep option parsing' '
 	echo second >expect &&
 	git log -1 --pretty="tformat:%s" --grep sec >actual &&
@@ -870,6 +885,10 @@ test_expect_success GPG 'log --graph --show-signature for merged tag' '
 	grep "^|\\\  merged tag" actual &&
 	grep "^| | gpg: Signature made" actual &&
 	grep "^| | gpg: Good signature" actual
+'
+
+test_expect_success 'log --graph --no-walk is forbidden' '
+	test_must_fail git log --graph --no-walk
 '
 
 test_done

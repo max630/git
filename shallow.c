@@ -1,4 +1,5 @@
 #include "cache.h"
+#include "lockfile.h"
 #include "commit.h"
 #include "tag.h"
 #include "pkt-line.h"
@@ -21,7 +22,7 @@ void set_alternate_shallow_file(const char *path, int override)
 	if (alternate_shallow_file && !override)
 		return;
 	free(alternate_shallow_file);
-	alternate_shallow_file = path ? xstrdup(path) : NULL;
+	alternate_shallow_file = xstrdup_or_null(path);
 }
 
 int register_shallow(const unsigned char *sha1)
@@ -136,7 +137,7 @@ struct commit_list *get_shallow_commits(struct object_array *heads, int depth,
 	return result;
 }
 
-void check_shallow_file_for_update(void)
+static void check_shallow_file_for_update(void)
 {
 	if (is_shallow == -1)
 		die("BUG: shallow must be initialized by now");
@@ -226,7 +227,6 @@ static void remove_temporary_shallow_on_signal(int signo)
 
 const char *setup_temporary_shallow(const struct sha1_array *extra)
 {
-	static int installed_handler;
 	struct strbuf sb = STRBUF_INIT;
 	int fd;
 
@@ -237,10 +237,8 @@ const char *setup_temporary_shallow(const struct sha1_array *extra)
 		strbuf_addstr(&temporary_shallow, git_path("shallow_XXXXXX"));
 		fd = xmkstemp(temporary_shallow.buf);
 
-		if (!installed_handler) {
-			atexit(remove_temporary_shallow);
-			sigchain_push_common(remove_temporary_shallow_on_signal);
-		}
+		atexit(remove_temporary_shallow);
+		sigchain_push_common(remove_temporary_shallow_on_signal);
 
 		if (write_in_full(fd, sb.buf, sb.len) != sb.len)
 			die_errno("failed to write to %s",
@@ -269,8 +267,8 @@ void setup_alternate_shallow(struct lock_file *shallow_lock,
 	if (write_shallow_commits(&sb, 0, extra)) {
 		if (write_in_full(fd, sb.buf, sb.len) != sb.len)
 			die_errno("failed to write to %s",
-				  shallow_lock->filename);
-		*alternate_shallow_file = shallow_lock->filename;
+				  shallow_lock->filename.buf);
+		*alternate_shallow_file = shallow_lock->filename.buf;
 	} else
 		/*
 		 * is_repository_shallow() sees empty string as "no
@@ -316,7 +314,7 @@ void prune_shallow(int show_only)
 	if (write_shallow_commits_1(&sb, 0, NULL, SEEN_ONLY)) {
 		if (write_in_full(fd, sb.buf, sb.len) != sb.len)
 			die_errno("failed to write to %s",
-				  shallow_lock.filename);
+				  shallow_lock.filename.buf);
 		commit_lock_file(&shallow_lock);
 	} else {
 		unlink(git_path("shallow"));
@@ -392,8 +390,7 @@ static uint32_t *paint_alloc(struct paint_info *info)
 	void *p;
 	if (!info->slab_count || info->free + size > info->end) {
 		info->slab_count++;
-		info->slab = xrealloc(info->slab,
-				      info->slab_count * sizeof(*info->slab));
+		REALLOC_ARRAY(info->slab, info->slab_count);
 		info->free = xmalloc(COMMIT_SLAB_SIZE);
 		info->slab[info->slab_count - 1] = info->free;
 		info->end = info->free + COMMIT_SLAB_SIZE;
