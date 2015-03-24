@@ -1,4 +1,4 @@
-git (1:2.3.4+next.20150323~max630.1) UNRELEASED; urgency=low
+git (1:2.3.4+next.20150323-1~max630.1) UNRELEASED; urgency=low
 
   * gitk@{2015-03-15}
   * Drop debian patches incompatible with next
