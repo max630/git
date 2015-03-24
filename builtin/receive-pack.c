@@ -128,8 +128,6 @@ static int receive_pack_config(const char *var, const char *value, void *cb)
 	if (!strcmp(var, "receive.denycurrentbranch")) {
 		if (value && !strcasecmp(value, "updateinstead"))
 			deny_current_branch = DENY_UPDATE_INSTEAD;
-		else if (value && !strcasecmp(value, "detachinstead"))
-			deny_current_branch = DENY_DETACH_INSTEAD;
 		else
 			deny_current_branch = parse_deny_action(var, value);
 		return 0;
