@@ -6,7 +6,7 @@ Ensures that Git for Windows can deal with long paths (>260) enabled via core.lo
 
 . ./test-lib.sh
 
-if test_have_prereq NOT_MINGW
+if test_have_prereq !MINGW
 then
 	skip_all='skipping MINGW specific long paths test'
 	test_done
