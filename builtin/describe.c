@@ -127,6 +127,22 @@ static void add_to_known_names(const char *path,
 	}
 }
 
+/* Drops prefix. Returns NULL if the path is not expected with current settings. */
+static const char *get_path_to_match(int is_tag, int all, const char *path)
+{
+	if (is_tag)
+		return path + 10;
+	else if (all) {
+		if (starts_with(path, "refs/heads/"))
+			return path + 11; /* "refs/heads/..." */
+		else if (starts_with(path, "refs/remotes/"))
+			return path + 13; /* "refs/remotes/..." */
+		else
+			return 0;
+	} else
+		return NULL;
+}
+
 static int get_name(const char *path, const struct object_id *oid, int flag, void *cb_data)
 {
 	int is_tag = starts_with(path, "refs/tags/");
@@ -143,12 +159,13 @@ static int get_name(const char *path, const struct object_id *oid, int flag, voi
 	 */
 	if (exclude_patterns.nr) {
 		struct string_list_item *item;
+		const char *path_to_match = get_path_to_match(is_tag, all, path);
 
-		if (!is_tag)
+		if (!path_to_match)
 			return 0;
 
 		for_each_string_list_item(item, &exclude_patterns) {
-			if (!wildmatch(item->string, path + 10, 0))
+			if (!wildmatch(item->string, path_to_match, 0))
 				return 0;
 		}
 	}
@@ -159,13 +176,14 @@ static int get_name(const char *path, const struct object_id *oid, int flag, voi
 	 */
 	if (patterns.nr) {
 		int found = 0;
+		const char *path_to_match = get_path_to_match(is_tag, all, path);
 		struct string_list_item *item;
 
-		if (!is_tag)
+		if (!path_to_match)
 			return 0;
 
 		for_each_string_list_item(item, &patterns) {
-			if (!wildmatch(item->string, path + 10, 0)) {
+			if (!wildmatch(item->string, path_to_match, 0)) {
 				found = 1;
 				break;
 			}
