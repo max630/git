@@ -4690,7 +4690,7 @@ proc hfiles_change {} {
 
     if {[info exists highlight_gdtargs]} {
 	# delete previous highlights
-        close_highlight
+	close_highlight
 	unset -nocomplain fhighlights
 	unbolden
 	unhighlight_filelist
@@ -4805,7 +4805,7 @@ proc do_file_hl {serial} {
 	set highlight_gdtargs [list "-G$highlight_files"]
     } else {
 	# must be "containing:", i.e. we're searching commit info
-        close_highlight
+	close_highlight
 	return
     }
 
@@ -4840,7 +4840,7 @@ proc close_highlight {} {
     global highlight_gdtargs
 
     if {![info exists filehighlight]} {
-        return
+	return
     }
 
     catch {unset highlight_gdtargs}
@@ -4894,13 +4894,13 @@ proc readfhighlight {} {
 	set fhighlights($line) 1
     }
     if {[eof $filehighlight]} {
-        if {!$highlight_autoclose_triggered} {
-            # strange...
-            puts "oops, git diff-tree died"
-        }
+	if {!$highlight_autoclose_triggered} {
+	    # strange...
+	    puts "oops, git diff-tree died"
+	}
 	catch {close $filehighlight}
 	unset filehighlight
-        catch {
+	catch {
 	    set tmp_id $highlight_autoclose_id
 	    unset highlight_autoclose_id
 	    after cancel $tmp_id
@@ -6273,9 +6273,9 @@ proc drawcmitrow {row} {
 	askvhighlight $row $id
     }
     if {[info exists highlight_gdtargs] && ![info exists fhighlights($id)]} {
-        if (![info exists filehighlight]) {
-            start_highlights
-        }
+	if (![info exists filehighlight]) {
+	    start_highlights
+	}
 	askfilehighlight $row $id
     }
     if {$findpattern ne {} && ![info exists nhighlights($id)]} {
