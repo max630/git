@@ -4782,6 +4782,7 @@ proc makepatterns {l} {
 
 proc do_file_hl {serial} {
     global highlight_files filehighlight highlight_paths gdttype fhl_list
+    global highlight_gdtargs
     global cdup findtype
 
     if {$gdttype eq [mc "touching paths:"]} {
@@ -4797,22 +4798,48 @@ proc do_file_hl {serial} {
 	foreach path $paths {
 	    lappend relative_paths [file join $cdup $path]
 	}
-	set gdtargs [concat -- $relative_paths]
+	set highlight_gdtargs [concat -- $relative_paths]
     } elseif {$gdttype eq [mc "adding/removing string:"]} {
-	set gdtargs [list "-S$highlight_files"]
+	set highlight_gdtargs [list "-S$highlight_files"]
     } elseif {$gdttype eq [mc "changing lines matching:"]} {
-	set gdtargs [list "-G$highlight_files"]
+	set highlight_gdtargs [list "-G$highlight_files"]
     } else {
 	# must be "containing:", i.e. we're searching commit info
 	return
     }
-    set cmd [concat | git diff-tree -r -s --stdin $gdtargs]
+
+    set fhl_list {}
+    start_highlights
+}
+
+proc start_highlights {} {
+    global filehighlight fhl_list
+    global highlight_gdtargs
+    global highlight_autoclose_id
+    global highlight_autoclose_triggered
+
+    set cmd [concat | git diff-tree -r -s --stdin $highlight_gdtargs]
     set filehighlight [open $cmd r+]
     fconfigure $filehighlight -blocking 0
     filerun $filehighlight readfhighlight
-    set fhl_list {}
     drawvisible
     flushhighlights
+    set highlight_autoclose_id [after 10000 close_highlight]
+    set highlight_autoclose_triggered 0
+}
+
+proc close_highlight {} {
+    global filehighlight
+    global highlight_autoclose_id
+    global highlight_autoclose_triggered
+
+    if {![info exists filehighlight]} {
+        return
+    }
+
+    catch {close $filehighlight write}
+    unset highlight_autoclose_id
+    set highlight_autoclose_triggered 1
 }
 
 proc flushhighlights {} {
@@ -4836,6 +4863,8 @@ proc askfilehighlight {row id} {
 proc readfhighlight {} {
     global filehighlight fhighlights curview iddrawn
     global fhl_list find_dirn
+    global highlight_autoclose_id
+    global highlight_autoclose_triggered
 
     if {![info exists filehighlight]} {
 	return 0
@@ -4858,11 +4887,23 @@ proc readfhighlight {} {
 	set fhighlights($line) 1
     }
     if {[eof $filehighlight]} {
-	# strange...
-	puts "oops, git diff-tree died"
+        if {!$highlight_autoclose_triggered} {
+            # strange...
+            puts "oops, git diff-tree died"
+        }
 	catch {close $filehighlight}
 	unset filehighlight
+        catch {
+	    set tmp_id $highlight_autoclose_id
+	    unset highlight_autoclose_id
+	    after cancel $tmp_id
+	}
 	return 0
+    } else {
+	if {[info exists $highlight_autoclose_id]} {
+	    after cancel $highlight_autoclose_id
+	    set highlight_autoclose_id [after 10000 close_highlight]
+	}
     }
     if {[info exists find_dirn]} {
 	run findmore
@@ -6216,6 +6257,7 @@ proc drawcmitrow {row} {
     global filehighlight fhighlights findpattern nhighlights
     global hlview vhighlights
     global highlight_related rhighlights
+    global highlight_gdtargs
 
     if {$row >= $numcommits} return
 
@@ -6223,7 +6265,10 @@ proc drawcmitrow {row} {
     if {[info exists hlview] && ![info exists vhighlights($id)]} {
 	askvhighlight $row $id
     }
-    if {[info exists filehighlight] && ![info exists fhighlights($id)]} {
+    if {([info exists filehighlight] || [info exists highlight_gdtargs]) && ![info exists fhighlights($id)]} {
+        if (![info exists filehighlight]) {
+            start_highlights
+        }
 	askfilehighlight $row $id
     }
     if {$findpattern ne {} && ![info exists nhighlights($id)]} {
