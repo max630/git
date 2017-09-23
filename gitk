@@ -4685,12 +4685,12 @@ proc askvhighlight {row id} {
 
 proc hfiles_change {} {
     global highlight_files filehighlight fhighlights fh_serial
+    global highlight_gdtargs
     global highlight_paths
 
-    if {[info exists filehighlight]} {
+    if {[info exists highlight_gdtargs]} {
 	# delete previous highlights
-	catch {close $filehighlight}
-	unset filehighlight
+        close_highlight
 	unset -nocomplain fhighlights
 	unbolden
 	unhighlight_filelist
@@ -4805,7 +4805,6 @@ proc do_file_hl {serial} {
 	set highlight_gdtargs [list "-G$highlight_files"]
     } else {
 	# must be "containing:", i.e. we're searching commit info
-        unset highlight_gdtargs
         close_highlight
 	return
     }
@@ -4838,11 +4837,13 @@ proc close_highlight {} {
     global filehighlight
     global highlight_autoclose_id
     global highlight_autoclose_triggered
+    global highlight_gdtargs
 
     if {![info exists filehighlight]} {
         return
     }
 
+    catch {unset highlight_gdtargs}
     catch {close $filehighlight write}
     unset highlight_autoclose_id
     set highlight_autoclose_triggered 1
@@ -6271,7 +6272,7 @@ proc drawcmitrow {row} {
     if {[info exists hlview] && ![info exists vhighlights($id)]} {
 	askvhighlight $row $id
     }
-    if {([info exists filehighlight] || [info exists highlight_gdtargs]) && ![info exists fhighlights($id)]} {
+    if {[info exists highlight_gdtargs] && ![info exists fhighlights($id)]} {
         if (![info exists filehighlight]) {
             start_highlights
         }
