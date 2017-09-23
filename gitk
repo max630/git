@@ -4805,6 +4805,8 @@ proc do_file_hl {serial} {
 	set highlight_gdtargs [list "-G$highlight_files"]
     } else {
 	# must be "containing:", i.e. we're searching commit info
+        unset highlight_gdtargs
+        close_highlight
 	return
     }
 
@@ -4817,6 +4819,10 @@ proc start_highlights {} {
     global highlight_gdtargs
     global highlight_autoclose_id
     global highlight_autoclose_triggered
+
+    if {![info exists highlight_gdtargs]} {
+	return
+    }
 
     set cmd [concat | git diff-tree -r -s --stdin $highlight_gdtargs]
     set filehighlight [open $cmd r+]
