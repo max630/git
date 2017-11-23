@@ -74,6 +74,7 @@ extern int git_config_rename_section_in_file(const char *, const char *, const c
 extern const char *git_etc_gitconfig(void);
 extern int git_env_bool(const char *, int);
 extern unsigned long git_env_ulong(const char *, unsigned long);
+extern ssize_t git_env_ssize_t(const char *, ssize_t);
 extern int git_config_system(void);
 extern int config_error_nonbool(const char *);
 #if defined(__GNUC__)
