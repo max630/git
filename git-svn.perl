@@ -2104,7 +2104,7 @@ sub find_file_type_and_diff_status {
 	return ('dir', '') if $path eq '';
 
 	my $diff_output =
-	    command_oneline(qw(diff --cached --name-status --), $path) || "";
+	    command_oneline(qw(diff --staged --name-status --), $path) || "";
 	my $diff_status = (split(' ', $diff_output))[0] || "";
 
 	my $ls_tree = command_oneline(qw(ls-tree HEAD), $path) || "";

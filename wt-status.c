@@ -176,7 +176,7 @@ static void wt_longstatus_print_unmerged_header(struct wt_status *s)
 	else if (!s->is_initial)
 		status_printf_ln(s, c, _("  (use \"git reset %s <file>...\" to unstage)"), s->reference);
 	else
-		status_printf_ln(s, c, _("  (use \"git rm --cached <file>...\" to unstage)"));
+		status_printf_ln(s, c, _("  (use \"git rm --staged <file>...\" to unstage)"));
 
 	if (!both_deleted) {
 		if (!del_mod_conflict)
@@ -203,7 +203,7 @@ static void wt_longstatus_print_cached_header(struct wt_status *s)
 	else if (!s->is_initial)
 		status_printf_ln(s, c, _("  (use \"git reset %s <file>...\" to unstage)"), s->reference);
 	else
-		status_printf_ln(s, c, _("  (use \"git rm --cached <file>...\" to unstage)"));
+		status_printf_ln(s, c, _("  (use \"git rm --staged <file>...\" to unstage)"));
 	status_printf_ln(s, c, "%s", "");
 }
 
@@ -833,7 +833,7 @@ static void wt_longstatus_print_submodule_summary(struct wt_status *s, int uncom
 
 	argv_array_push(&sm_summary.args, "submodule");
 	argv_array_push(&sm_summary.args, "summary");
-	argv_array_push(&sm_summary.args, uncommitted ? "--files" : "--cached");
+	argv_array_push(&sm_summary.args, uncommitted ? "--files" : "--staged");
 	argv_array_push(&sm_summary.args, "--for-status");
 	argv_array_push(&sm_summary.args, "--summary-limit");
 	argv_array_pushf(&sm_summary.args, "%d", s->submodule_summary);

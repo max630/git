@@ -10,7 +10,7 @@ SYNOPSIS
 --------
 [verse]
 'git diff' [options] [<commit>] [--] [<path>...]
-'git diff' [options] --cached [<commit>] [--] [<path>...]
+'git diff' [options] --staged [<commit>] [--] [<path>...]
 'git diff' [options] <commit> <commit> [--] [<path>...]
 'git diff' [options] <blob> <blob>
 'git diff' [options] [--no-index] [--] <path> <path>
@@ -38,7 +38,7 @@ two blob objects, or changes between two files on disk.
 	or when running the command outside a working tree
 	controlled by Git.
 
-'git diff' [--options] --cached [<commit>] [--] [<path>...]::
+'git diff' [--options] --staged [<commit>] [--] [<path>...]::
 
 	This form is to view the changes you staged for the next
 	commit relative to the named <commit>.  Typically you
@@ -46,7 +46,7 @@ two blob objects, or changes between two files on disk.
 	do not give <commit>, it defaults to HEAD.
 	If HEAD does not exist (e.g. unborn branches) and
 	<commit> is not given, it shows all staged changes.
-	--staged is a synonym of --cached.
+	--cached is a synonym of --staged.
 
 'git diff' [--options] <commit> [--] [<path>...]::
 
@@ -126,7 +126,7 @@ Various ways to check your working tree::
 +
 ------------
 $ git diff            <1>
-$ git diff --cached   <2>
+$ git diff --staged   <2>
 $ git diff HEAD       <3>
 ------------
 +

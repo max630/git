@@ -101,7 +101,7 @@ msgid "--reject and --3way cannot be used together."
 msgstr ""
 
 #: apply.c:127
-msgid "--cached and --3way cannot be used together."
+msgid "--staged and --3way cannot be used together."
 msgstr ""
 
 #: apply.c:130
@@ -113,7 +113,7 @@ msgid "--index outside a repository"
 msgstr ""
 
 #: apply.c:144
-msgid "--cached outside a repository"
+msgid "--staged outside a repository"
 msgstr ""
 
 #: apply.c:845
@@ -3930,7 +3930,7 @@ msgid "  (use \"git reset %s <file>...\" to unstage)"
 msgstr ""
 
 #: wt-status.c:179 wt-status.c:206
-msgid "  (use \"git rm --cached <file>...\" to unstage)"
+msgid "  (use \"git rm --staged <file>...\" to unstage)"
 msgstr ""
 
 #: wt-status.c:183
@@ -4518,7 +4518,7 @@ msgid ""
 "If you added this path by mistake, you can remove it from the\n"
 "index with:\n"
 "\n"
-"\tgit rm --cached %s\n"
+"\tgit rm --staged %s\n"
 "\n"
 "See \"git help submodule\" for more information."
 msgstr ""
@@ -8284,7 +8284,7 @@ msgid "option not supported with --recurse-submodules."
 msgstr ""
 
 #: builtin/grep.c:1081
-msgid "--cached or --untracked cannot be used with --no-index."
+msgid "--staged or --untracked cannot be used with --no-index."
 msgstr ""
 
 #: builtin/grep.c:1087
@@ -8292,7 +8292,7 @@ msgid "--[no-]exclude-standard cannot be used for tracked contents."
 msgstr ""
 
 #: builtin/grep.c:1095
-msgid "both --cached and trees are given."
+msgid "both --staged and trees are given."
 msgstr ""
 
 #: builtin/hash-object.c:82
@@ -12195,7 +12195,7 @@ msgstr[1] ""
 #: builtin/rm.c:219 builtin/rm.c:228
 msgid ""
 "\n"
-"(use --cached to keep the file, or -f to force removal)"
+"(use --staged to keep the file, or -f to force removal)"
 msgstr ""
 
 #: builtin/rm.c:225
@@ -14234,7 +14234,7 @@ msgid "Failed to recurse into submodule path '$displaypath'"
 msgstr ""
 
 #: git-submodule.sh:840
-msgid "The --cached option cannot be used with the --files option"
+msgid "The --staged option cannot be used with the --files option"
 msgstr ""
 
 #: git-submodule.sh:892

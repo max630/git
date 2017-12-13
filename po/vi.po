@@ -128,8 +128,8 @@ msgid "--reject and --3way cannot be used together."
 msgstr "--reject và --3way không thể dùng cùng nhau."
 
 #: apply.c:127
-msgid "--cached and --3way cannot be used together."
-msgstr "--cached và --3way không thể dùng cùng nhau."
+msgid "--staged and --3way cannot be used together."
+msgstr "--staged và --3way không thể dùng cùng nhau."
 
 #: apply.c:130
 msgid "--3way outside a repository"
@@ -140,8 +140,8 @@ msgid "--index outside a repository"
 msgstr "--index ở ngoài một kho chứa"
 
 #: apply.c:144
-msgid "--cached outside a repository"
-msgstr "--cached ở ngoài một kho chứa"
+msgid "--staged outside a repository"
+msgstr "--staged ở ngoài một kho chứa"
 
 #: apply.c:845
 #, c-format
@@ -4253,8 +4253,8 @@ msgid "  (use \"git reset %s <file>...\" to unstage)"
 msgstr "  (dùng \"git reset %s <tập-tin>…\" để bỏ ra khỏi bệ phóng)"
 
 #: wt-status.c:179 wt-status.c:206
-msgid "  (use \"git rm --cached <file>...\" to unstage)"
-msgstr "  (dùng \"git rm --cached <tập-tin>…\" để bỏ ra khỏi bệ phóng)"
+msgid "  (use \"git rm --staged <file>...\" to unstage)"
+msgstr "  (dùng \"git rm --staged <tập-tin>…\" để bỏ ra khỏi bệ phóng)"
 
 #: wt-status.c:183
 msgid "  (use \"git add <file>...\" to mark resolution)"
@@ -4890,7 +4890,7 @@ msgid ""
 "If you added this path by mistake, you can remove it from the\n"
 "index with:\n"
 "\n"
-"\tgit rm --cached %s\n"
+"\tgit rm --staged %s\n"
 "\n"
 "See \"git help submodule\" for more information."
 msgstr ""
@@ -4904,7 +4904,7 @@ msgstr ""
 "Nếu bạn đã thêm miếng vá này chỉ là sai sót, bạn có thể xóa bỏ\n"
 "nó khỏi mục lục bằng:\n"
 "\n"
-"\tgit rm --cached %s\n"
+"\tgit rm --staged %s\n"
 "\n"
 "Xem \"git help submodule\" để biết thêm chi tiết."
 
@@ -8908,16 +8908,16 @@ msgid "option not supported with --recurse-submodules."
 msgstr "tùy chọn không được hỗ trợ với --recurse-submodules."
 
 #: builtin/grep.c:1081
-msgid "--cached or --untracked cannot be used with --no-index."
-msgstr "--cached hay --untracked không được sử dụng với --no-index."
+msgid "--staged or --untracked cannot be used with --no-index."
+msgstr "--staged hay --untracked không được sử dụng với --no-index."
 
 #: builtin/grep.c:1087
 msgid "--[no-]exclude-standard cannot be used for tracked contents."
 msgstr "--[no-]exclude-standard không thể sử dụng cho nội dung lưu dấu vết."
 
 #: builtin/grep.c:1095
-msgid "both --cached and trees are given."
-msgstr "cả hai --cached và các cây phải được chỉ ra."
+msgid "both --staged and trees are given."
+msgstr "cả hai --staged và các cây phải được chỉ ra."
 
 #: builtin/hash-object.c:82
 msgid ""
@@ -13024,10 +13024,10 @@ msgstr[0] "các tập tin sau đây có thay đổi trạng thái trong bảng m
 #: builtin/rm.c:219 builtin/rm.c:228
 msgid ""
 "\n"
-"(use --cached to keep the file, or -f to force removal)"
+"(use --staged to keep the file, or -f to force removal)"
 msgstr ""
 "\n"
-"(dùng tùy chọn --cached để giữ tập tin, hoặc -f để ép buộc gỡ bỏ)"
+"(dùng tùy chọn --staged để giữ tập tin, hoặc -f để ép buộc gỡ bỏ)"
 
 #: builtin/rm.c:225
 msgid "the following file has local modifications:"
@@ -15202,8 +15202,8 @@ msgid "Failed to recurse into submodule path '$displaypath'"
 msgstr "Gặp lỗi khi đệ quy vào trong đường dẫn mô-đun-con “$displaypath”"
 
 #: git-submodule.sh:840
-msgid "The --cached option cannot be used with the --files option"
-msgstr "Tùy chọn --cached không thể dùng cùng với tùy chọn --files"
+msgid "The --staged option cannot be used with the --files option"
+msgstr "Tùy chọn --staged không thể dùng cùng với tùy chọn --files"
 
 #: git-submodule.sh:892
 #, sh-format
@@ -17421,10 +17421,10 @@ msgstr "Bạn có thực sự muốn gửi %s? [y|N]: "
 
 #~ msgid ""
 #~ "'%s' has changes staged in the index\n"
-#~ "(use --cached to keep the file, or -f to force removal)"
+#~ "(use --staged to keep the file, or -f to force removal)"
 #~ msgstr ""
 #~ "“%s” có các thay đổi được lưu trạng thái trong bảng mục lục\n"
-#~ "(dùng tùy chọn --cached để giữ tập tin, hoặc -f để ép buộc gỡ bỏ)"
+#~ "(dùng tùy chọn --staged để giữ tập tin, hoặc -f để ép buộc gỡ bỏ)"
 
 #~ msgid "show commits where no parent comes before its children"
 #~ msgstr "hiển thị các lần chuyển giao nơi mà cha mẹ đến trước con của nó"

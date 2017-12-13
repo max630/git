@@ -6,11 +6,11 @@
 
 dashless=$(basename "$0" | sed -e 's/-/ /')
 USAGE="[--quiet] add [-b <branch>] [-f|--force] [--name <name>] [--reference <repository>] [--] <repository> [<path>]
-   or: $dashless [--quiet] status [--cached] [--recursive] [--] [<path>...]
+   or: $dashless [--quiet] status [--staged] [--recursive] [--] [<path>...]
    or: $dashless [--quiet] init [--] [<path>...]
    or: $dashless [--quiet] deinit [-f|--force] (--all| [--] <path>...)
    or: $dashless [--quiet] update [--init] [--remote] [-N|--no-fetch] [-f|--force] [--checkout|--merge|--rebase] [--[no-]recommend-shallow] [--reference <repository>] [--recursive] [--] [<path>...]
-   or: $dashless [--quiet] summary [--cached|--files] [--summary-limit <n>] [commit] [--] [<path>...]
+   or: $dashless [--quiet] summary [--staged|--files] [--summary-limit <n>] [commit] [--] [<path>...]
    or: $dashless [--quiet] foreach [--recursive] <command>
    or: $dashless [--quiet] sync [--recursive] [--] [<path>...]
    or: $dashless [--quiet] absorbgitdirs [--] [<path>...]"
@@ -773,7 +773,7 @@ set_name_rev () {
 #
 # Show commit summary for submodules in index or working tree
 #
-# If '--cached' is given, show summary between index and given commit,
+# If '--staged' is given, show summary between index and given commit,
 # or between working tree and given commit
 #
 # $@ = [commit (default 'HEAD'),] requested paths (default all)
@@ -788,6 +788,9 @@ cmd_summary() {
 	do
 		case "$1" in
 		--cached)
+			cached="$1"
+			;;
+		--staged)
 			cached="$1"
 			;;
 		--files)
@@ -837,7 +840,7 @@ cmd_summary() {
 	if [ -n "$files" ]
 	then
 		test -n "$cached" &&
-		die "$(gettext "The --cached option cannot be used with the --files option")"
+		die "$(gettext "The --staged option cannot be used with the --files option")"
 		diff_cmd=diff-files
 		head=
 	fi
@@ -982,7 +985,7 @@ cmd_summary() {
 #  - submodule not initialized
 #  + different revision checked out
 #
-# If --cached was specified the revision in the index will be printed
+# If --staged was specified the revision in the index will be printed
 # instead of the currently checked out revision.
 #
 # $@ = requested paths (default to all)
@@ -997,6 +1000,9 @@ cmd_status()
 			GIT_QUIET=1
 			;;
 		--cached)
+			cached=1
+			;;
+		--staged)
 			cached=1
 			;;
 		--recursive)
@@ -1162,7 +1168,7 @@ cmd_absorbgitdirs()
 # This loop parses the command line arguments to find the
 # subcommand name to dispatch.  Parsing of the subcommand specific
 # options are primarily done by the subcommand implementations.
-# Subcommand specific options such as --branch and --cached are
+# Subcommand specific options such as --branch and --staged are
 # parsed here as well, for backward compatibility.
 
 while test $# != 0 && test -z "$command"
@@ -1183,6 +1189,9 @@ do
 		branch="$2"; shift
 		;;
 	--cached)
+		cached="$1"
+		;;
+	--staged)
 		cached="$1"
 		;;
 	--)
@@ -1215,7 +1224,7 @@ then
 	usage
 fi
 
-# "--cached" is accepted only by "status" and "summary"
+# "--staged" is accepted only by "status" and "summary"
 if test -n "$cached" && test "$command" != status && test "$command" != summary
 then
 	usage

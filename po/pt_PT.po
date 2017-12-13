@@ -117,8 +117,8 @@ msgid "--reject and --3way cannot be used together."
 msgstr "--reject e --3way não podem ser usados juntos."
 
 #: apply.c:127
-msgid "--cached and --3way cannot be used together."
-msgstr "--cached e --3way não podem ser usados juntos."
+msgid "--staged and --3way cannot be used together."
+msgstr "--staged e --3way não podem ser usados juntos."
 
 #: apply.c:130
 msgid "--3way outside a repository"
@@ -129,8 +129,8 @@ msgid "--index outside a repository"
 msgstr "--index fora de um repositório"
 
 #: apply.c:144
-msgid "--cached outside a repository"
-msgstr "--cached fora de um repositório"
+msgid "--staged outside a repository"
+msgstr "--staged fora de um repositório"
 
 #: apply.c:845
 #, c-format
@@ -4101,8 +4101,8 @@ msgid "  (use \"git reset %s <file>...\" to unstage)"
 msgstr "  (use \"git reset %s <ficheiro>...\" para despreparar)"
 
 #: wt-status.c:180 wt-status.c:207
-msgid "  (use \"git rm --cached <file>...\" to unstage)"
-msgstr "  (use \"git rm --cached <ficheiro>...\" para despreparar)"
+msgid "  (use \"git rm --staged <file>...\" to unstage)"
+msgstr "  (use \"git rm --staged <ficheiro>...\" para despreparar)"
 
 #: wt-status.c:184
 msgid "  (use \"git add <file>...\" to mark resolution)"
@@ -8672,8 +8672,8 @@ msgid "option not supported with --recurse-submodules."
 msgstr "opção não suportada com --recurse-submodules."
 
 #: builtin/grep.c:1280
-msgid "--cached or --untracked cannot be used with --no-index."
-msgstr "--cached ou --untracked não podem ser usados com --no-index."
+msgid "--staged or --untracked cannot be used with --no-index."
+msgstr "--staged ou --untracked não podem ser usados com --no-index."
 
 #: builtin/grep.c:1286
 msgid "--[no-]exclude-standard cannot be used for tracked contents."
@@ -8681,8 +8681,8 @@ msgstr ""
 "--[no-]exclude-standard não podem ser usados em conteúdos não controlados."
 
 #: builtin/grep.c:1294
-msgid "both --cached and trees are given."
-msgstr "--cached e árvores foram fornecidos simultaneamente."
+msgid "both --staged and trees are given."
+msgstr "--staged e árvores foram fornecidos simultaneamente."
 
 #: builtin/hash-object.c:81
 msgid ""
@@ -12726,10 +12726,10 @@ msgstr[1] "os seguintes ficheiros contêm alterações preparadas no índice:"
 #: builtin/rm.c:218 builtin/rm.c:227
 msgid ""
 "\n"
-"(use --cached to keep the file, or -f to force removal)"
+"(use --staged to keep the file, or -f to force removal)"
 msgstr ""
 "\n"
-"(use --cached para manter o ficheiro, ou -f para forçar remoção)"
+"(use --staged para manter o ficheiro, ou -f para forçar remoção)"
 
 #: builtin/rm.c:224
 msgid "the following file has local modifications:"
@@ -14916,8 +14916,8 @@ msgid "Failed to recurse into submodule path '$displaypath'"
 msgstr "Falha ao percorrer o caminho de submódulo '$displaypath'"
 
 #: git-submodule.sh:840
-msgid "The --cached option cannot be used with the --files option"
-msgstr "A opção --cached não pode ser usada com a opção --files"
+msgid "The --staged option cannot be used with the --files option"
+msgstr "A opção --staged não pode ser usada com a opção --files"
 
 #: git-submodule.sh:892
 #, sh-format

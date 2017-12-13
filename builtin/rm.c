@@ -154,7 +154,7 @@ static int check_local_mod(struct object_id *head, int index_only)
 		 * the current commit in the index.
 		 *
 		 * In such a case, you would need to --force the
-		 * removal.  However, "rm --cached" (remove only from
+		 * removal.  However, "rm --staged" (remove only from
 		 * the index) is safe if the index matches the file in
 		 * the work tree or the HEAD commit, as it means that
 		 * the content being removed is available elsewhere.
@@ -186,8 +186,8 @@ static int check_local_mod(struct object_id *head, int index_only)
 		/*
 		 * If the index does not match the file in the work
 		 * tree and if it does not match the HEAD commit
-		 * either, (1) "git rm" without --cached definitely
-		 * will lose information; (2) "git rm --cached" will
+		 * either, (1) "git rm" without --staged definitely
+		 * will lose information; (2) "git rm --staged" will
 		 * lose information unless it is about removing an
 		 * "intent to add" entry.
 		 */
@@ -216,7 +216,7 @@ static int check_local_mod(struct object_id *head, int index_only)
 			     "staged in the index:",
 			     "the following files have changes "
 			     "staged in the index:", files_cached.nr),
-			  _("\n(use --cached to keep the file,"
+			  _("\n(use --staged to keep the file,"
 			    " or -f to force removal)"),
 			  &errs);
 	string_list_clear(&files_cached, 0);
@@ -225,7 +225,7 @@ static int check_local_mod(struct object_id *head, int index_only)
 			  Q_("the following file has local modifications:",
 			     "the following files have local modifications:",
 			     files_local.nr),
-			  _("\n(use --cached to keep the file,"
+			  _("\n(use --staged to keep the file,"
 			    " or -f to force removal)"),
 			  &errs);
 	string_list_clear(&files_local, 0);
@@ -241,7 +241,8 @@ static int ignore_unmatch = 0;
 static struct option builtin_rm_options[] = {
 	OPT__DRY_RUN(&show_only, N_("dry run")),
 	OPT__QUIET(&quiet, N_("do not list removed files")),
-	OPT_BOOL( 0 , "cached",         &index_only, N_("only remove from the index")),
+	OPT_BOOL( 0 , "staged", &index_only, N_("only remove from the index")),
+        OPT_HIDDEN_BOOL( 0 , "cached", &index_only, N_("same as --staged")),
 	OPT__FORCE(&force, N_("override the up-to-date check")),
 	OPT_BOOL('r', NULL,             &recursive,  N_("allow recursive removal")),
 	OPT_BOOL( 0 , "ignore-unmatch", &ignore_unmatch,
@@ -322,7 +323,7 @@ int cmd_rm(int argc, const char **argv, const char *prefix)
 	 *
 	 *	rm F; git rm F
 	 *
-	 * Further, if HEAD commit exists, "diff-index --cached" must
+	 * Further, if HEAD commit exists, "diff-index --staged" must
 	 * report no changes unless forced.
 	 */
 	if (!force) {
@@ -350,7 +351,7 @@ int cmd_rm(int argc, const char **argv, const char *prefix)
 		return 0;
 
 	/*
-	 * Then, unless we used "--cached", remove the filenames from
+	 * Then, unless we used "--staged", remove the filenames from
 	 * the workspace. If we fail to remove the first one, we
 	 * abort the "git rm" (but once we've successfully removed
 	 * any file at all, we'll go ahead and commit to it all:

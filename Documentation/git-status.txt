@@ -51,7 +51,7 @@ This is optional and defaults to the original version 'v1' format.
 --verbose::
 	In addition to the names of files that have been changed, also
 	show the textual changes that are staged to be committed
-	(i.e., like the output of `git diff --cached`). If `-v` is specified
+	(i.e., like the output of `git diff --staged`). If `-v` is specified
 	twice, then also show the changes in the working tree that
 	have not yet been staged (i.e., like the output of `git diff`).
 

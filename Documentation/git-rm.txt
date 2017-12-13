@@ -8,7 +8,7 @@ git-rm - Remove files from the working tree and from the index
 SYNOPSIS
 --------
 [verse]
-'git rm' [-f | --force] [-n] [-r] [--cached] [--ignore-unmatch] [--quiet] [--] <file>...
+'git rm' [-f | --force] [-n] [-r] [--staged] [--ignore-unmatch] [--quiet] [--] <file>...
 
 DESCRIPTION
 -----------
@@ -19,7 +19,7 @@ and yet keep it in the index; use `/bin/rm` if you want to do that.)
 The files being removed have to be identical to the tip of the branch,
 and no updates to their contents can be staged in the index,
 though that default behavior can be overridden with the `-f` option.
-When `--cached` is given, the staged content has to
+When `--staged` is given, the staged content has to
 match either the tip of the branch or the file on disk,
 allowing the file to be removed from just the index.
 
@@ -55,10 +55,10 @@ OPTIONS
 	the list of files, (useful when filenames might be mistaken
 	for command-line options).
 
---cached::
+--staged::
 	Use this option to unstage and remove paths only from the index.
 	Working tree files, whether modified or not, will be
-	left alone.
+	left alone. `--cached` is an alias for `--staged`.
 
 --ignore-unmatch::
 	Exit with a zero status even if no files matched.
@@ -131,7 +131,7 @@ your working tree is dirty so that you cannot use `git commit -a`),
 use the following command:
 
 ----------------
-git diff --name-only --diff-filter=D -z | xargs -0 git rm --cached
+git diff --name-only --diff-filter=D -z | xargs -0 git rm --staged
 ----------------
 
 SUBMODULES
@@ -144,7 +144,7 @@ still uses a .git directory, `git rm` will move the submodules
 git directory into the superprojects git directory to protect
 the submodule's history. If it exists the submodule.<name> section
 in the linkgit:gitmodules[5] file will also be removed and that file
-will be staged (unless --cached or -n are used).
+will be staged (unless --staged or -n are used).
 
 A submodule is considered up to date when the HEAD is the same as
 recorded in the index, no tracked files are modified and no untracked

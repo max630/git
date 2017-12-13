@@ -24,8 +24,9 @@ OPTIONS
 	paths.  If this option is used, then 'unspecified' attributes
 	will not be included in the output.
 
---cached::
+--staged::
 	Consider `.gitattributes` in the index only, ignoring the working tree.
+	`--cached` is an alias to `--staged`.
 
 --stdin::
 	Read pathnames from the standard input, one per line,

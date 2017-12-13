@@ -3499,7 +3499,7 @@ static int reuse_worktree_file(const char *name, const struct object_id *oid, in
 	 * expensive for a large project, and its cost outweighs the
 	 * savings we get by not inflating the object to a temporary
 	 * file.  Practically, this code only helps when we are used
-	 * by diff-cache --cached, which does read the cache before
+	 * by diff-cache --staged, which does read the cache before
 	 * calling us.
 	 */
 	if (!active_cache)

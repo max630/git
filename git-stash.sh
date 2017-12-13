@@ -37,7 +37,7 @@ else
 fi
 
 no_changes () {
-	git diff-index --quiet --cached HEAD --ignore-submodules -- "$@" &&
+	git diff-index --quiet --staged HEAD --ignore-submodules -- "$@" &&
 	git diff-files --quiet --ignore-submodules -- "$@" &&
 	(test -z "$untracked" || test -z "$(untracked_files)")
 }
@@ -571,7 +571,7 @@ apply_stash () {
 	if test -n "$INDEX_OPTION" && test "$b_tree" != "$i_tree" &&
 			test "$c_tree" != "$i_tree"
 	then
-		git diff-tree --binary $s^2^..$s^2 | git apply --cached
+		git diff-tree --binary $s^2^..$s^2 | git apply --staged
 		test $? -ne 0 &&
 			die "$(gettext "Conflicts in index. Try without --index.")"
 		unstashed_index_tree=$(git write-tree) ||
@@ -606,7 +606,7 @@ apply_stash () {
 			git read-tree "$unstashed_index_tree"
 		else
 			a="$TMP-added" &&
-			git diff-index --cached --name-only --diff-filter=A $c_tree >"$a" &&
+			git diff-index --staged --name-only --diff-filter=A $c_tree >"$a" &&
 			git read-tree --reset $c_tree &&
 			git update-index --add --stdin <"$a" ||
 				die "$(gettext "Cannot unstage modified files")"

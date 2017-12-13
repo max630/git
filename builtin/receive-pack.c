@@ -936,7 +936,7 @@ static const char *push_to_deploy(unsigned char *sha1,
 		"diff-files", "--quiet", "--ignore-submodules", "--", NULL
 	};
 	const char *diff_index[] = {
-		"diff-index", "--quiet", "--cached", "--ignore-submodules",
+		"diff-index", "--quiet", "--staged", "--ignore-submodules",
 		NULL, "--", NULL
 	};
 	const char *read_tree[] = {

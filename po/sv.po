@@ -126,8 +126,8 @@ msgid "--reject and --3way cannot be used together."
 msgstr "--reject och --3way kan inte användas samtidigt."
 
 #: apply.c:127
-msgid "--cached and --3way cannot be used together."
-msgstr "--cached och --3way kan inte användas samtidigt."
+msgid "--staged and --3way cannot be used together."
+msgstr "--staged och --3way kan inte användas samtidigt."
 
 #: apply.c:130
 msgid "--3way outside a repository"
@@ -138,8 +138,8 @@ msgid "--index outside a repository"
 msgstr "--index utanför arkiv"
 
 #: apply.c:144
-msgid "--cached outside a repository"
-msgstr "--cached utanför arkiv"
+msgid "--staged outside a repository"
+msgstr "--staged utanför arkiv"
 
 #: apply.c:845
 #, c-format
@@ -4261,8 +4261,8 @@ msgid "  (use \"git reset %s <file>...\" to unstage)"
 msgstr "  (använd \"git reset %s <fil>...\" för att ta bort från kö)"
 
 #: wt-status.c:179 wt-status.c:206
-msgid "  (use \"git rm --cached <file>...\" to unstage)"
-msgstr "  (använd \"git rm --cached <fil>...\" för att ta bort från kö)"
+msgid "  (use \"git rm --staged <file>...\" to unstage)"
+msgstr "  (använd \"git rm --staged <fil>...\" för att ta bort från kö)"
 
 #: wt-status.c:183
 msgid "  (use \"git add <file>...\" to mark resolution)"
@@ -4873,7 +4873,7 @@ msgid ""
 "If you added this path by mistake, you can remove it from the\n"
 "index with:\n"
 "\n"
-"\tgit rm --cached %s\n"
+"\tgit rm --staged %s\n"
 "\n"
 "See \"git help submodule\" for more information."
 msgstr ""
@@ -4887,7 +4887,7 @@ msgstr ""
 "Om du lade till sökvägen av misstag tar du bort den från indexet\n"
 "med:\n"
 "\n"
-"\tgit rm --cached %s\n"
+"\tgit rm --staged %s\n"
 "\n"
 "Se ”git help submodule” för ytterligare information."
 
@@ -8850,16 +8850,16 @@ msgid "option not supported with --recurse-submodules."
 msgstr "flaggan stöds inte med --recurse-submodules."
 
 #: builtin/grep.c:1081
-msgid "--cached or --untracked cannot be used with --no-index."
-msgstr "--cached och --untracked kan inte användas med --no-index."
+msgid "--staged or --untracked cannot be used with --no-index."
+msgstr "--staged och --untracked kan inte användas med --no-index."
 
 #: builtin/grep.c:1087
 msgid "--[no-]exclude-standard cannot be used for tracked contents."
 msgstr "--[no-]exclude-standard kan inte användas för spårat innehåll."
 
 #: builtin/grep.c:1095
-msgid "both --cached and trees are given."
-msgstr "både --cached och träd angavs."
+msgid "both --staged and trees are given."
+msgstr "både --staged och träd angavs."
 
 #: builtin/hash-object.c:82
 msgid ""
@@ -12952,10 +12952,10 @@ msgstr[1] "följande filer har ändringar köade i indexet:"
 #: builtin/rm.c:219 builtin/rm.c:228
 msgid ""
 "\n"
-"(use --cached to keep the file, or -f to force removal)"
+"(use --staged to keep the file, or -f to force removal)"
 msgstr ""
 "\n"
-"(använd --cached för att behålla filen eller -f för att tvinga borttagning)"
+"(använd --staged för att behålla filen eller -f för att tvinga borttagning)"
 
 #: builtin/rm.c:225
 msgid "the following file has local modifications:"
@@ -15113,8 +15113,8 @@ msgid "Failed to recurse into submodule path '$displaypath'"
 msgstr "Misslyckades rekursera in i undermodulsökvägen \"$displaypath\""
 
 #: git-submodule.sh:840
-msgid "The --cached option cannot be used with the --files option"
-msgstr "Flaggan --cached kan inte användas med flaggan --files"
+msgid "The --staged option cannot be used with the --files option"
+msgstr "Flaggan --staged kan inte användas med flaggan --files"
 
 #: git-submodule.sh:892
 #, sh-format
@@ -17329,10 +17329,10 @@ msgstr "Vill du verkligen sända %s? [y=ja, n=nej]: "
 
 #~ msgid ""
 #~ "'%s' has changes staged in the index\n"
-#~ "(use --cached to keep the file, or -f to force removal)"
+#~ "(use --staged to keep the file, or -f to force removal)"
 #~ msgstr ""
 #~ "\"%s\" har köade ändringar i indexet\n"
-#~ "(använd --cached för att behålla filen eller -f för att tvinga "
+#~ "(använd --staged för att behålla filen eller -f för att tvinga "
 #~ "borttagning)"
 
 #~ msgid "show commits where no parent comes before its children"

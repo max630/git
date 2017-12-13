@@ -399,10 +399,10 @@ $ git diff HEAD
 which ends up doing the above for you.
 
 In other words, 'git diff-index' normally compares a tree against the
-working tree, but when given the `--cached` flag, it is told to
+working tree, but when given the `--staged` flag, it is told to
 instead compare against just the index cache contents, and ignore the
 current working tree state entirely. Since we just wrote the index
-file to HEAD, doing `git diff-index --cached -p HEAD` should thus return
+file to HEAD, doing `git diff-index --staged -p HEAD` should thus return
 an empty set of differences, and that's exactly what it does.
 
 [NOTE]
@@ -411,7 +411,7 @@ an empty set of differences, and that's exactly what it does.
 comparisons, and saying that it compares a tree against the working
 tree is thus not strictly accurate. In particular, the list of
 files to compare (the "meta-data") *always* comes from the index file,
-regardless of whether the `--cached` flag is used or not. The `--cached`
+regardless of whether the `--staged` flag is used or not. The `--cached`
 flag really only determines whether the file *contents* to be compared
 come from the working tree or not.
 
@@ -440,7 +440,7 @@ Note what happens to the different 'git diff-{asterisk}' versions here.
 After we've updated `hello` in the index, `git diff-files -p` now shows no
 differences, but `git diff-index -p HEAD` still *does* show that the
 current state is different from the state we committed. In fact, now
-'git diff-index' shows the same difference whether we use the `--cached`
+'git diff-index' shows the same difference whether we use the `--staged`
 flag or not, since now the index is coherent with the working tree.
 
 Now, since we've updated `hello` in the index, we can commit the new
@@ -508,7 +508,7 @@ various 'diff-{asterisk}' commands compare things.
                     +-----------+
                       ^    ^
                       |    |
-                      |    |  diff-index --cached
+                      |    |  diff-index --staged
                       |    |
           diff-index  |    V
                       |  +-----------+

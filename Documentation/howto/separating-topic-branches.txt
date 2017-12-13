@@ -41,8 +41,8 @@ start building on top of "master":
               o---o---o---o---o---o
 
 Before doing each commit on "topicA" HEAD, I run "diff HEAD"
-before update-index the affected paths, or "diff --cached HEAD"
-after.  Also I would run "diff --cached master" to make sure
+before update-index the affected paths, or "diff --staged HEAD"
+after.  Also I would run "diff --staged master" to make sure
 that the changes are only the ones related to "topicA".  Usually
 I do this for smaller topics first.
 
@@ -52,7 +52,7 @@ comparing "master" and "topic" I used initially.  Still on
 "topicA", I extract "diff topic", and use it to rebuild the
 other topic:
 
-        $ git diff -R topic >P.diff ;# --cached also would work fine
+        $ git diff -R topic >P.diff ;# --staged also would work fine
         $ git checkout -b topicB master
         ... pick and apply pieces from P.diff to build
         ... commits on topicB branch.

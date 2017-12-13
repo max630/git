@@ -155,8 +155,8 @@ msgid "--reject and --3way cannot be used together."
 msgstr "--reject i --3way no es poden usar junts."
 
 #: apply.c:127
-msgid "--cached and --3way cannot be used together."
-msgstr "--cached i --3way no es poden usar junts."
+msgid "--staged and --3way cannot be used together."
+msgstr "--staged i --3way no es poden usar junts."
 
 #: apply.c:130
 msgid "--3way outside a repository"
@@ -167,8 +167,8 @@ msgid "--index outside a repository"
 msgstr "--index fora d'un dipòsit"
 
 #: apply.c:144
-msgid "--cached outside a repository"
-msgstr "--cached fora d'un dipòsit"
+msgid "--staged outside a repository"
+msgstr "--staged fora d'un dipòsit"
 
 #: apply.c:845
 #, c-format
@@ -4333,8 +4333,8 @@ msgid "  (use \"git reset %s <file>...\" to unstage)"
 msgstr "  (useu \"git reset %s <fitxer>...\" per a fer «unstage»)"
 
 #: wt-status.c:179 wt-status.c:206
-msgid "  (use \"git rm --cached <file>...\" to unstage)"
-msgstr "  (useu \"git rm --cached <fitxer>...\" per a fer «unstage»)"
+msgid "  (use \"git rm --staged <file>...\" to unstage)"
+msgstr "  (useu \"git rm --staged <fitxer>...\" per a fer «unstage»)"
 
 #: wt-status.c:183
 msgid "  (use \"git add <file>...\" to mark resolution)"
@@ -4958,7 +4958,7 @@ msgid ""
 "If you added this path by mistake, you can remove it from the\n"
 "index with:\n"
 "\n"
-"\tgit rm --cached %s\n"
+"\tgit rm --staged %s\n"
 "\n"
 "See \"git help submodule\" for more information."
 msgstr ""
@@ -4972,7 +4972,7 @@ msgstr ""
 "Si heu afegit aquest camí per error, podeu suprimir-lo de\n"
 " l'índex amb:\n"
 "\n"
-"\tgit rm --cached %s\n"
+"\tgit rm --staged %s\n"
 "\n"
 "Vegeu \"git help submodule\" per a més informació."
 
@@ -8972,16 +8972,16 @@ msgid "option not supported with --recurse-submodules."
 msgstr "opció no admesa amb --recurse-submodules."
 
 #: builtin/grep.c:1081
-msgid "--cached or --untracked cannot be used with --no-index."
-msgstr "--cached o --untracked no es pot usar amb --no-index."
+msgid "--staged or --untracked cannot be used with --no-index."
+msgstr "--staged o --untracked no es pot usar amb --no-index."
 
 #: builtin/grep.c:1087
 msgid "--[no-]exclude-standard cannot be used for tracked contents."
 msgstr "--[no-]exclude-standard no es pot usar per als continguts seguits."
 
 #: builtin/grep.c:1095
-msgid "both --cached and trees are given."
-msgstr "s'han donat ambdós --caches i arbres."
+msgid "both --staged and trees are given."
+msgstr "s'han donat ambdós --staged i arbres."
 
 #: builtin/hash-object.c:82
 msgid ""
@@ -13131,10 +13131,10 @@ msgstr[1] "els fitxers següents tenen canvis «staged» en l'índex:"
 #: builtin/rm.c:219 builtin/rm.c:228
 msgid ""
 "\n"
-"(use --cached to keep the file, or -f to force removal)"
+"(use --staged to keep the file, or -f to force removal)"
 msgstr ""
 "\n"
-"(useu --cached per a mantenir el fitxer, o -f per a forçar l'eliminació)"
+"(useu --staged per a mantenir el fitxer, o -f per a forçar l'eliminació)"
 
 #: builtin/rm.c:225
 msgid "the following file has local modifications:"
@@ -15318,8 +15318,8 @@ msgstr ""
 "'$displaypath'"
 
 #: git-submodule.sh:840
-msgid "The --cached option cannot be used with the --files option"
-msgstr "L'opció --cached no es pot usar amb l'opció --files"
+msgid "The --staged option cannot be used with the --files option"
+msgstr "L'opció --staged no es pot usar amb l'opció --files"
 
 #: git-submodule.sh:892
 #, sh-format

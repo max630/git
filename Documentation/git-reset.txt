@@ -304,11 +304,11 @@ using `git commit -c` to pre-populate the commit message.
 ------------
 $ git reset -N HEAD^                        <1>
 $ git add -p                                <2>
-$ git diff --cached                         <3>
+$ git diff --staged                         <3>
 $ git commit -c HEAD@{1}                    <4>
 ...                                         <5>
 $ git add ...                               <6>
-$ git diff --cached                         <7>
+$ git diff --staged                         <7>
 $ git commit ...                            <8>
 ------------
 +
@@ -321,7 +321,7 @@ $ git commit ...                            <8>
     use simple commands such as "yes, include this", "No don't include this"
     or even the very powerful "edit" facility.
 <3> Once satisfied with the hunks you want to include, you should verify what
-    has been prepared for the first commit by using git diff --cached. This
+    has been prepared for the first commit by using git diff --staged. This
     shows all the changes that have been moved into the index and are about
     to be committed.
 <4> Next, commit the changes stored in the index. The -c option specifies to

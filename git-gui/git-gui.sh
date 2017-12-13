@@ -1548,9 +1548,9 @@ proc rescan_stage2 {fd after} {
 	set rescan_active 2
 	ui_status [mc "Scanning for modified files ..."]
 	if {[git-version >= "1.7.2"]} {
-		set fd_di [git_read diff-index --cached --ignore-submodules=dirty -z [PARENT]]
+		set fd_di [git_read diff-index --staged --ignore-submodules=dirty -z [PARENT]]
 	} else {
-		set fd_di [git_read diff-index --cached -z [PARENT]]
+		set fd_di [git_read diff-index --staged -z [PARENT]]
 	}
 	set fd_df [git_read diff-files -z]
 

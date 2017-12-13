@@ -103,8 +103,8 @@ msgid "--reject and --3way cannot be used together."
 msgstr "--reject и --3way нельзя использовать одновременно."
 
 #: apply.c:127
-msgid "--cached and --3way cannot be used together."
-msgstr "--cached и --3way нельзя использовать одновременно."
+msgid "--staged and --3way cannot be used together."
+msgstr "--staged и --3way нельзя использовать одновременно."
 
 #: apply.c:130
 msgid "--3way outside a repository"
@@ -115,8 +115,8 @@ msgid "--index outside a repository"
 msgstr "--index вне репозитория"
 
 #: apply.c:144
-msgid "--cached outside a repository"
-msgstr "--cached вне репозитория"
+msgid "--staged outside a repository"
+msgstr "--staged вне репозитория"
 
 #: apply.c:845
 #, c-format
@@ -3972,8 +3972,8 @@ msgid "  (use \"git reset %s <file>...\" to unstage)"
 msgstr "  (используйте «git reset %s <файл>…», чтобы убрать из индекса)"
 
 #: wt-status.c:179 wt-status.c:206
-msgid "  (use \"git rm --cached <file>...\" to unstage)"
-msgstr "  (используйте «git rm --cached <файл>…», чтобы убрать из индекса)"
+msgid "  (use \"git rm --staged <file>...\" to unstage)"
+msgstr "  (используйте «git rm --staged <файл>…», чтобы убрать из индекса)"
 
 #: wt-status.c:183
 msgid "  (use \"git add <file>...\" to mark resolution)"
@@ -4566,10 +4566,10 @@ msgid ""
 "If you added this path by mistake, you can remove it from the\n"
 "index with:\n"
 "\n"
-"\tgit rm --cached %s\n"
+"\tgit rm --staged %s\n"
 "\n"
 "See \"git help submodule\" for more information."
-msgstr "Вы добавили другой репозиторий git внутри текущего репозитория\nКлоны внешнего репозитория не будут содержать внутренний\nрепозиторий и не будут знать как его получить.\nЕсли вы хотели добавить подмодуль, то запустите:\n\n\tgit submodule add <url> %s\n\nЕсли бы добавили этот путь по ошибке, то вы можете удалить его\nиз индекса с помощью:\n\n\tgit rm --cached %s\n\nДля дополнительной информации смотрите «git help submodule»."
+msgstr "Вы добавили другой репозиторий git внутри текущего репозитория\nКлоны внешнего репозитория не будут содержать внутренний\nрепозиторий и не будут знать как его получить.\nЕсли вы хотели добавить подмодуль, то запустите:\n\n\tgit submodule add <url> %s\n\nЕсли бы добавили этот путь по ошибке, то вы можете удалить его\nиз индекса с помощью:\n\n\tgit rm --staged %s\n\nДля дополнительной информации смотрите «git help submodule»."
 
 #: builtin/add.c:333
 #, c-format
@@ -8338,16 +8338,16 @@ msgid "option not supported with --recurse-submodules."
 msgstr "опция не поддерживается одновременно с --recurse-submodules."
 
 #: builtin/grep.c:1081
-msgid "--cached or --untracked cannot be used with --no-index."
-msgstr "--cached или --untracked нельзя использовать одновременно с --no-index."
+msgid "--staged or --untracked cannot be used with --no-index."
+msgstr "--staged или --untracked нельзя использовать одновременно с --no-index."
 
 #: builtin/grep.c:1087
 msgid "--[no-]exclude-standard cannot be used for tracked contents."
 msgstr "--[no-]exclude-standard не может использоваться для отслеживаемого содержимого."
 
 #: builtin/grep.c:1095
-msgid "both --cached and trees are given."
-msgstr "указано одновременно --cached и дерево."
+msgid "both --staged and trees are given."
+msgstr "указано одновременно --staged и дерево."
 
 #: builtin/hash-object.c:82
 msgid ""
@@ -12272,8 +12272,8 @@ msgstr[3] "следующие файлы содержат проиндексир
 #: builtin/rm.c:219 builtin/rm.c:228
 msgid ""
 "\n"
-"(use --cached to keep the file, or -f to force removal)"
-msgstr "\n(используйте опцию «--cached» для оставления файла, или «-f» для принудительного удаления)"
+"(use --staged to keep the file, or -f to force removal)"
+msgstr "\n(используйте опцию «--staged» для оставления файла, или «-f» для принудительного удаления)"
 
 #: builtin/rm.c:225
 msgid "the following file has local modifications:"
@@ -14312,8 +14312,8 @@ msgid "Failed to recurse into submodule path '$displaypath'"
 msgstr "Не удалось выполнить рекурсивно для подмодуля по пути «$displaypath»"
 
 #: git-submodule.sh:840
-msgid "The --cached option cannot be used with the --files option"
-msgstr "Опцию --cached нельзя использовать одновременно с опцией --files"
+msgid "The --staged option cannot be used with the --files option"
+msgstr "Опцию --staged нельзя использовать одновременно с опцией --files"
 
 #: git-submodule.sh:892
 #, sh-format

@@ -303,7 +303,7 @@ proc start_show_diff {cont_info {add_opts {}}} {
 	set cmd [list]
 	if {$w eq $ui_index} {
 		lappend cmd diff-index
-		lappend cmd --cached
+		lappend cmd --staged
 		if {[git-version >= "1.7.2"]} {
 			lappend cmd --ignore-submodules=dirty
 		}
@@ -345,7 +345,7 @@ proc start_show_diff {cont_info {add_opts {}}} {
 
 	if {$is_submodule_diff && [git-version < "1.6.6"]} {
 		if {$w eq $ui_index} {
-			set cmd [list submodule summary --cached -- $path]
+			set cmd [list submodule summary --staged -- $path]
 		} else {
 			set cmd [list submodule summary --files -- $path]
 		}
@@ -574,7 +574,7 @@ proc apply_hunk {x y} {
 	if {$current_diff_path eq {} || $current_diff_header eq {}} return
 	if {![lock_index apply_hunk]} return
 
-	set apply_cmd {apply --cached --whitespace=nowarn}
+	set apply_cmd {apply --staged --whitespace=nowarn}
 	set mi [lindex $file_states($current_diff_path) 0]
 	if {$current_diff_side eq $ui_index} {
 		set failed_msg [mc "Failed to unstage selected hunk."]
@@ -660,7 +660,7 @@ proc apply_range_or_line {x y} {
 	if {$current_diff_path eq {} || $current_diff_header eq {}} return
 	if {![lock_index apply_hunk]} return
 
-	set apply_cmd {apply --cached --whitespace=nowarn}
+	set apply_cmd {apply --staged --whitespace=nowarn}
 	set mi [lindex $file_states($current_diff_path) 0]
 	if {$current_diff_side eq $ui_index} {
 		set failed_msg [mc "Failed to unstage selected line."]

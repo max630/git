@@ -14,7 +14,7 @@ static const char builtin_merge_ours_usage[] =
 	"git merge-ours <base>... -- HEAD <remote>...";
 
 static const char *diff_index_args[] = {
-	"diff-index", "--quiet", "--cached", "HEAD", "--", NULL
+	"diff-index", "--quiet", "--staged", "HEAD", "--", NULL
 };
 #define NARGS (ARRAY_SIZE(diff_index_args) - 1)
 

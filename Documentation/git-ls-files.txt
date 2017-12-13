@@ -10,7 +10,7 @@ SYNOPSIS
 --------
 [verse]
 'git ls-files' [-z] [-t] [-v]
-		(--[cached|deleted|others|ignored|stage|unmerged|killed|modified])*
+		(--[staged|deleted|others|ignored|stage|unmerged|killed|modified])*
 		(-[c|d|o|i|s|u|k|m])*
 		[--eol]
 		[-x <pattern>|--exclude=<pattern>]
@@ -33,8 +33,9 @@ shown:
 OPTIONS
 -------
 -c::
---cached::
-	Show cached files in the output (default)
+--staged::
+	Show staged files in the output (default). `--cached` is an alias
+	for `--staged`.
 
 -d::
 --deleted::
@@ -120,7 +121,7 @@ OPTIONS
 This option identifies the file status with the following tags (followed by
 a space) at the start of each line:
 
-	H::	cached
+	H::	staged
 	S::	skip-worktree
 	M::	unmerged
 	R::	removed/deleted
@@ -141,7 +142,7 @@ a space) at the start of each line:
 
 --recurse-submodules::
 	Recursively calls ls-files on each submodule in the repository.
-	Currently there is only support for the --cached mode.
+	Currently there is only support for the --staged mode.
 
 --abbrev[=<n>]::
 	Instead of showing the full 40-byte hexadecimal object

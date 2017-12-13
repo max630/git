@@ -775,7 +775,7 @@ continue)
 		exec git rebase--helper ${force_rebase:+--no-ff} --continue
 	fi
 	# do we have anything to commit?
-	if git diff-index --cached --quiet HEAD --
+	if git diff-index --staged --quiet HEAD --
 	then
 		# Nothing to commit -- skip this commit
 

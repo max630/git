@@ -102,29 +102,29 @@ sub apply_patch_for_stash;
 my %patch_modes = (
 	'stage' => {
 		DIFF => 'diff-files -p',
-		APPLY => sub { apply_patch 'apply --cached', @_; },
-		APPLY_CHECK => 'apply --cached',
+		APPLY => sub { apply_patch 'apply --staged', @_; },
+		APPLY_CHECK => 'apply --staged',
 		FILTER => 'file-only',
 		IS_REVERSE => 0,
 	},
 	'stash' => {
 		DIFF => 'diff-index -p HEAD',
-		APPLY => sub { apply_patch 'apply --cached', @_; },
-		APPLY_CHECK => 'apply --cached',
+		APPLY => sub { apply_patch 'apply --staged', @_; },
+		APPLY_CHECK => 'apply --staged',
 		FILTER => undef,
 		IS_REVERSE => 0,
 	},
 	'reset_head' => {
-		DIFF => 'diff-index -p --cached',
-		APPLY => sub { apply_patch 'apply -R --cached', @_; },
-		APPLY_CHECK => 'apply -R --cached',
+		DIFF => 'diff-index -p --staged',
+		APPLY => sub { apply_patch 'apply -R --staged', @_; },
+		APPLY_CHECK => 'apply -R --staged',
 		FILTER => 'index-only',
 		IS_REVERSE => 1,
 	},
 	'reset_nothead' => {
-		DIFF => 'diff-index -R -p --cached',
-		APPLY => sub { apply_patch 'apply --cached', @_; },
-		APPLY_CHECK => 'apply --cached',
+		DIFF => 'diff-index -R -p --staged',
+		APPLY => sub { apply_patch 'apply --staged', @_; },
+		APPLY_CHECK => 'apply --staged',
 		FILTER => 'index-only',
 		IS_REVERSE => 0,
 	},
@@ -235,7 +235,7 @@ sub list_modified {
 	my ($add, $del, $adddel, $file);
 
 	my $reference = get_diff_reference($patch_mode_revision);
-	for (run_cmd_pipe(qw(git diff-index --cached
+	for (run_cmd_pipe(qw(git diff-index --staged
 			     --numstat --summary), $reference,
 			     '--', @ARGV)) {
 		if (($add, $del, $file) =
@@ -634,7 +634,7 @@ sub revert_cmd {
 				     list_modified());
 	if (@update) {
 		if (is_initial_commit()) {
-			system(qw(git rm --cached),
+			system(qw(git rm --staged),
 				map { $_->{VALUE} } @update);
 		}
 		else {
@@ -1208,11 +1208,11 @@ sub apply_patch {
 
 sub apply_patch_for_checkout_commit {
 	my $reverse = shift;
-	my $applies_index = run_git_apply 'apply '.$reverse.' --cached --check', @_;
+	my $applies_index = run_git_apply 'apply '.$reverse.' --staged --check', @_;
 	my $applies_worktree = run_git_apply 'apply '.$reverse.' --check', @_;
 
 	if ($applies_worktree && $applies_index) {
-		run_git_apply 'apply '.$reverse.' --cached', @_;
+		run_git_apply 'apply '.$reverse.' --staged', @_;
 		run_git_apply 'apply '.$reverse, @_;
 		return 1;
 	} elsif (!$applies_index) {
@@ -1608,7 +1608,7 @@ sub diff_cmd {
 				   @mods);
 	return if (!@them);
 	my $reference = (is_initial_commit()) ? get_empty_tree() : 'HEAD';
-	system(qw(git diff -p --cached), $reference, '--',
+	system(qw(git diff -p --staged), $reference, '--',
 		map { $_->{VALUE} } @them);
 }
 

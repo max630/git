@@ -165,8 +165,8 @@ msgid "--reject and --3way cannot be used together."
 msgstr "--reject 및 --3way 옵션은 같이 쓸 수 없습니다."
 
 #: apply.c:127
-msgid "--cached and --3way cannot be used together."
-msgstr "--cached 및 --3way 옵션은 같이 쓸 수 없습니다."
+msgid "--staged and --3way cannot be used together."
+msgstr "--staged 및 --3way 옵션은 같이 쓸 수 없습니다."
 
 #: apply.c:130
 msgid "--3way outside a repository"
@@ -177,8 +177,8 @@ msgid "--index outside a repository"
 msgstr "저장소 밖에서 --index 옵션 사용"
 
 #: apply.c:144
-msgid "--cached outside a repository"
-msgstr "저장소 밖에서 --cached 옵션 사용"
+msgid "--staged outside a repository"
+msgstr "저장소 밖에서 --staged 옵션 사용"
 
 #: apply.c:845
 #, c-format
@@ -4219,8 +4219,8 @@ msgid "  (use \"git reset %s <file>...\" to unstage)"
 msgstr "  (스테이지 해제하려면 \"git reset %s <파일>...\"을 사용하십시오)"
 
 #: wt-status.c:179 wt-status.c:206
-msgid "  (use \"git rm --cached <file>...\" to unstage)"
-msgstr "  (스테이지 해제하려면 \"git rm --cached <파일>...\"을 사용하십시오)"
+msgid "  (use \"git rm --staged <file>...\" to unstage)"
+msgstr "  (스테이지 해제하려면 \"git rm --staged <파일>...\"을 사용하십시오)"
 
 #: wt-status.c:183
 msgid "  (use \"git add <file>...\" to mark resolution)"
@@ -4825,7 +4825,7 @@ msgid ""
 "If you added this path by mistake, you can remove it from the\n"
 "index with:\n"
 "\n"
-"\tgit rm --cached %s\n"
+"\tgit rm --staged %s\n"
 "\n"
 "See \"git help submodule\" for more information."
 msgstr ""
@@ -4838,7 +4838,7 @@ msgstr ""
 "\n"
 "실수로 이 경로를 추가했다면 다음 명령으로 인덱스에서 제거할 수 있습니다:\n"
 "\n"
-"\tgit rm --cached %s\n"
+"\tgit rm --staged %s\n"
 "\n"
 "더 자세한 정보는 \"git help submodule\"을 참고하십시오."
 
@@ -8782,17 +8782,17 @@ msgid "option not supported with --recurse-submodules."
 msgstr "--recurse-submodules와 같이 지원하지 않는 옵션입니다."
 
 #: builtin/grep.c:1081
-msgid "--cached or --untracked cannot be used with --no-index."
+msgid "--staged or --untracked cannot be used with --no-index."
 msgstr ""
-"--cached 또는 --untracked 옵션은 --no-index 옵션과 같이 쓸 수 없습니다."
+"--staged 또는 --untracked 옵션은 --no-index 옵션과 같이 쓸 수 없습니다."
 
 #: builtin/grep.c:1087
 msgid "--[no-]exclude-standard cannot be used for tracked contents."
 msgstr "--[no-]exclude-standard 옵션은 추적되는 내용에 대해 쓸 수 없습니다."
 
 #: builtin/grep.c:1095
-msgid "both --cached and trees are given."
-msgstr "--cached 옵션과 트리를 모두 지정했습니다."
+msgid "both --staged and trees are given."
+msgstr "--staged 옵션과 트리를 모두 지정했습니다."
 
 #: builtin/hash-object.c:82
 msgid ""
@@ -12859,10 +12859,10 @@ msgstr[0] "다음 파일이 인덱스에 스테이징한 변경 사항이 있습
 #: builtin/rm.c:219 builtin/rm.c:228
 msgid ""
 "\n"
-"(use --cached to keep the file, or -f to force removal)"
+"(use --staged to keep the file, or -f to force removal)"
 msgstr ""
 "\n"
-"(파일을 유지하려면 --cached 옵션, 강제로 제거하려면 -f 옵션을 사용하십시오)"
+"(파일을 유지하려면 --staged 옵션, 강제로 제거하려면 -f 옵션을 사용하십시오)"
 
 #: builtin/rm.c:225
 msgid "the following file has local modifications:"
@@ -14996,8 +14996,8 @@ msgid "Failed to recurse into submodule path '$displaypath'"
 msgstr "재귀적으로 하위 모듈 경로 '$displaypath'에 들어가는데 실패했습니다"
 
 #: git-submodule.sh:840
-msgid "The --cached option cannot be used with the --files option"
-msgstr "--cached 옵션은 --files 옵션과 같이 쓸 수 없습니다"
+msgid "The --staged option cannot be used with the --files option"
+msgstr "--staged 옵션은 --files 옵션과 같이 쓸 수 없습니다"
 
 #: git-submodule.sh:892
 #, sh-format

@@ -276,7 +276,7 @@ int cmd_diff(int argc, const char **argv, const char *prefix)
 	 *	compare a blob with a working tree file.
 	 *
 	 * N=1, M=0:
-	 *      tree vs cache (diff-index --cached)
+	 *      tree vs cache (diff-index --staged)
 	 *
 	 * N=2, M=0:
 	 *      tree vs tree (diff-tree)
@@ -366,7 +366,7 @@ int cmd_diff(int argc, const char **argv, const char *prefix)
 	setup_diff_pager(&rev.diffopt);
 
 	/*
-	 * Do we have --cached and not have a pending object, then
+	 * Do we have --staged and not have a pending object, then
 	 * default to HEAD by hand.  Eek.
 	 */
 	if (!rev.pending.nr) {

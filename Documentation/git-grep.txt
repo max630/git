@@ -27,7 +27,7 @@ SYNOPSIS
 	   [-f <file>] [-e] <pattern>
 	   [--and|--or|--not|(|)|-e <pattern>...]
 	   [--recurse-submodules] [--parent-basename <basename>]
-	   [ [--[no-]exclude-standard] [--cached | --no-index | --untracked] | <tree>...]
+	   [ [--[no-]exclude-standard] [--staged | --no-index | --untracked] | <tree>...]
 	   [--] [<pathspec>...]
 
 DESCRIPTION
@@ -69,9 +69,10 @@ grep.fallbackToNoIndex::
 
 OPTIONS
 -------
---cached::
+--staged::
 	Instead of searching tracked files in the working tree, search
-	blobs registered in the index file.
+	blobs registered in the index file. `--cached` is an alias for
+	`--staged`.
 
 --no-index::
 	Search files in the current directory that is not managed by Git.

@@ -312,7 +312,7 @@ static const char embedded_advice[] = N_(
 "If you added this path by mistake, you can remove it from the\n"
 "index with:\n"
 "\n"
-"	git rm --cached %s\n"
+"	git rm --staged %s\n"
 "\n"
 "See \"git help submodule\" for more information."
 );

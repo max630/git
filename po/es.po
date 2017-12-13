@@ -117,8 +117,8 @@ msgid "--reject and --3way cannot be used together."
 msgstr "--reject y --3way no se pueden utilizar juntas."
 
 #: apply.c:127
-msgid "--cached and --3way cannot be used together."
-msgstr "--cached y --3way no se pueden utilizar juntas."
+msgid "--staged and --3way cannot be used together."
+msgstr "--staged y --3way no se pueden utilizar juntas."
 
 #: apply.c:130
 msgid "--3way outside a repository"
@@ -129,8 +129,8 @@ msgid "--index outside a repository"
 msgstr "--index esta fuera de un repositorio"
 
 #: apply.c:144
-msgid "--cached outside a repository"
-msgstr "--cached esta fuera de un repositorio"
+msgid "--staged outside a repository"
+msgstr "--staged esta fuera de un repositorio"
 
 #: apply.c:845
 #, c-format
@@ -4294,8 +4294,8 @@ msgid "  (use \"git reset %s <file>...\" to unstage)"
 msgstr "  (usa \"git reset %s <archivo>...\" para sacar del area de stage)"
 
 #: wt-status.c:179 wt-status.c:206
-msgid "  (use \"git rm --cached <file>...\" to unstage)"
-msgstr "  (usa \"git rm --cached <archivo>...\" para sacar del area de stage)"
+msgid "  (use \"git rm --staged <file>...\" to unstage)"
+msgstr "  (usa \"git rm --staged <archivo>...\" para sacar del area de stage)"
 
 #: wt-status.c:183
 msgid "  (use \"git add <file>...\" to mark resolution)"
@@ -4917,7 +4917,7 @@ msgid ""
 "If you added this path by mistake, you can remove it from the\n"
 "index with:\n"
 "\n"
-"\tgit rm --cached %s\n"
+"\tgit rm --staged %s\n"
 "\n"
 "See \"git help submodule\" for more information."
 msgstr ""
@@ -4931,7 +4931,7 @@ msgstr ""
 "Si se agrego esta ruta por error, puede removerla desde el indice \n"
 "usando:\n"
 "\n"
-"\tgit rm --cached %s\n"
+"\tgit rm --staged %s\n"
 "\n"
 "Vea \"git help submodule\" para mas informacion."
 
@@ -8907,16 +8907,16 @@ msgid "option not supported with --recurse-submodules."
 msgstr "opción no soportada con --recurse-submodules."
 
 #: builtin/grep.c:1081
-msgid "--cached or --untracked cannot be used with --no-index."
-msgstr "--cached o --untracked no pueden ser usadas con --no-index."
+msgid "--staged or --untracked cannot be used with --no-index."
+msgstr "--staged o --untracked no pueden ser usadas con --no-index."
 
 #: builtin/grep.c:1087
 msgid "--[no-]exclude-standard cannot be used for tracked contents."
 msgstr "--[no-]exclude-standard no puede ser usada para contenido rastreado."
 
 #: builtin/grep.c:1095
-msgid "both --cached and trees are given."
-msgstr "--cached y árboles han sido entregados."
+msgid "both --staged and trees are given."
+msgstr "--staged y árboles han sido entregados."
 
 #: builtin/hash-object.c:82
 msgid ""
@@ -13049,10 +13049,10 @@ msgstr[1] "los siguientes archivos tienen cambios en stage en el índice:"
 #: builtin/rm.c:219 builtin/rm.c:228
 msgid ""
 "\n"
-"(use --cached to keep the file, or -f to force removal)"
+"(use --staged to keep the file, or -f to force removal)"
 msgstr ""
 "\n"
-"(usa --cached para conservar el archivo, o -f para forzar su eliminación)"
+"(usa --staged para conservar el archivo, o -f para forzar su eliminación)"
 
 #: builtin/rm.c:225
 msgid "the following file has local modifications:"
@@ -15228,8 +15228,8 @@ msgid "Failed to recurse into submodule path '$displaypath'"
 msgstr "Falló al recurrir en la ruta de submódulo '$displaypath'"
 
 #: git-submodule.sh:840
-msgid "The --cached option cannot be used with the --files option"
-msgstr "La opción --cached no puede ser usada con la opción --files"
+msgid "The --staged option cannot be used with the --files option"
+msgstr "La opción --staged no puede ser usada con la opción --files"
 
 #: git-submodule.sh:892
 #, sh-format

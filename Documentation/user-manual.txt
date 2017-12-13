@@ -1069,7 +1069,7 @@ at step 3, Git maintains a snapshot of the tree's contents in a
 special staging area called "the index."
 
 At the beginning, the content of the index will be identical to
-that of the HEAD.  The command `git diff --cached`, which shows
+that of the HEAD.  The command `git diff --staged`, which shows
 the difference between the HEAD and the index, should therefore
 produce no output at that point.
 
@@ -1090,7 +1090,7 @@ $ git rm path/to/file
 After each step you can verify that
 
 -------------------------------------------------
-$ git diff --cached
+$ git diff --staged
 -------------------------------------------------
 
 always shows the difference between the HEAD and the index file--this
@@ -1132,7 +1132,7 @@ A number of commands are useful for keeping track of what you're
 about to commit:
 
 -------------------------------------------------
-$ git diff --cached # difference between HEAD and the index; what
+$ git diff --staged # difference between HEAD and the index; what
 		    # would be committed if you ran "commit" now.
 $ git diff	    # difference between the index file and your
 		    # working directory; changes that would not

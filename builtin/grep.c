@@ -777,8 +777,10 @@ int cmd_grep(int argc, const char **argv, const char *prefix)
 	int allow_revs;
 
 	struct option options[] = {
-		OPT_BOOL(0, "cached", &cached,
+		OPT_BOOL(0, "staged", &cached,
 			N_("search in index instead of in the work tree")),
+		OPT_HIDDEN_BOOL(0, "cached", &cached,
+			N_("same as --staged")),
 		OPT_NEGBIT(0, "no-index", &use_index,
 			 N_("find in contents not managed by git"), 1),
 		OPT_BOOL(0, "untracked", &untracked,
@@ -1078,7 +1080,7 @@ int cmd_grep(int argc, const char **argv, const char *prefix)
 		setup_pager();
 
 	if (!use_index && (untracked || cached))
-		die(_("--cached or --untracked cannot be used with --no-index."));
+		die(_("--staged or --untracked cannot be used with --no-index."));
 
 	if (!use_index || untracked) {
 		int use_exclude = (opt_exclude < 0) ? use_index : !!opt_exclude;
@@ -1092,7 +1094,7 @@ int cmd_grep(int argc, const char **argv, const char *prefix)
 		hit = grep_cache(&opt, the_repository, &pathspec, cached);
 	} else {
 		if (cached)
-			die(_("both --cached and trees are given."));
+			die(_("both --staged and trees are given."));
 
 		hit = grep_objects(&opt, &pathspec, the_repository, &list);
 	}

@@ -238,7 +238,7 @@ static struct commit *fake_working_tree_commit(struct diff_options *opt,
 	 * Read the current index, replace the path entry with
 	 * origin->blob_sha1 without mucking with its mode or type
 	 * bits; we are not going to write this index out -- we just
-	 * want to run "diff-index --cached".
+	 * want to run "diff-index --staged".
 	 */
 	discard_cache();
 	read_cache();

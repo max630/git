@@ -52,7 +52,7 @@ git jump diff
 
 # jump to changes that are staged for commit; you can give
 # arbitrary diff options
-git jump diff --cached
+git jump diff --staged
 
 # jump to merge conflicts
 git jump merge

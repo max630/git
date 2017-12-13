@@ -638,9 +638,9 @@ endif::git-format-patch[]
 
 --ita-invisible-in-index::
 	By default entries added by "git add -N" appear as an existing
-	empty file in "git diff" and a new file in "git diff --cached".
+	empty file in "git diff" and a new file in "git diff --staged".
 	This option makes the entry appear as a new file in "git diff"
-	and non-existent in "git diff --cached". This option could be
+	and non-existent in "git diff --staged". This option could be
 	reverted with `--ita-visible-in-index`. Both options are
 	experimental and could be removed in future.
 

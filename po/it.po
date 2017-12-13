@@ -660,7 +660,7 @@ msgid "  (use \"git reset %s <file>...\" to unstage)"
 msgstr ""
 
 #: wt-status.c:143 wt-status.c:160
-msgid "  (use \"git rm --cached <file>...\" to unstage)"
+msgid "  (use \"git rm --staged <file>...\" to unstage)"
 msgstr ""
 
 #: wt-status.c:144
@@ -1428,8 +1428,8 @@ msgid "--index outside a repository"
 msgstr "--index al di fuori di un repository"
 
 #: builtin/apply.c:4053
-msgid "--cached outside a repository"
-msgstr "--cached al di fuori di un repository"
+msgid "--staged outside a repository"
+msgstr "--staged al di fuori di un repository"
 
 #: builtin/apply.c:4069
 #, c-format
@@ -2739,8 +2739,8 @@ msgid "--open-files-in-pager only works on the worktree"
 msgstr ""
 
 #: builtin/grep.c:963
-msgid "--cached or --untracked cannot be used with --no-index."
-msgstr "--cached o --untracked non può essere usato con --no-index."
+msgid "--staged or --untracked cannot be used with --no-index."
+msgstr "--staged o --untracked non può essere usato con --no-index."
 
 #: builtin/grep.c:968
 msgid "--no-index or --untracked cannot be used with revs."
@@ -2751,7 +2751,7 @@ msgid "--[no-]exclude-standard cannot be used for tracked contents."
 msgstr ""
 
 #: builtin/grep.c:979
-msgid "both --cached and trees are given."
+msgid "both --staged and trees are given."
 msgstr ""
 
 #: builtin/help.c:59
@@ -4423,17 +4423,17 @@ msgstr ""
 #, c-format
 msgid ""
 "'%s' has changes staged in the index\n"
-"(use --cached to keep the file, or -f to force removal)"
+"(use --staged to keep the file, or -f to force removal)"
 msgstr ""
 
 #: builtin/rm.c:119
 #, c-format
 msgid ""
 "'%s' has local modifications\n"
-"(use --cached to keep the file, or -f to force removal)"
+"(use --staged to keep the file, or -f to force removal)"
 msgstr ""
 "'%s' contiene delle modifiche locali\n"
-"(usa --cached per mantenere il file, o -f per forzare la rimozione)"
+"(usa --staged per mantenere il file, o -f per forzare la rimozione)"
 
 #: builtin/rm.c:194
 #, c-format
@@ -5313,8 +5313,8 @@ msgid "Failed to recurse into submodule path '$sm_path'"
 msgstr ""
 
 #: git-submodule.sh:713
-msgid "--cached cannot be used with --files"
-msgstr "--cached non può essere usata con --files"
+msgid "--staged cannot be used with --files"
+msgstr "--staged non può essere usata con --files"
 
 #. unexpected type
 #: git-submodule.sh:753

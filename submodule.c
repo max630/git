@@ -1477,7 +1477,7 @@ static int submodule_has_dirty_index(const struct submodule *sub)
 
 	cp.git_cmd = 1;
 	argv_array_pushl(&cp.args, "diff-index", "--quiet",
-				   "--cached", "HEAD", NULL);
+				   "--staged", "HEAD", NULL);
 	cp.no_stdin = 1;
 	cp.no_stdout = 1;
 	cp.dir = sub->path;

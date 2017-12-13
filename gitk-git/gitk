@@ -5294,7 +5294,7 @@ proc dohidelocalchanges {} {
     incr lserial
 }
 
-# spawn off a process to do git diff-index --cached HEAD
+# spawn off a process to do git diff-index --staged HEAD
 proc dodiffindex {} {
     global lserial showlocalchanges vfilelimit curview
     global hasworktree git_version
@@ -5302,9 +5302,9 @@ proc dodiffindex {} {
     if {!$showlocalchanges || !$hasworktree} return
     incr lserial
     if {[package vcompare $git_version "1.7.2"] >= 0} {
-	set cmd "|git diff-index --cached --ignore-submodules=dirty HEAD"
+	set cmd "|git diff-index --staged --ignore-submodules=dirty HEAD"
     } else {
-	set cmd "|git diff-index --cached HEAD"
+	set cmd "|git diff-index --staged HEAD"
     }
     if {$vfilelimit($curview) ne {}} {
 	set cmd [concat $cmd -- $vfilelimit($curview)]
@@ -7838,7 +7838,7 @@ proc diffcmd {ids flags} {
 	if {[package vcompare $git_version "1.7.2"] >= 0} {
 	    set flags "$flags --ignore-submodules=dirty"
 	}
-	set cmd [concat | git diff-index --cached $flags]
+	set cmd [concat | git diff-index --staged $flags]
 	if {[llength $ids] > 1} {
 	    # comparing index with specific revision
 	    if {$j == 0} {

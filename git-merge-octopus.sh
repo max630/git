@@ -41,10 +41,10 @@ esac
 # MRC is the current "merge reference commit"
 # MRT is the current "merge result tree"
 
-if ! git diff-index --quiet --cached HEAD --
+if ! git diff-index --quiet --staged HEAD --
 then
     gettextln "Error: Your local changes to the following files would be overwritten by merge"
-    git diff-index --cached --name-only HEAD -- | sed -e 's/^/    /'
+    git diff-index --staged --name-only HEAD -- | sed -e 's/^/    /'
     exit 2
 fi
 MRC=$(git rev-parse --verify -q $head)

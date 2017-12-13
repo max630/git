@@ -10,7 +10,7 @@ SYNOPSIS
 --------
 [verse]
 'git submodule' [--quiet] add [<options>] [--] <repository> [<path>]
-'git submodule' [--quiet] status [--cached] [--recursive] [--] [<path>...]
+'git submodule' [--quiet] status [--staged] [--recursive] [--] [<path>...]
 'git submodule' [--quiet] init [--] [<path>...]
 'git submodule' [--quiet] deinit [-f|--force] (--all|[--] <path>...)
 'git submodule' [--quiet] update [<options>] [--] [<path>...]
@@ -66,7 +66,7 @@ location, and only the superproject's URL needs to be provided.
 git-submodule will correctly locate the submodule using the relative
 URL in `.gitmodules`.
 
-status [--cached] [--recursive] [--] [<path>...]::
+status [--staged] [--recursive] [--] [<path>...]::
 	Show the status of the submodules. This will print the SHA-1 of the
 	currently checked out commit for each submodule, along with the
 	submodule path and the output of 'git describe' for the
@@ -168,14 +168,14 @@ submodule with the `--init` option.
 If `--recursive` is specified, this command will recurse into the
 registered submodules, and update any nested submodules within.
 --
-summary [--cached|--files] [(-n|--summary-limit) <n>] [commit] [--] [<path>...]::
+summary [--staged|--files] [(-n|--summary-limit) <n>] [commit] [--] [<path>...]::
 	Show commit summary between the given commit (defaults to HEAD) and
 	working tree/index. For a submodule in question, a series of commits
 	in the submodule between the given super project commit and the
-	index or working tree (switched by `--cached`) are shown. If the option
+	index or working tree (switched by `--staged`) are shown. If the option
 	`--files` is given, show the series of commits in the submodule between
 	the index of the super project and the working tree of the submodule
-	(this option doesn't allow to use the `--cached` option or to provide an
+	(this option doesn't allow to use the `--staged` option or to provide an
 	explicit commit).
 +
 Using the `--submodule=log` option with linkgit:git-diff[1] will provide that
@@ -264,10 +264,11 @@ OPTIONS
 	containing repository matches the commit checked out in the
 	submodule.
 
---cached::
+--staged::
 	This option is only valid for status and summary commands.  These
 	commands typically use the commit found in the submodule HEAD, but
 	with this option, the commit stored in the index is used instead.
+	`--cached` is an alias for `--staged`.
 
 --files::
 	This option is only valid for the summary command. This command

@@ -12,7 +12,7 @@ SYNOPSIS
 'git apply' [--stat] [--numstat] [--summary] [--check] [--index] [--3way]
 	  [--apply] [--no-add] [--build-fake-ancestor=<file>] [-R | --reverse]
 	  [--allow-binary-replacement | --binary] [--reject] [-z]
-	  [-p<n>] [-C<n>] [--inaccurate-eof] [--recount] [--cached]
+	  [-p<n>] [-C<n>] [--inaccurate-eof] [--recount] [--staged]
 	  [--ignore-space-change | --ignore-whitespace]
 	  [--whitespace=(nowarn|warn|fix|error|error-all)]
 	  [--exclude=<path>] [--include=<path>] [--directory=<root>]
@@ -24,7 +24,7 @@ Reads the supplied diff output (i.e. "a patch") and applies it to files.
 When running from a subdirectory in a repository, patched paths
 outside the directory are ignored.
 With the `--index` option the patch is also applied to the index, and
-with the `--cached` option the patch is only applied to the index.
+with the `--staged` option the patch is only applied to the index.
 Without these options, the command applies the patch only to files,
 and does not require them to be in a Git repository.
 
@@ -69,10 +69,11 @@ OPTIONS
 	up to date, it is flagged as an error.  This flag also
 	causes the index file to be updated.
 
---cached::
+--staged::
 	Apply a patch without touching the working tree. Instead take the
-	cached data, apply the patch, and store the result in the index
-	without using the working tree. This implies `--index`.
+	staged data, apply the patch, and store the result in the index
+	without using the working tree. This implies `--index`. `--cached`
+	is an alias for `--staged`.
 
 -3::
 --3way::
@@ -81,7 +82,7 @@ OPTIONS
 	and we have those blobs available locally, possibly leaving the
 	conflict markers in the files in the working tree for the user to
 	resolve.  This option implies the `--index` option, and is incompatible
-	with the `--reject` and the `--cached` options.
+	with the `--reject` and the `--staged` options.
 
 --build-fake-ancestor=<file>::
 	Newer 'git diff' output has embedded 'index information'
@@ -238,7 +239,7 @@ running `git apply --directory=modules/git-gui`.
 +
 When `git apply` is used as a "better GNU patch", the user can pass
 the `--unsafe-paths` option to override this safety check.  This option
-has no effect when `--index` or `--cached` is in use.
+has no effect when `--index` or `--staged` is in use.
 
 Configuration
 -------------

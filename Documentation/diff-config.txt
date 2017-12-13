@@ -94,7 +94,7 @@ diff.mnemonicPrefix::
 	compares the (i)ndex and the (w)ork tree;
 `git diff HEAD`;;
 	 compares a (c)ommit and the (w)ork tree;
-`git diff --cached`;;
+`git diff --staged`;;
 	compares a (c)ommit and the (i)ndex;
 `git diff HEAD:file1 file2`;;
 	compares an (o)bject and a (w)ork tree entity;

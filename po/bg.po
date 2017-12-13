@@ -204,8 +204,8 @@ msgid "--reject and --3way cannot be used together."
 msgstr "опциите „--reject“ и „--3way“ са несъвместими"
 
 #: apply.c:127
-msgid "--cached and --3way cannot be used together."
-msgstr "опциите „--cached“ и „--3way“ са несъвместими"
+msgid "--staged and --3way cannot be used together."
+msgstr "опциите „--staged“ и „--3way“ са несъвместими"
 
 #: apply.c:130
 msgid "--3way outside a repository"
@@ -216,8 +216,8 @@ msgid "--index outside a repository"
 msgstr "като „--index“, но извън хранилище"
 
 #: apply.c:144
-msgid "--cached outside a repository"
-msgstr "като „--cached“, но извън хранилище"
+msgid "--staged outside a repository"
+msgstr "като „--staged“, но извън хранилище"
 
 #: apply.c:845
 #, c-format
@@ -4394,9 +4394,9 @@ msgid "  (use \"git reset %s <file>...\" to unstage)"
 msgstr "  (използвайте „git reset %s ФАЙЛ…“, за да извадите ФАЙЛа от индекса)"
 
 #: wt-status.c:179 wt-status.c:206
-msgid "  (use \"git rm --cached <file>...\" to unstage)"
+msgid "  (use \"git rm --staged <file>...\" to unstage)"
 msgstr ""
-"  (използвайте „git rm --cached %s ФАЙЛ…“, за да извадите ФАЙЛа от индекса)"
+"  (използвайте „git rm --staged %s ФАЙЛ…“, за да извадите ФАЙЛа от индекса)"
 
 #: wt-status.c:183
 msgid "  (use \"git add <file>...\" to mark resolution)"
@@ -5029,7 +5029,7 @@ msgid ""
 "If you added this path by mistake, you can remove it from the\n"
 "index with:\n"
 "\n"
-"\tgit rm --cached %s\n"
+"\tgit rm --staged %s\n"
 "\n"
 "See \"git help submodule\" for more information."
 msgstr ""
@@ -5041,7 +5041,7 @@ msgstr ""
 "\n"
 "Ако добавянето е грешка, може да го извадите от индекса с командата:\n"
 "\n"
-"    git rm --cached %s\n"
+"    git rm --staged %s\n"
 "\n"
 "За повече информация погледнете „git help submodule“."
 
@@ -9116,8 +9116,8 @@ msgid "option not supported with --recurse-submodules."
 msgstr "опцията е несъвместима с „--recurse-submodules“."
 
 #: builtin/grep.c:1081
-msgid "--cached or --untracked cannot be used with --no-index."
-msgstr "опциите „--cached“ и „--untracked“ са несъвместими с „--no-index“."
+msgid "--staged or --untracked cannot be used with --no-index."
+msgstr "опциите „--staged“ и „--untracked“ са несъвместими с „--no-index“."
 
 #: builtin/grep.c:1087
 msgid "--[no-]exclude-standard cannot be used for tracked contents."
@@ -9126,8 +9126,8 @@ msgstr ""
 "файлове."
 
 #: builtin/grep.c:1095
-msgid "both --cached and trees are given."
-msgstr "опцията „--cached“ е несъвместима със задаване на дърво."
+msgid "both --staged and trees are given."
+msgstr "опцията „--staged“ е несъвместима със задаване на дърво."
 
 #: builtin/hash-object.c:82
 msgid ""
@@ -13349,10 +13349,10 @@ msgstr[1] "следните файлове са с променено съдър
 #: builtin/rm.c:219 builtin/rm.c:228
 msgid ""
 "\n"
-"(use --cached to keep the file, or -f to force removal)"
+"(use --staged to keep the file, or -f to force removal)"
 msgstr ""
 "\n"
-"(за запазване на файла използвайте опцията „--cached“, а за принудително\n"
+"(за запазване на файла използвайте опцията „--staged“, а за принудително\n"
 "изтриване — „-f“)"
 
 #: builtin/rm.c:225

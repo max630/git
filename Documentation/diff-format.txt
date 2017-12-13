@@ -10,7 +10,7 @@ compared differs:
 git-diff-index <tree-ish>::
         compares the <tree-ish> and the files on the filesystem.
 
-git-diff-index --cached <tree-ish>::
+git-diff-index --staged <tree-ish>::
         compares the <tree-ish> and the index.
 
 git-diff-tree [-r] <tree-ish-1> <tree-ish-2> [<pattern>...]::

@@ -95,13 +95,13 @@ $ git add file1 file2 file3
 ------------------------------------------------
 
 You are now ready to commit.  You can see what is about to be committed
-using 'git diff' with the --cached option:
+using 'git diff' with the --staged option:
 
 ------------------------------------------------
-$ git diff --cached
+$ git diff --staged
 ------------------------------------------------
 
-(Without --cached, 'git diff' will show you any changes that
+(Without --staged, 'git diff' will show you any changes that
 you've made but not yet added to the index.)  You can also get a brief
 summary of the situation with 'git status':
 

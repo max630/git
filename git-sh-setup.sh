@@ -232,7 +232,7 @@ require_clean_work_tree () {
 		err=1
 	fi
 
-	if ! git diff-index --cached --quiet --ignore-submodules HEAD --
+	if ! git diff-index --staged --quiet --ignore-submodules HEAD --
 	then
 		if test $err = 0
 		then

@@ -124,7 +124,7 @@ int check_apply_state(struct apply_state *state, int force_apply)
 	if (state->apply_with_reject && state->threeway)
 		return error(_("--reject and --3way cannot be used together."));
 	if (state->cached && state->threeway)
-		return error(_("--cached and --3way cannot be used together."));
+		return error(_("--staged and --3way cannot be used together."));
 	if (state->threeway) {
 		if (is_not_gitdir)
 			return error(_("--3way outside a repository"));
@@ -141,7 +141,7 @@ int check_apply_state(struct apply_state *state, int force_apply)
 		return error(_("--index outside a repository"));
 	if (state->cached) {
 		if (is_not_gitdir)
-			return error(_("--cached outside a repository"));
+			return error(_("--staged outside a repository"));
 		state->check_index = 1;
 	}
 	if (state->check_index)
@@ -2298,7 +2298,7 @@ static int read_old_data(struct stat *st, struct patch *patch,
 		if (strbuf_read_file(buf, path, st->st_size) != st->st_size)
 			return error(_("unable to open or read %s"), path);
 		/*
-		 * "git apply" without "--index/--cached" should never look
+		 * "git apply" without "--index/--staged" should never look
 		 * at the index; the target file may not have been added to
 		 * the index yet, and we may not even be in any Git repository.
 		 * Pass NULL to convert_to_git() to stress this; the function
@@ -3435,7 +3435,7 @@ static int load_patch_target(struct apply_state *state,
 /*
  * We are about to apply "patch"; populate the "image" with the
  * current version we have, from the working tree or from the index,
- * depending on the situation e.g. --cached/--index.  If we are
+ * depending on the situation e.g. --staged/--index.  If we are
  * applying a non-git patch that incrementally updates the tree,
  * we read from the result of a previous diff.
  */
@@ -4967,8 +4967,10 @@ int apply_parse_options(int argc, const char **argv,
 			N_("instead of applying the patch, see if the patch is applicable")),
 		OPT_BOOL(0, "index", &state->check_index,
 			N_("make sure the patch is applicable to the current index")),
-		OPT_BOOL(0, "cached", &state->cached,
+		OPT_BOOL(0, "staged", &state->cached,
 			N_("apply a patch without touching the working tree")),
+		OPT_HIDDEN_BOOL(0, "cached", &state->cached,
+			N_("same as --staged")),
 		OPT_BOOL(0, "unsafe-paths", &state->unsafe_paths,
 			N_("accept a patch that touches outside the working area")),
 		OPT_BOOL(0, "apply", force_apply,

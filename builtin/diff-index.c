@@ -7,7 +7,7 @@
 #include "submodule.h"
 
 static const char diff_cache_usage[] =
-"git diff-index [-m] [--cached] "
+"git diff-index [-m] [--staged] "
 "[<common-diff-options>] <tree-ish> [<path>...]"
 COMMON_DIFF_OPTIONS_HELP;
 
@@ -30,7 +30,7 @@ int cmd_diff_index(int argc, const char **argv, const char *prefix)
 	for (i = 1; i < argc; i++) {
 		const char *arg = argv[i];
 
-		if (!strcmp(arg, "--cached"))
+		if (!strcmp(arg, "--cached") || !strcmp("--staged"))
 			cached = 1;
 		else
 			usage(diff_cache_usage);
