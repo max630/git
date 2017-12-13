@@ -9090,7 +9090,7 @@ msgstr "липсва шаблон."
 
 #: builtin/grep.c:982
 msgid "--no-index or --untracked cannot be used with revs"
-msgstr "опциите „--cached“ и „--untracked“ са несъвместими с версии."
+msgstr "опциите „--no-index“ и „--untracked“ са несъвместими с версии."
 
 #: builtin/grep.c:989
 #, c-format
