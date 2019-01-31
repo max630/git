@@ -1145,6 +1145,7 @@ static int write_with_updates(struct packed_ref_store *refs,
 				strbuf_addf(err, "broken sorting in packed-refs: '%s' > '%s'",
 					    prev_ref.buf,
 					    iter->refname);
+				strbuf_release(&prev_ref);
 				goto error;
 			}
 
@@ -1254,6 +1255,8 @@ static int write_with_updates(struct packed_ref_store *refs,
 			i++;
 		}
 	}
+
+	strbuf_release(&prev_ref);
 
 	if (ok != ITER_DONE) {
 		strbuf_addstr(err, "unable to write packed-refs file: "
