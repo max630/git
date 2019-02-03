@@ -500,6 +500,13 @@ proc getcommits {selid} {
     }
 }
 
+proc updatecommits_command {args view} {
+    global show_notes vfilelimit
+
+    return [concat | git log --no-color -z --pretty=raw $show_notes \
+		   --parents --boundary $args "--" $vfilelimit($view)]
+}
+
 proc updatecommits {} {
     global curview vcanopt vorigargs vfilelimit viewinstances
     global viewactive viewcomplete tclencoding
@@ -507,7 +514,6 @@ proc updatecommits {} {
     global mainheadid viewmainheadid viewmainheadid_orig pending_select
     global hasworktree
     global varcid vposids vnegids vflags vrevs
-    global show_notes
 
     set hasworktree [hasworktree]
     rereadrefs
@@ -560,8 +566,7 @@ proc updatecommits {} {
 	set args $vorigargs($view)
     }
     if {[catch {
-	set fd [open [concat | git log --no-color -z --pretty=raw $show_notes \
-			--parents --boundary $args "--" $vfilelimit($view)] r]
+	set fd [open [updatecommits_command $args $view] r]
     } err]} {
 	error_popup "[mc "Error executing git log:"] $err"
 	return
