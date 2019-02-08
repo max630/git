@@ -1088,6 +1088,7 @@ static int write_with_updates(struct packed_ref_store *refs,
 	FILE *out;
 	struct strbuf sb = STRBUF_INIT;
 	char *packed_refs_path;
+	struct strbuf prev_ref = STRBUF_INIT;
 
 	if (!is_lock_file_locked(&refs->lock))
 		BUG("write_with_updates() called while unlocked");
@@ -1136,6 +1137,21 @@ static int write_with_updates(struct packed_ref_store *refs,
 	while (iter || i < updates->nr) {
 		struct ref_update *update = NULL;
 		int cmp;
+
+		if (iter)
+		{
+			if (prev_ref.len &&  strcmp(prev_ref.buf, iter->refname) > 0)
+			{
+				strbuf_addf(err, "broken sorting in packed-refs: '%s' > '%s'",
+					    prev_ref.buf,
+					    iter->refname);
+				strbuf_release(&prev_ref);
+				goto error;
+			}
+
+			strbuf_init(&prev_ref, 0);
+			strbuf_addstr(&prev_ref, iter->refname);
+		}
 
 		if (i >= updates->nr) {
 			cmp = -1;
@@ -1239,6 +1255,8 @@ static int write_with_updates(struct packed_ref_store *refs,
 			i++;
 		}
 	}
+
+	strbuf_release(&prev_ref);
 
 	if (ok != ITER_DONE) {
 		strbuf_addstr(err, "unable to write packed-refs file: "
