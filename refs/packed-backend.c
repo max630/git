@@ -1149,7 +1149,7 @@ static int write_with_updates(struct packed_ref_store *refs,
 				goto error;
 			}
 
-			strbuf_init(&prev_ref, 0);
+			strbuf_reset(&prev_ref);
 			strbuf_addstr(&prev_ref, iter->refname);
 		}
 
