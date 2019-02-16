@@ -29,7 +29,12 @@ my $pid = open(my $out, "|-", @command);
 }
 print $out $body_data or die "Cannot write data: $!";
 
-sleep 60; # is interrupted by SIGCHLD
+my $counter = 0;
+while (not $exited and $counter < 60) {
+        sleep 1;
+        $counter = $counter + 1;
+}
+
 if (!$exited) {
         close($out);
         die "Command did not exit after reading whole body";
