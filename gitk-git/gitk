@@ -503,8 +503,9 @@ proc getcommits {selid} {
 proc updatecommits_command {args view} {
     global show_notes vfilelimit
 
-    return [open [concat | git log --no-color -z --pretty=raw $show_notes \
-		   --parents --boundary $args "--" $vfilelimit($view)] r]
+    set args_rest [concat $args "--" $vfilelimit($view)]
+
+    return [open [concat | git log --no-color -z --pretty=raw $show_notes --parents --boundary $args_rest] r]
 }
 
 proc updatecommits {} {
