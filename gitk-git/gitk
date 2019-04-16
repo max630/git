@@ -561,13 +561,7 @@ proc updatecommits {} {
 	    set revs $newrevs
 	    set vposids($view) [lsort -unique [concat $oldpos $vposids($view)]]
 	}
-	if {[tk windowingsystem] == "win32"} {
-	    set rest_length [string length [updatecommits_command [list $vflags($view) $revs] $view]]
-	    set oldpos_limit [expr (32000 - $rest_length) / 41]
-	} else {
-	    set oldpos_limit end
-	}
-	set args [concat $vflags($view) $revs --not [lrange $oldpos 0 $oldpos_limit]]
+	set args [concat $vflags($view) $revs --not $oldpos]
     } else {
 	set args $vorigargs($view)
     }
