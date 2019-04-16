@@ -503,8 +503,8 @@ proc getcommits {selid} {
 proc updatecommits_command {args view} {
     global show_notes vfilelimit
 
-    return [concat | git log --no-color -z --pretty=raw $show_notes \
-		   --parents --boundary $args "--" $vfilelimit($view)]
+    return [open [concat | git log --no-color -z --pretty=raw $show_notes \
+		   --parents --boundary $args "--" $vfilelimit($view)] r]
 }
 
 proc updatecommits {} {
@@ -566,7 +566,7 @@ proc updatecommits {} {
 	set args $vorigargs($view)
     }
     if {[catch {
-	set fd [open [updatecommits_command $args $view] r]
+	set fd [updatecommits_command $args $view]
     } err]} {
 	error_popup "[mc "Error executing git log:"] $err"
 	return
