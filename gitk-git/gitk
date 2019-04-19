@@ -508,11 +508,22 @@ proc updatecommits_command {args view} {
     set child [exec sh -c [concat git log --no-color -z --pretty=raw $show_notes --parents --boundary --stdin] <@ [lindex $pIn 0] >@ [lindex $pOut 1] &]
     close [lindex $pIn 0]
     close [lindex $pOut 1]
-    foreach arg [concat $args "--" $vfilelimit($view)] {
-        if {[string first "\n" $arg] > -1} {
+    set seen_not 0
+    foreach arg $args {
+        if {$arg eq "--not"} {
+            set seen_not 1
+        } elseif {$seen_not} {
+            puts [lindex $pIn 1] "^$arg"
+        } else {
+            puts [lindex $pIn 1] "$arg"
+        }
+    }
+    puts [lindex $pIn 1] "--"
+    foreach file_arg $vfilelimit($view) {
+        if {[string first "\n" $file_arg] > -1} {
             puts "oops: newlines in arguments not supported"
         } else {
-            puts [lindex $pIn 1] $arg
+            puts [lindex $pIn 1] $file_arg
         }
     }
     close [lindex $pIn 1]
