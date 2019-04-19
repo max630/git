@@ -503,9 +503,18 @@ proc getcommits {selid} {
 proc updatecommits_command {args view} {
     global show_notes vfilelimit
 
+    foreach arg [split $args " "] {
+        if {($arg ne "--not") && ![regexp {[0-9a-f]{16}} $arg]} {
+            puts [list arg $arg]
+        }
+    }
+
+    puts [list vfilelimit $vfilelimit($view)]
     set args_rest [concat $args "--" $vfilelimit($view)]
 
-    return [open [concat | git log --no-color -z --pretty=raw $show_notes --parents --boundary $args_rest] r]
+    set cmd [concat | git log --no-color -z --pretty=raw $show_notes --parents --boundary $args_rest]
+    puts [list cmd $cmd]
+    return [open $cmd r]
 }
 
 proc updatecommits {} {
