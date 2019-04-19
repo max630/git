@@ -511,12 +511,9 @@ proc updatecommits_command {args view} {
 
     puts [list vfilelimit $vfilelimit($view)]
     set args_rest [concat $args "--" $vfilelimit($view)]
-    foreach cmd_arg [concat "--" $vfilelimit($view)] {
-        puts [list cmd_arg $cmd_arg]
-    }
 
     set cmd [concat | git log --no-color -z --pretty=raw $show_notes --parents --boundary $args_rest]
-    # puts [list cmd $cmd]
+    puts [list cmd $cmd]
     return [open $cmd r]
 }
 
