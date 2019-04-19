@@ -508,13 +508,24 @@ proc updatecommits_command {args view} {
     #  * store them as list rather than string
     # * quoting?
     #  * fir branches spaces seem forbidden, need to test other specials
-    set args_rest [concat $args "--" $vfilelimit($view)]
+    # set args_rest [concat $args "--" $vfilelimit($view)]
     # set command [concat git log --no-color -z --pretty=raw $show_notes --parents --boundary]
 
     # return [open [concat | $command $args_rest] r]
+    set pIn [chan pipe]
     set pOut [chan pipe]
-    set child [exec sh -c [concat git log --no-color -z --pretty=raw $show_notes --parents --boundary --stdin] << $args_rest >@ [lindex $pOut 1] &]
+    set child [exec sh -c [concat git log --no-color -z --pretty=raw $show_notes --parents --boundary --stdin] <@ [lindex $pIn 0] >@ [lindex $pOut 1] &]
+    close [lindex $pIn 0]
     close [lindex $pOut 1]
+    foreach arg [concat $args "--" $vfilelimit($view)] {
+        if {[string first "\n" $arg] > -1} {
+            puts "oops: newlines in arguments not supported"
+        } else {
+            puts [lindex $pIn 1] $arg
+        }
+    }
+    close [lindex $pIn 1]
+
     # not needed here?
     # fconfigure [lindex $pOut 0] -blocking 0
     return [lindex $pOut 0]
