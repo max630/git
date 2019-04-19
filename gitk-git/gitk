@@ -513,6 +513,9 @@ proc updatecommits_command {args view} {
         if {$arg eq "--not"} {
             set seen_not 1
         } elseif {$seen_not} {
+            if {![regexp {[0-9a-f]{16}} $arg]} {
+                puts "oops: unexpected refspec to ignore (only hashes are expected): $arg"
+            }
             puts [lindex $pIn 1] "^$arg"
         } else {
             puts [lindex $pIn 1] "$arg"
