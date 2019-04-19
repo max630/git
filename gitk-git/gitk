@@ -503,15 +503,6 @@ proc getcommits {selid} {
 proc updatecommits_command {args view} {
     global show_notes vfilelimit
 
-    # FIXME:
-    # * newlines between arguments (each of them!)
-    #  * store them as list rather than string
-    # * quoting?
-    #  * fir branches spaces seem forbidden, need to test other specials
-    # set args_rest [concat $args "--" $vfilelimit($view)]
-    # set command [concat git log --no-color -z --pretty=raw $show_notes --parents --boundary]
-
-    # return [open [concat | $command $args_rest] r]
     set pIn [chan pipe]
     set pOut [chan pipe]
     set child [exec sh -c [concat git log --no-color -z --pretty=raw $show_notes --parents --boundary --stdin] <@ [lindex $pIn 0] >@ [lindex $pOut 1] &]
@@ -526,8 +517,6 @@ proc updatecommits_command {args view} {
     }
     close [lindex $pIn 1]
 
-    # not needed here?
-    # fconfigure [lindex $pOut 0] -blocking 0
     return [lindex $pOut 0]
 }
 
