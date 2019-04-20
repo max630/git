@@ -501,30 +501,37 @@ proc getcommits {selid} {
 }
 
 proc updatecommits_command {args oldpos view} {
-    global show_notes vfilelimit
+    global have_tk86 show_notes vfilelimit
 
-    set pIn [chan pipe]
-    set pOut [chan pipe]
-    set child [exec sh -c [concat git log --no-color -z --pretty=raw $show_notes --parents --boundary $args --stdin] <@ [lindex $pIn 0] >@ [lindex $pOut 1] &]
-    close [lindex $pIn 0]
-    close [lindex $pOut 1]
-    foreach arg $oldpos {
-        if {![regexp {[0-9a-f]{16}} $arg]} {
-            puts "oops: unexpected refspec to ignore (only hashes are expected): $arg"
-        }
-        puts [lindex $pIn 1] "^$arg"
-    }
-    puts [lindex $pIn 1] "--"
-    foreach file_arg $vfilelimit($view) {
-        if {[string first "\n" $file_arg] > -1} {
-            puts "oops: newlines in arguments not supported"
-        } else {
-            puts [lindex $pIn 1] $file_arg
-        }
-    }
-    close [lindex $pIn 1]
+    set command_head [concat git log --no-color -z --pretty=raw $show_notes --parents --boundary $args]
 
-    return [lindex $pOut 0]
+    if {!have_tk86} {
+        return [open [concat | $command_head --not $oldpos -- $vfilelimit($view)] r]
+    } else {
+        set pIn [chan pipe]
+        set pOut [chan pipe]
+        set child [exec sh -c [concat $command_head --stdin] <@ [lindex $pIn 0] >@ [lindex $pOut 1] &]
+        close [lindex $pIn 0]
+        close [lindex $pOut 1]
+
+        foreach arg $oldpos {
+            if {![regexp {[0-9a-f]{16}} $arg]} {
+                puts "oops: unexpected refspec to ignore (only hashes are expected): $arg"
+            }
+            puts [lindex $pIn 1] "^$arg"
+        }
+        puts [lindex $pIn 1] "--"
+        foreach file_arg $vfilelimit($view) {
+            if {[string first "\n" $file_arg] > -1} {
+                puts "oops: newlines in arguments not supported"
+            } else {
+                puts [lindex $pIn 1] $file_arg
+            }
+        }
+        close [lindex $pIn 1]
+
+        return [lindex $pOut 0]
+    }
 }
 
 proc updatecommits {} {
