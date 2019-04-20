@@ -500,26 +500,19 @@ proc getcommits {selid} {
     }
 }
 
-proc updatecommits_command {args view} {
+proc updatecommits_command {args oldpos view} {
     global show_notes vfilelimit
 
     set pIn [chan pipe]
     set pOut [chan pipe]
-    set child [exec sh -c [concat git log --no-color -z --pretty=raw $show_notes --parents --boundary --stdin] <@ [lindex $pIn 0] >@ [lindex $pOut 1] &]
+    set child [exec sh -c [concat git log --no-color -z --pretty=raw $show_notes --parents --boundary $args --stdin] <@ [lindex $pIn 0] >@ [lindex $pOut 1] &]
     close [lindex $pIn 0]
     close [lindex $pOut 1]
-    set seen_not 0
-    foreach arg $args {
-        if {$arg eq "--not"} {
-            set seen_not 1
-        } elseif {$seen_not} {
-            if {![regexp {[0-9a-f]{16}} $arg]} {
-                puts "oops: unexpected refspec to ignore (only hashes are expected): $arg"
-            }
-            puts [lindex $pIn 1] "^$arg"
-        } else {
-            puts [lindex $pIn 1] "$arg"
+    foreach arg $oldpos {
+        if {![regexp {[0-9a-f]{16}} $arg]} {
+            puts "oops: unexpected refspec to ignore (only hashes are expected): $arg"
         }
+        puts [lindex $pIn 1] "^$arg"
     }
     puts [lindex $pIn 1] "--"
     foreach file_arg $vfilelimit($view) {
@@ -588,12 +581,13 @@ proc updatecommits {} {
 	    set revs $newrevs
 	    set vposids($view) [lsort -unique [concat $oldpos $vposids($view)]]
 	}
-	set args [concat $vflags($view) $revs --not $oldpos]
+	set args [concat $vflags($view) $revs]
     } else {
 	set args $vorigargs($view)
+        set oldpos {}
     }
     if {[catch {
-	set fd [updatecommits_command $args $view]
+	set fd [updatecommits_command $args $oldpos $view]
     } err]} {
 	error_popup "[mc "Error executing git log:"] $err"
 	return
