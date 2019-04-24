@@ -505,7 +505,7 @@ proc updatecommits_command {args oldpos view} {
 
     set command_head [concat git log --no-color -z --pretty=raw $show_notes --parents --boundary $args]
 
-    if {!have_tk86} {
+    if {!$have_tk86} {
         # "chan pipe" is added in tcl 8.6
         return [open [concat | $command_head --not $oldpos -- $vfilelimit($view)] r]
     } else {
